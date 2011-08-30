@@ -1,0 +1,11 @@
+2011-08-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0.
+	* rugarch represents an almost complete re-write of the univariate GARCH models of the
+	rgarch package which is now being split into seperate univariate (rugarch) and multivariate (rmgarch) 
+	packages for easier maintenance.
+	* Completed Vignette.
+	* Numerous corrections, elimination of redundant code, and some new functionality has been added.
+	* ARFIMA simulation corrections and multiple checks.
+	* rugarch.tests folder now contains an almost comprehensive set of examples and tests which can be
+	run via a wrapper function found in the runtests.R file.
+	* First upload to CRAN.
