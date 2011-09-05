@@ -20,11 +20,11 @@
 
 void sgarchfilter(int *model, double *pars, int *idx, double *vexdata, double *e, int T, int i, double *h)
 {
-	int j, ind;
+	int j;
 	h[i] = h[i] + pars[idx[6]];
 	if( model[14]>0 )
 	{
-		ind=0;
+		int ind=0;
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
@@ -43,11 +43,11 @@ void sgarchfilter(int *model, double *pars, int *idx, double *vexdata, double *e
 
 void gjrgarchfilter(int *model, double *pars, int *idx, double *vexdata, double *nres, double *e, int T, int i, double *h)
 {
-	int j, ind;
+	int j;
 	h[i] = h[i] + pars[idx[6]];
 	if( model[14]>0 )
 	{
-		ind=0;
+		int ind=0;
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
@@ -66,11 +66,11 @@ void gjrgarchfilter(int *model, double *pars, int *idx, double *vexdata, double 
 
 void aparchfilter(int *model, double *pars, int *idx, double *vexdata, double *res, int T, int i, double *h)
 {
-	int j, ind;
+	int j;
 	h[i] = h[i] + pars[idx[6]];
 	if( model[14]>0 )
 	{
-		ind=0;
+		int ind=0;
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
@@ -90,11 +90,11 @@ void aparchfilter(int *model, double *pars, int *idx, double *vexdata, double *r
 
 void egarchfilter(int *model, double *pars, int *idx, double meanz, double *z, double *vexdata, int T, int i, double *h)
 {
-	int j, ind;
+	int j;
 	h[i] = h[i] +  pars[idx[6]];
 	if( model[14]>0 )
 	{
-		ind=0;
+		int ind=0;
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
@@ -115,11 +115,11 @@ void egarchfilter(int *model, double *pars, int *idx, double meanz, double *z, d
 
 void fgarchfilter(int *model, double *pars, int *idx, double kdelta, double *z, double *vexdata, int T, int i, double *h)
 {
-	int j, ind;
+	int j;
 	h[i] = h[i] +  pars[idx[6]];
 	if( model[14]>0 )
 	{
-		ind=0;
+		int ind=0;
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
@@ -150,7 +150,7 @@ void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
  * --------------------------------------------------------------------------------
  * */
 	/*0 constm, 1 condm, 2 res*/
-	int j, k, ind;
+	int j, k;
 	constm[i] = pars[0];
 	// GARCH-In-Mean Initialization (h is always the sigma, not sigma^2 so that h^model[4] is correct)
 	if(model[4]>0)
@@ -160,7 +160,7 @@ void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 	// Exogenous Regressor Initialization
 	if(model[5]>0)
 	{
-		ind=0;
+		int ind=0;
 		for(k=0;k<model[5];k++)
 		{
 			ind=i+(T*k);

@@ -14,13 +14,9 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
-
-.onLoad = function(libname, pkgname)
-{
-	version <- utils::packageDescription("rugarch")$Version
-	writeLines(sprintf("%s (version %s) initialized.", pkgname, version))
+.onLoad <- function(lib, pkg) {
+	if(interactive() || getOption("verbose")) packageStartupMessage(sprintf("Package %s (%s) loaded.  To cite, see citation(\"%s\")\n", pkg, utils::packageDescription(pkg)$Version, pkg))
 }
-
 
 .onUnload<-function(libpath)
 {

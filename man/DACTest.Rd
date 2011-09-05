@@ -43,38 +43,3 @@ performance, \emph{Journal of Business and Economic Statistics},
 \bold{10(4)}, 461--465.\cr
 }
 \author{Alexios Ghalanos}
-\examples{
-\dontrun{
-#  A univariate GARCH model is used with rolling out of sample forecasts.
-data(dji30ret)
-spec = ugarchspec(mean.model = list(armaOrder = c(6,1), include.mean = TRUE),
-variance.model = list(model = "gjrGARCH"), distribution.model = "nig")
-fit = ugarchfit(spec, data = dji30ret[, 1, drop = FALSE], out.sample = 1000)
-pred = ugarchforecast(fit, n.ahead = 1, n.roll = 999)
-dmatrix = cbind(as.array(pred)[,2,],as.array(pred)[,1,], coef(fit)["skew"], 
-coef(fit)["shape"])
-colnames(dmatrix) = c("mu", "sigma", "skew", "shape")
-
-# Get Realized (Oberved) Data
-obsx = tail(dji30ret[,1], 1000)
-# you can check that this is correct by looking at the dates of the
-# first and last predictions:
-as.data.frame(pred, rollframe = 0)
-head(tail(dji30ret[,1, drop = FALSE], 1000), 1)
-
-as.data.frame(pred, rollframe = 999)
-tail(dji30ret[,1, drop = FALSE], 1)
-
-# Transform to Uniform
-uvector = apply(cbind(obsx,dmatrix), 1, FUN = function(x) pdist("nig", q = x[1],
-mu = x[2], sigma = x[3], skew = x[4], shape = x[5]))
-
-# hist(uvector)
-# transform to N(0,1)
-nvector = qnorm(uvector)
-test = BerkowitzLR(data = nvector, lags = 1, significance = 0.05)
-print(test)
-# We fail to reject Null at the 5\% level, but not at 10\%.
-# plot(density(nvector))
-}
-}

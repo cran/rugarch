@@ -38,13 +38,15 @@
 	T = model$modeldata$T
 	fixed.pars = model$fixed.pars
 	fixed.names = names(fixed.pars)
-	
 	idx = model$pidx
 	modelinc = model$modelinc
 	mexdata = model$modeldata$mexdata[1:T, , drop=FALSE]
 	if(is.null(mexdata)) colnames(mexdata)  = NULL
 	if( modelinc[2]!=0 | modelinc[3]!=0 ){
+		ow <- options("warn")
+		options(warn = -1)
 		ttemp = arima(data, order = c(modelinc[2], 0, modelinc[2]), include.mean = modelinc[1], xreg = mexdata, method = "CSS")
+		options(ow)
 		fit.mean = ttemp$coef
 		#res=ttemp$residuals
 		if(modelinc[1]>0){

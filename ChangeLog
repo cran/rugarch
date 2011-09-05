@@ -1,3 +1,13 @@
+2011-09-05  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-1.
+	* Some minor changes to reduce warnings on CRAN check.
+	* packageStartupMessage used for .onLoad
+	* Export of GARCHfilter, uGARCHfilter, GARCHroll and uGARCHroll classes (forgot them
+	on original release!).
+	* Optional use of multicore will still generate warnings (since not available
+	for Windows.
+	* Vignette pdf is pre-built (Rnw simply links to the pdf).
+		
 2011-08-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0.
 	* rugarch represents an almost complete re-write of the univariate GARCH models of the

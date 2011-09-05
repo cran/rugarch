@@ -157,13 +157,13 @@ double rged(const double nu)
 
 double rsged(const double nu, const double xi)
 {
-	double weight, lambda, g, z, rr, m1, mu, sigma, xx, ans;
+	double weight, lambda, z, rr, m1, mu, sigma, xx, ans;
 	weight = xi / (xi + 1.0/xi);
 	z = runif(-1.0 * weight, 1.0 - weight);
 	xx = (z < 0)? 1.0/xi : xi;
 	rr = -1.0 * fabs(rged(nu))/xx * sign(z);
 	lambda = sqrt ( pow(0.5, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
-	g  = nu / ( lambda * (pow(2, 1.0 +1.0/nu)) * gammafn(1.0/nu) );
+	//g  = nu / ( lambda * (pow(2, 1.0 +1.0/nu)) * gammafn(1.0/nu) );
 	m1 = pow(2, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
 	mu = m1 * (xi - 1.0/xi);
 	sigma = sqrt((1 - (m1 * m1)) * ( (xi * xi) + 1.0/(xi* xi) ) + 2 * (m1 * m1) - 1.0);

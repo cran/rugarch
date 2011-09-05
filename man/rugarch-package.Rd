@@ -8,7 +8,7 @@ modelling and testing environment. Modelling is a simple process of defining a
 specification and fitting the data. Inference can be made from summary, various 
 tests and plot methods, while the forecasting, filtering and simulation methods 
 complete the modelling environment. Finally, specialized methods are implemented 
-for simulating the parameter distributions and the evaluating their consistency, 
+for simulating parameter distributions and evaluating parameter consistency, 
 and a bootstrap forecast method which takes into account both parameter and 
 predictive distribution uncertainty.\cr 
 The testing environment is based on a rolling backtest function which considers 
@@ -30,8 +30,8 @@ hosted on r-forge).
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.00\cr
-Date: \tab 2011-08-30\cr
+Version: \tab 1.00-1\cr
+Date: \tab 2011-09-05\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo (>= 0.2.5), numDeriv, chron, Rsolnp\cr }
@@ -49,7 +49,7 @@ forecasting \code{\link{ugarchforecast}}, simulation from fit object
 and rolling estimation and forecast \code{\link{ugarchroll}}. There are also 
 some functions which enable multiple fitting of assets in an easy to use wrapper 
 with the option of multicore functionality, namely \code{\link{multispec}}, 
-\code{\link{multifit}}, \code{link{multifilter}} and \code{\link{multiforecast}}. 
+\code{\link{multifit}}, \code{\link{multifilter}} and \code{\link{multiforecast}}. 
 Explanations on the available methods for the returned classes can be found in 
 the documentation for those classes.\cr
 A separate subset of methods and classes has been included to calculate pure 
@@ -57,7 +57,7 @@ ARFIMA models with constant variance. This subset includes similar functionality
 as with the GARCH methods, with the exception that no plots are yet implemented, 
 and neither is a forecast based on the bootstrap. These may be added in the 
 future. While there are limited examples in the documentation on the ARFIMA 
-methods, the interested user can search the unit.test folder of the source 
+methods, the interested user can search the rugarch.tests folder of the source 
 installation for some tests using ARFIMA models as well as equivalence to the 
 base R arima methods (particularly replication of simulation). Finally, no 
 representation is made about the adequacy of ARFIMA models, particularly the 

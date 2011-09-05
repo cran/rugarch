@@ -1,0 +1,31 @@
+%\VignetteIndexEntry{Introduction to the rugarch package}
+%\VignetteDepends{snowfall}
+%\VignetteKeywords{GARCH}
+%\VignettePackage{rugarch}
+\documentclass[11pt,a4paper]{article}
+\usepackage[OT1]{fontenc}
+\usepackage{natbib}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{anysize}
+\usepackage{amsfonts}
+\usepackage{lscape}
+\usepackage{subfig}
+\usepackage{hyperref}
+\marginsize{2cm}{2cm}{1cm}{1cm}
+\setlength{\textwidth}{16cm}
+\setlength{\oddsidemargin}{0cm}
+\setlength{\textheight}{24cm}
+\setlength{\headheight}{2cm}
+\newtheorem{proof}{Proof}
+\usepackage{Sweave}
+\begin{document}
+\title{Introduction to the rugarch package.\\
+(Version 1.0)}
+\author{Alexios Ghalanos}
+\maketitle
+\tableofcontents
+\newpage
+\input{rugarch.tex}
+\end{document}
