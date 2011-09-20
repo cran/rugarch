@@ -2505,7 +2505,7 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 		xmu = pars[4]
 	}
 	ans = switch(distribution,
-			norm = pnorm(q, mean = mu, sd = sigma, log = FALSE),
+			norm = pnorm(q, mean = mu, sd = sigma, log.p = FALSE),
 			snorm = psnorm(q, mean = mu, sd = sigma, xi = skew),
 			std = pstd(q, mean = mu, sd = sigma, nu = shape),
 			sstd = psstd(q, mean = mu, sd = sigma, nu = shape, xi = skew),
@@ -2537,7 +2537,7 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 		xmu = pars[4]
 	}
 	ans = switch(distribution,
-			norm = qnorm(p, mean = mu, sd = sigma, log = FALSE),
+			norm = qnorm(p, mean = mu, sd = sigma, log.p = FALSE),
 			snorm = qsnorm(p, mean = mu, sd = sigma, xi = skew),
 			std = qstd(p, mean = mu, sd = sigma, nu = shape),
 			sstd = qsstd(p, mean = mu, sd = sigma, nu = shape, xi = skew),

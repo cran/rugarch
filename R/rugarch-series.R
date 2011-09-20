@@ -145,7 +145,7 @@
 		n = length(Dates)
 		# reformat data
 		sdx = format(Dates[n], "%m/%d/%y")
-		fwd = seq.dates(from=sdx, by = periodicity, length=N*8)
+		fwd = seq.dates(from=sdx, by = periodicity, length.=N*8)
 		# generate enough to dates to not cause problem with weekend exclusion later
 		z1 = which(chron::is.weekend(fwd))
 		fwd = as.character(fwd)
@@ -171,7 +171,7 @@ ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
 		n = length(Dates)
 		# reformat data
 		sdx = format(as.Date(Dates[n], format = date.format), format = "%m/%d/%y")
-		fwd = seq.dates(from = sdx, by = periodicity, length = 8 * n.ahead)
+		fwd = seq.dates(from = sdx, by = periodicity, length. = 8 * n.ahead)
 		# generate enough to dates to not cause problem with weekend exclusion later
 		z1 = which(chron::is.weekend(fwd))
 		fwd = format(as.Date(as.character(fwd), format = "%m/%d/%y" ), format = date.format)

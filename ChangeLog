@@ -1,3 +1,9 @@
+2011-09-20  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-2.
+	* More minor changes to some show methods and ugarchbench.
+	* Changes to optimization limits for external regressors.
+	* Bug fix in rolling forecast with arfima (reported by John Kerpel 20-09-2011)
+
 2011-09-05  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-1.
 	* Some minor changes to reduce warnings on CRAN check.

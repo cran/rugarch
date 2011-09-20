@@ -30,8 +30,8 @@ hosted on r-forge).
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.00-1\cr
-Date: \tab 2011-09-05\cr
+Version: \tab 1.00-2\cr
+Date: \tab 2011-09-20\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo (>= 0.2.5), numDeriv, chron, Rsolnp\cr }

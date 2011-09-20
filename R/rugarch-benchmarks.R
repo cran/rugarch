@@ -185,7 +185,7 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 			distribution.model = "std")
 	
 	aparch.1101110002 = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
-			solver = "solnp", solver.control = ctrl)
+			solver = "solnp", solver.control = list(tol=1e-8, trace=0))
 	
 	benchmark$aparch[[1]]$model = 1101110002
 	benchmark$aparch[[1]]$pars = cbind(coef(aparch.1101110002), 
@@ -214,7 +214,7 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 			distribution.model = "std")
 	
 	gjrgarch.1101110002 = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
-			solver = "solnp", solver.control = ctrl)
+			solver = "solnp", solver.control = list(tol=1e-8, trace=0))
 	
 	
 	benchmark$gjrgarch[[1]]$model = 1101110002

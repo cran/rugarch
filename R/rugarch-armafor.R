@@ -21,7 +21,10 @@ armaf = function(ipars, model, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 	# include their n.ahead forecasts provided in the
 	# forecasting routine stage:
 	# mxf: rbind(mexdata, external.forecasts$mregfor)
-	x = c(data, rep(0, n.ahead))
+	
+	# 20-09-2011 bug report was already passing data+n.ahead in some routines
+	# x = c(data, rep(0, n.ahead))
+	x = data
 	if(model[6]>0){
 		mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
 	}
@@ -54,10 +57,13 @@ arfimaf = function(ipars, model, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 		mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
 	}
 	if(model[5]>0) mu = mu + ipars[idx["archm",1],1]*(h^model[5])
-	x = c(data, rep(0, n.ahead))
+	# 20-09-2011 bug report was already passing data+n.ahead in some routines
+	#x = c(data, rep(0, n.ahead))
+	x = data
 	# demean data (includes regressors and arch-in-mean)
 	xdata = x - mu
-	N = length(data)
+	# N should now be as passed, not N+n.ahead=length(data)
+	#N = length(data)
 	# generate fractional series
 	zrf = .fracdiff(c( 1, rep(0, N + n.ahead - 1) ), darfima = as.double( ipars[idx["arfima",1],1]) )
 	if(model[2]>0){

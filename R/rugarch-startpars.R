@@ -41,11 +41,11 @@
 	idx = model$pidx
 	modelinc = model$modelinc
 	mexdata = model$modeldata$mexdata[1:T, , drop=FALSE]
-	if(is.null(mexdata)) colnames(mexdata)  = NULL
+	if(!is.null(mexdata)) colnames(mexdata)  = NULL
 	if( modelinc[2]!=0 | modelinc[3]!=0 ){
 		ow <- options("warn")
 		options(warn = -1)
-		ttemp = arima(data, order = c(modelinc[2], 0, modelinc[2]), include.mean = modelinc[1], xreg = mexdata, method = "CSS")
+		ttemp = arima(data, order = c(modelinc[2], 0, modelinc[3]), include.mean = modelinc[1], xreg = mexdata, method = "CSS")
 		options(ow)
 		fit.mean = ttemp$coef
 		#res=ttemp$residuals
@@ -95,15 +95,17 @@
 		pars[idx["ar", 1]:idx["ar", 2], 5] = -1+TinY
 		pars[idx["ar", 1]:idx["ar", 2], 6] =  1-TinY
 		for(i in 1:modelinc[2]){
-			if(any(substr(start.names, 1, 3)==paste("ar", i, sep = ""))){
-				j = which(substr(start.names, 1, 3)==paste("ar", i, sep = ""))
+			if(i<10) ix = 3 else ix = 4
+			if(any(substr(start.names, 1, ix)==paste("ar", i, sep = ""))){
+				j = which(substr(start.names, 1, ix)==paste("ar", i, sep = ""))[1]
 				armatch = charmatch(start.names[j], arnames[i])
 				pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
 			}
 		}
 		for(i in 1:modelinc[2]){
-			if(any(substr(fixed.names, 1, 3)==paste("ar", i, sep = ""))){
-				j = which(substr(fixed.names, 1, 3)==paste("ar", i, sep = ""))
+			if(i<10) ix = 3 else ix = 4
+			if(any(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))){
+				j = which(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))[1]
 				armatch = charmatch(fixed.names[j], arnames[i])
 				pars[arnames[armatch], 1] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 5] = as.numeric(fixed.pars[j])
@@ -157,8 +159,10 @@
 	# exogenous regressors
 	if(modelinc[6]>0){
 		mxnames = paste("mxreg",1:modelinc[6],sep="")
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))*-100
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 6] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))* 100
+		#pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))*-100
+		#pars[idx["mxreg", 1]:idx["mxreg", 2], 6] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))* 100
+		pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = -100
+		pars[idx["mxreg", 1]:idx["mxreg", 2], 6] =  100
 		if(any(substr(start.names, 1, 5)=="mxreg")){
 			j = which(substr(start.names, 1, 5)=="mxreg")
 			mxmatch = charmatch(start.names[j],mxnames)
@@ -368,15 +372,17 @@
 		pars[idx["ar", 1]:idx["ar", 2], 5] = -1+TinY
 		pars[idx["ar", 1]:idx["ar", 2], 6] =  1-TinY
 		for(i in 1:modelinc[2]){
-			if(any(substr(start.names, 1, 3)==paste("ar", i, sep = ""))){
-				j = which(substr(start.names, 1, 3)==paste("ar", i, sep = ""))
-				armatch = charmatch(start.names[j], arnames[i])
-				pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
-			}
+			if(i<10) ix = 3 else ix = 4
+				if(any(substr(start.names, 1, ix)==paste("ar", i, sep = ""))){
+					j = which(substr(start.names, 1, ix)==paste("ar", i, sep = ""))[1]
+					armatch = charmatch(start.names[j], arnames[i])
+					pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
+				}
 		}
 		for(i in 1:modelinc[2]){
-			if(any(substr(fixed.names, 1, 3)==paste("ar", i, sep = ""))){
-				j = which(substr(fixed.names, 1, 3)==paste("ar", i, sep = ""))
+			if(i<10) ix = 3 else ix = 4
+			if(any(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))){
+				j = which(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))[1]
 				armatch = charmatch(fixed.names[j], arnames[i])
 				pars[arnames[armatch], 1] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 5] = as.numeric(fixed.pars[j])
@@ -430,8 +436,8 @@
 	# exogenous regressors
 	if(modelinc[6]>0){
 		mxnames = paste("mxreg",1:modelinc[6],sep="")
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))*-100
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 6] = as.numeric(abs(pars[idx["mxreg", 1]:idx["mxreg", 2], 1]))* 100
+		pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = -100
+		pars[idx["mxreg", 1]:idx["mxreg", 2], 6] =  100
 		if(any(substr(start.names, 1, 5)=="mxreg")){
 			j = which(substr(start.names, 1, 5)=="mxreg")
 			mxmatch = charmatch(start.names[j],mxnames)
@@ -889,8 +895,8 @@
 	}
 	if(modelinc[15]>0){
 		vxnames = paste("vxreg",1:modelinc[15],sep="")
-		pars[idx["vxreg", 1]:idx["vxreg", 2], 5] = -200
-		pars[idx["vxreg", 1]:idx["vxreg", 2], 6] = 200
+		pars[idx["vxreg", 1]:idx["vxreg", 2], 5] = -100
+		pars[idx["vxreg", 1]:idx["vxreg", 2], 6] = 100
 		pars[idx["vxreg", 1]:idx["vxreg", 2], 1] = rep(TinY, modelinc[15])
 		if(any(substr(start.names, 1, 5) == "vxreg")){
 			j = which(substr(start.names, 1, 5) == "vxreg")

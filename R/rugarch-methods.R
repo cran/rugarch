@@ -1266,7 +1266,7 @@ setMethod("show",
 					Series.Max = rx2[2,])
 			meansim = apply(dd, 2, FUN = function(x) mean(x))
 			meansim[1] = 0
-			dd = rbind(dd, meansim, actual, uncond)			
+			dd = rbind(dd, meansim, uncond)			
 			rownames(dd) = c(paste("sim", 1:m, sep = ""), "Mean(All)")
 			print(dd, digits = 3)
 			cat("\n\n")

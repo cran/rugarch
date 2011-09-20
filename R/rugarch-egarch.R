@@ -505,9 +505,9 @@
 	}
 	# forecast arma process
 	if(modelinc[4]>0){
-		res = arfimaf(ipars, modelinc, idx, mu, mxfi, h, epsx, z, data[1:N], N, n.ahead)
+		res = arfimaf(ipars, modelinc, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 	} else{
-		res = armaf(ipars, modelinc, idx, mu, mxfi, h, epsx, z, data[1:N], N, n.ahead)
+		res = armaf(ipars, modelinc, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 	}
 	return(list(h = h[(N+1):(N+n.ahead)], x = res[(N+1):(N+n.ahead)]))
 }

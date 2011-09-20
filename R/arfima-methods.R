@@ -381,8 +381,7 @@ setMethod("show",
 			actual = c(0, mean(object@model$modeldata$data[1:T]), 
 					min(object@model$modeldata$data[1:T]), max(object@model$modeldata$data[1:T]))
 			uncond = c(0, uncmean(xspec), NA, NA)
-			dd = data.frame(Seed = object@seed, Sigma2.Mean = sd1, Sigma2.Min = sd2[1,],
-					Sigma2.Max = sd2[2,], Series.Mean = rx1, Series.Min = rx2[1,],
+			dd = data.frame(Seed = object@seed, Series.Mean = rx1, Series.Min = rx2[1,],
 					Series.Max = rx2[2,])
 			meansim = apply(dd, 2, FUN = function(x) mean(x))
 			meansim[1] = 0
