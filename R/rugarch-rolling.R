@@ -154,7 +154,6 @@
 					fit.control = fit.control)
 			if(fitlist[[i]]@fit$convergence!=0){
 				if(i>1){
-					
 					specx[[i]]@model$start.pars = as.list(coef(fitlist[[i-1]]))
 					fitlist[[i]] = ugarchfit(data = xdat, spec = specx[[i]], solver = solver, 
 						out.sample = refit.every, solver.control = solver.control,

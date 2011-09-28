@@ -1,3 +1,11 @@
+2011-09-28  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-3.
+	* Fix to starting and fixed parameters for AR coefficient.
+	* Added a show method for uGARCHroll.
+	* Fixed an issue with passing a data.frame object with numerical
+	indices as rownames (affected most ugarchroll extractor methods).
+
+
 2011-09-20  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-2.
 	* More minor changes to some show methods and ugarchbench.

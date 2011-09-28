@@ -98,7 +98,7 @@
 			if(i<10) ix = 3 else ix = 4
 			if(any(substr(start.names, 1, ix)==paste("ar", i, sep = ""))){
 				j = which(substr(start.names, 1, ix)==paste("ar", i, sep = ""))[1]
-				armatch = charmatch(start.names[j], arnames[i])
+				armatch = charmatch(start.names[j], arnames)
 				pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
 			}
 		}
@@ -106,7 +106,7 @@
 			if(i<10) ix = 3 else ix = 4
 			if(any(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))){
 				j = which(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))[1]
-				armatch = charmatch(fixed.names[j], arnames[i])
+				armatch = charmatch(fixed.names[j], arnames)
 				pars[arnames[armatch], 1] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 5] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 6] = as.numeric(fixed.pars[j])
@@ -261,7 +261,8 @@
 	}
 	# arima without garchInMean
 	if( (modelinc[5] == 0 ||  !is.null(model$start.pars$archm)) && (modelinc[2]>0 | modelinc[3]>0)){
-		ttemp = arima(data, order = c(modelinc[2], 0, modelinc[3]), include.mean = modelinc[1], xreg = mexdata, method = "CSS")
+		ttemp = arima(data, order = c(modelinc[2], 0, modelinc[3]), include.mean = modelinc[1], 
+				xreg = mexdata, method = "CSS")
 		fit.mean = ttemp$coef
 		#res=ttemp$residuals
 		if(modelinc[1]>0){
@@ -375,7 +376,7 @@
 			if(i<10) ix = 3 else ix = 4
 				if(any(substr(start.names, 1, ix)==paste("ar", i, sep = ""))){
 					j = which(substr(start.names, 1, ix)==paste("ar", i, sep = ""))[1]
-					armatch = charmatch(start.names[j], arnames[i])
+					armatch = charmatch(start.names[j], arnames)
 					pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
 				}
 		}
@@ -383,7 +384,7 @@
 			if(i<10) ix = 3 else ix = 4
 			if(any(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))){
 				j = which(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))[1]
-				armatch = charmatch(fixed.names[j], arnames[i])
+				armatch = charmatch(fixed.names[j], arnames)
 				pars[arnames[armatch], 1] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 5] = as.numeric(fixed.pars[j])
 				pars[arnames[armatch], 6] = as.numeric(fixed.pars[j])

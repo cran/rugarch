@@ -100,19 +100,27 @@
 .xseries.dataframe = function(data){
 	xdata = as.numeric(data[,1])
 	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
+	ow <- options("warn")
+	options(warn = (-1))
 	if(!is.null(rownames(data))){
-		rdates = .makedate(rownames(data))
-		if(rdates$status){
-			xdates = rdates$dates
-			dformat = rdates$dformat
-		} else{
-			xdates = 1:length(xdata)
+		if(!is.na(as.numeric(rownames(data)[1]))){
+			xdates = as.numeric(rownames(data))
 			dformat = "numeric"
+		} else{
+			rdates = .makedate(rownames(data))
+			if(rdates$status){
+				xdates = rdates$dates
+				dformat = rdates$dformat
+			} else{
+				xdates = 1:length(xdata)
+				dformat = "numeric"
+			}
 		}
 	} else{
 		xdates = 1:length(xdata)
 		dformat = "numeric"
 	}
+	options(ow)
 	return(list(data = xdata, pos = xdates, dformat = dformat))
 }
 

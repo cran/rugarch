@@ -4,6 +4,7 @@
 \alias{as.data.frame,uGARCHroll-method}
 \alias{plot,uGARCHroll,missing-method}
 \alias{report,uGARCHroll-method}
+\alias{show,uGARCHroll-method}
 \alias{report,ANY-method}
 \alias{report}
 \alias{as.uGARCHforecast,uGARCHroll-method}
@@ -31,6 +32,8 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHroll", distance 2.
 	Extracts  and converts the forecast object contained in the roll object to
     one of \code{\linkS4class{uGARCHforecast}} given the refit number supplied by
     additional argument \sQuote{refit} (defaults to 1).}
+    \item{show}{\code{signature(object = "uGARCHroll")}:
+	Summary.}
 	 }
 }
 \note{

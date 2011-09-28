@@ -1342,6 +1342,43 @@ setMethod("show",
 			cat("\n\n")
 		})
 
+setMethod("show",
+		signature(object = "uGARCHroll"),
+		function(object){
+			cat(paste("\n*-------------------------------------*", sep = ""))
+			cat(paste("\n*              GARCH Roll             *", sep = ""))
+			cat(paste("\n*-------------------------------------*", sep = ""))
+			N = object@roll$n.refit
+			model = object@model
+			modelinc = model$modelinc
+			vmodel = object@model$modeldesc$vmodel
+			cat("\nNo.Refits\t\t:", N)
+			cat("\nRefit Horizon\t:", object@roll$refit.every)
+			cat("\nForecast Horizon:", object@roll$n.ahead)
+			cat(paste("\nGARCH Model\t\t: ", vmodel, "(",modelinc[8],",",modelinc[9],")\n", sep = ""))
+			if(vmodel == "fGARCH"){
+				cat(paste("fGARCH Sub-Model\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
+			}
+			cat("Distribution\t:", model$modeldesc$distribution,"\n")
+			mp = sum(model$modelinc[1:18])
+			if(N>4){
+				cmat = matrix(NA, ncol = 4, nrow = mp)
+				colnames(cmat) = c(paste("refit-", 1:2, sep = ""), paste("refit", (N-1):N, sep = ""))
+				rownames(cmat) = rownames(object@roll$coefmat[[1]])
+				cmat[,1:2] = cbind(object@roll$coefmat[[1]][,1], object@roll$coefmat[[2]][,1])
+				cmat[,3:4] = cbind(object@roll$coefmat[[(N-1)]][,1], object@roll$coefmat[[N]][,1])
+			} else{
+				cmat = matrix(NA, ncol = N, nrow = mp)
+				colnames(cmat) = paste("refit-", 1:N, sep = "")
+				rownames(cmat) = rownames(object@roll$coefmat[[1]])
+				for(i in 1:N) cmat[,i] = object@roll$coefmat[[i]][,1]
+			}
+
+			cat("\nCoefficients (first 2 , last 2):\n")
+			print(round(cmat,5), digit = 5)
+			cat("\n")
+			invisible(object)
+		})
 #-------------------------------------------------------------------------
 # multi-methods
 setMethod("show",
