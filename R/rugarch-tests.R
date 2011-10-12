@@ -296,34 +296,61 @@ lossfn.ret = function(realized, forecast)
 # From his 2001 paper. Also added the Jarque Bera Test as reccomended by Dowd
 # since the test does not really account for residuals being from the Normal distribution.
 
-BerkowitzLR = function(data, lags = 1, significance = 0.05)
+BerkowitzLR = function(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
 {
-	if( lags < 1 ) stop("\nlags must be 1 or greater!") else lags = as.integer(lags)
-	x = as.numeric(data) - mean(data)
-	n = length(data)
-	xlag = NULL
-	for(i in 1:lags) xlag = cbind(xlag, rugarch:::.lagx(x, n.lag = i, pad = 0))
-	ans = lm(x~xlag-1)
-	uLL = sum(dnorm(residuals(ans)[-c(1:lags)], sd = summary(ans)$sigma, log = TRUE))
-	rLL = sum(dnorm(data[-c(1:lags)], log = TRUE))
-	LR = 2*(uLL - rLL)
-	chid = 1-pchisq(LR, 2 + lags)
-	if(chid < significance) res = paste("reject NULL") else res = paste("fail to reject NULL")
-	H0 = paste("Normal(0,1) with no autocorrelation")
-	m1 = sum(x)/n
-	xm = (x - m1)
-	m2 = sum(xm^2)/n
-	m3 = sum(xm^3)/n
-	m4 = sum(xm^4)/n
-	k1 = (m3/m2^(3/2))^2
-	k2 = (m4/m2^2)
-	JB = n * k1/6 + n * (k2 - 3)^2/24
-	JBp = 1 - pchisq(JB, df = 2)
-	return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, Test = res, 
-					mu = mean(data), sigma = summary(ans)$sigma, rho =  coef(ans)[1:(lags)],
-			JB = JB, JBp = JBp))
+	if(tail.test){
+		ans = .BerkowitztLRtail(data, alpha = alpha, significance = significance)
+		ans$rho =  NA
+		ans$JB = NA
+		ans$JBp = NA
+		return(ans)
+	} else{
+		if( lags < 1 ) stop("\nlags must be 1 or greater!") else lags = as.integer(lags)
+		x = as.numeric(data) - mean(data)
+		n = length(data)
+		xlag = NULL
+		for(i in 1:lags) xlag = cbind(xlag, rugarch:::.lagx(x, n.lag = i, pad = 0))
+		ans = lm(x~xlag-1)
+		uLL = sum(dnorm(residuals(ans)[-c(1:lags)], sd = summary(ans)$sigma, log = TRUE))
+		rLL = sum(dnorm(data[-c(1:lags)], log = TRUE))
+		LR = 2*(uLL - rLL)
+		chid = 1-pchisq(LR, 2 + lags)
+		if(chid < significance) res = paste("reject NULL") else res = paste("fail to reject NULL")
+		H0 = paste("Normal(0,1) with no autocorrelation")
+		m1 = sum(x)/n
+		xm = (x - m1)
+		m2 = sum(xm^2)/n
+		m3 = sum(xm^3)/n
+		m4 = sum(xm^4)/n
+		k1 = (m3/m2^(3/2))^2
+		k2 = (m4/m2^2)
+		JB = n * k1/6 + n * (k2 - 3)^2/24
+		JBp = 1 - pchisq(JB, df = 2)
+		return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, Test = res, 
+						mu = mean(data), sigma = summary(ans)$sigma, rho =  coef(ans)[1:(lags)],
+				JB = JB, JBp = JBp))
+	}
 }
 
+.BerkowitztLRtail = function(data, alpha = 0.05, significance = 0.05){
+	
+	.lrh = function(pars, x){
+		p1 = x[which(x<qnorm(alpha))]
+		p2 = x[which(x>=qnorm(alpha))]*0 + qnorm(alpha)
+		-( sum(log(dnorm((p1-pars[1])/pars[2])/pars[2])) + sum(log(1-pnorm((p2 - pars[1])/pars[2]) )) )
+	}
+	tst = solnp(c(0.0, 0.95), fun = .lrh, LB = c(-10, 0.01), UB = c(10, 3), x = data, control=list(trace = FALSE))
+	uLL = -tail(tst$values, 1)
+	rLL = -.lrh(c(0, 1), data)
+	LR = 2 * (uLL - rLL)
+	chid = 1 - pchisq(LR, 2)
+	if (chid < significance) 
+		res = paste("reject NULL")
+	else res = paste("fail to reject NULL")
+	H0 = paste("Normal(0,1)")
+	return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, 
+					Test = res, mu = tst$par[1], sigma = tst$par[2]))
+}
 
 # Tests of Directional Accuracy
 DACTest = function(forecast, actual, test = c("PT", "AG"), conf.level = 0.95)
@@ -406,8 +433,6 @@ lossfn.ret = function(realized, forecast)
 }
 
 
-
-
 .VaRplot = function(varname , p, actual, dates, VaR)
 {
 	
@@ -481,49 +506,55 @@ lossfn.ret = function(realized, forecast)
 # Functions to perform Hypothesis test
 # on VaR models based on # of exceedances
 # calc LR.uc statistic
-
-LR.uc = function(p, TN, N)
+LR.cc.test = function (p, actual, VaR, conf.level = 0.95) 
 {
-	stat.uc = -2*log((1-p)^(TN-N)*p^N )+2*log((1-N/TN)^(TN-N)*(N/TN)^N)
-	
+	result = .LR.cc(p = p, actual = actual, VaR = VaR)
+	crit.val.uc = qchisq(conf.level, df = 1)
+	crit.val.cc = qchisq(conf.level, df = 2)
+	p.value.cc = 1 - pchisq(result$stat.cc, df = 2)
+	p.value.uc = 1 - pchisq(result$stat.uc, df = 1)
+	reject = ifelse(p.value.cc < 1 - conf.level, TRUE, FALSE)
+	return(list(stat.cc = result$stat.cc, stat.uc = result$stat.uc, 
+					p.value.cc = p.value.cc, p.value.uc = p.value.uc, conf.level = conf.level, 
+					reject = reject, N = result$N, TN = result$TN, crit.val.uc = crit.val.uc, 
+					crit.val.cc = crit.val.cc))
+}
+
+.LR.cc = function (p, actual, VaR) 
+{
+	VaR.ind = ifelse(actual < VaR, 1, 0)
+	N = sum(VaR.ind)
+	TN = length(VaR.ind)
+	T00 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 
+												1)] == 0, 1, 0)))
+	T11 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 
+												1)] == 1, 1, 0)))
+	T01 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 
+												1)] == 0, 1, 0)))
+	T10 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 
+												1)] == 1, 1, 0)))
+	T0 = T00 + T01
+	T1 = T10 + T11
+	pi0 = T01/T0
+	pi1 = T11/T1
+	pe = (T01 + T11)/(T0 + T1)
+	stat.ind = -2 * .Log((1 - pe)^(T00 + T10) * pe^(T01 + T11)) + 
+			2 * .Log((1 - pi0)^T00 * pi0^T01 * (1 - pi1)^T10 * pi1^T11)
+	stat.uc = .LR.uc(p = p, TN = TN, N = N)
+	stat.cc = stat.uc + stat.ind
+	return(list(stat.cc = stat.cc, stat.uc = stat.uc, N = N, 
+					TN = TN))
+}
+
+.LR.uc = function (p, TN, N) 
+{
+	stat.uc = -2 * .Log((1 - p)^(TN - N) * p^N) + 2 * .Log((1 - 
+						N/TN)^(TN - N) * (N/TN)^N)
 	return(stat.uc)
 }
 
-# calc LR.cc statistic
-
-LR.cc = function(p, actual, VaR)
-{
-	VaR.ind = ifelse(actual < VaR,1,0)
-	N = sum(VaR.ind)
-	TN = length(VaR.ind)
-	T00 = sum(c(0,ifelse(VaR.ind[2:TN]==0 & VaR.ind[1:(TN-1)]==0,1,0)))
-	T11 = sum(c(0,ifelse(VaR.ind[2:TN]==1 & VaR.ind[1:(TN-1)]==1,1,0)))
-	T01 = sum(c(0,ifelse(VaR.ind[2:TN]==1 & VaR.ind[1:(TN-1)]==0,1,0)))
-	T10 = sum(c(0,ifelse(VaR.ind[2:TN]==0 & VaR.ind[1:(TN-1)]==1,1,0)))
-	
-	T0 = T00+T01
-	T1 = T10+T11
-	pi0 = T01/T0
-	pi1 = T11/T1
-	pe = (T01+T11)/(T0+T1)
-	stat.ind =  -2*log((1-pe)^(T00+T10)*pe^(T01+T11))+2*log((1-pi0)^T00*pi0^T01*(1-pi1)^T10*pi1^T11)
-	stat.uc = LR.uc(p=p,TN=TN,N=N)
-	stat.cc = stat.uc + stat.ind
-	return(list(stat.cc = stat.cc, stat.uc = stat.uc, N = N, TN = TN))
-}
-
-# perform LR.cc confidence test
-LR.cc.test = function(p, actual, VaR, conf.level = 0.95)
-{
-	result = LR.cc(p = p, actual = actual,VaR = VaR)
-	crit.val.uc = qchisq(conf.level, df = 1)
-	crit.val.cc = qchisq(conf.level, df = 2)
-	p.value.cc = 1-pchisq(result$stat.cc, df = 2)
-	p.value.uc = 1-pchisq(result$stat.uc, df = 1)
-	reject = ifelse(p.value.cc<1-conf.level, TRUE, FALSE)
-	return(list(stat.cc = result$stat.cc, stat.uc = result$stat.uc,
-					p.value.cc = p.value.cc, p.value.uc = p.value.uc,
-					conf.level=conf.level, reject = reject,
-					N = result$N, TN = result$TN, crit.val.uc = crit.val.uc,
-					crit.val.cc = crit.val.cc))
+.Log = function(x){
+	ans = log(x)
+	if(!is.finite(ans)) ans = sign(ans) * 1e10
+	ans
 }

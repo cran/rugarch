@@ -1,6 +1,6 @@
 e85b827c5cfe1dce1a2599840bf18b31 *COPYRIGHTS
-a1b3cd55114c232663ad256324d10568 *ChangeLog
-b0561e8bc26581531436b3bc0d950bf9 *DESCRIPTION
+60f7c00c7413cb843d967d730b4004a4 *ChangeLog
+b2e950726333099282a8fcf47b5eb02c *DESCRIPTION
 7ee6ba37f710a62d6ec98ce63708e1e7 *NAMESPACE
 51594720e4a778f560cfda3302a04253 *R/arfima-classes.R
 fdb53b75dcc66b2a379de5c15fcd3ce3 *R/arfima-main.R
@@ -12,7 +12,7 @@ f126499334bcb73cd55fc47fb8c26788 *R/arfima-multi.R
 e68b0c29204bcc10a82649ffe5a413bb *R/rugarch-bootstrap.R
 a061ee87555098a5180279ff59cf0515 *R/rugarch-classes.R
 3e35c8bb8cf19dfa80a0b3123fa6b782 *R/rugarch-cwrappers.R
-4481715d514bd01cdbc8d8b0897450fc *R/rugarch-distributions.R
+28d6c3897966b614df978a2f7963ed49 *R/rugarch-distributions.R
 7f2a33393de0380933f5609c32278703 *R/rugarch-egarch.R
 b2ef9eb0b6f601f72fa83e40df1506d4 *R/rugarch-fgarch.R
 6ed5900f08129276eb64f0cda1a36102 *R/rugarch-gjrgarch.R
@@ -24,13 +24,13 @@ bc1ef5e2ce8ee1c4cbefd841e50b0fcf *R/rugarch-kappa.R
 c83fd893a0f87005d953ebd2a40ab73e *R/rugarch-methods.R
 c851e2f291283a223d711e876d24bed3 *R/rugarch-multi.R
 d0536e48d131762d288878fa24793821 *R/rugarch-numderiv.R
-88ea5744595d165a199457aea873be3b *R/rugarch-plots.R
+31cdba80ecca46d40162c4e3df2f9841 *R/rugarch-plots.R
 fd68e56aa8b18242dfefa6bfbe4dae57 *R/rugarch-rolling.R
 5082c81ae5a5ea50782ba96083a4707a *R/rugarch-series.R
 b6062a38b7147bbc797390748c6c1640 *R/rugarch-sgarch.R
 c468456ddfa1d4e45693546a5bf5726e *R/rugarch-solvers.R
 9914b853dd2cecab797bf206703b3703 *R/rugarch-startpars.R
-8e13e3c75a852d0c9816611807dade7a *R/rugarch-tests.R
+fd54793c818870626ef0a302b6a93198 *R/rugarch-tests.R
 b6e421eb8719f7581f19c88f6ca21660 *R/rugarch-uncertainty.R
 a10f9443d5da513c8108963f17490e9c *R/zzz.R
 ee608ec9306bbe83901679b05c7a0217 *data/dji30ret.rda
@@ -38,7 +38,7 @@ ee608ec9306bbe83901679b05c7a0217 *data/dji30ret.rda
 3b90d098f630598490e4c1eadcfe65f0 *data/sp500ret.rda
 5fa4ff37da8b7cbdcb19c638357d2567 *inst/CITATION
 e9b31e935b1db569aa2c5b15870288ca *inst/doc/Introduction_to_the_rugarch_package.Rnw
-c0fa714f60ee96bfabf35f0f04592941 *inst/doc/Introduction_to_the_rugarch_package.pdf
+dcbb04ad7d77a25ad55b4d9b2f983f1c *inst/doc/Introduction_to_the_rugarch_package.pdf
 607eee2fdaeb8ff782b42f02f9a71ad6 *inst/doc/Sweave.sty
 63f26d8e86708618432a3ac0b385ddc7 *inst/doc/boot.png
 d4aef2d33909d98d2ab657552abc6d28 *inst/doc/dist1.png
@@ -74,8 +74,8 @@ e2c3deee5b717063c08432022de990db *man/ARFIMAmultiforecast-class.Rd
 53aaeaceec8b96b89cb32ec874423c7b *man/ARFIMAroll-class.Rd
 3ed55506f977650e063e7ea4ff6b62fa *man/ARFIMAsim-class.Rd
 70672b8f655fb6297d52a96429ebe248 *man/ARFIMAspec-class.Rd
-859db897a8f6245c8d65b53153b67c03 *man/BerkowitzLR.Rd
-44926ec5edb40d3a155de487314a38ca *man/DACTest.Rd
+ecb23dc080144d2f23d62e6cc1998afd *man/BerkowitzLR.Rd
+e2633f1037559f9ff0192f88bdec8928 *man/DACTest.Rd
 84c7f74cba735846da54b3437557e194 *man/ForwardDates-methods.Rd
 5837599216937fb1a368b254d53b046b *man/GARCHboot-class.Rd
 b528299f4d3eb95e1b5961b6b0efc0bd *man/GARCHdistribution-class.Rd
@@ -104,7 +104,7 @@ f490e89390338c2af23a5840174db98f *man/multifit-methods.Rd
 60560b698b8dbd9e0925440a4db5c770 *man/multiforecast-methods.Rd
 016246816cd28479896e0a4c7492196f *man/multispec-methods.Rd
 6c5b8ee1a18f13cfb5ce6f2a1a85c94f *man/rGARCH-class.Rd
-6aae85d85c3b4d84235fe74e29b6c2cb *man/rugarch-package.Rd
+a502936a63c1bf5330662bf4a9ea3b6a *man/rugarch-package.Rd
 db6001bed1960a80f0bf3d4dcbd5de18 *man/sp500ret.Rd
 3a02b0e5df655ee34176f892f4692c6a *man/uGARCHboot-class.Rd
 0dd12c43252ba31f89ac90bab5f570f3 *man/uGARCHdistribution-class.Rd

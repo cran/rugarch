@@ -1,3 +1,12 @@
+2011-10-12  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-4.
+	* Added tail.test option to BerkowitzLR test. This is a likelihood ratio 
+	test based on censored normal for testing fit of the tail using the 
+	probability integral transform (PIT).
+	* Added an example to the DACtest function (in documentation).
+	* Fixed a bug in rolling forecast when calling ghyp functions with variable length lambda
+	(changes to qdensity and scaledist to handle vector inputs of lambda).
+	
 2011-09-28  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-3.
 	* Fix to starting and fixed parameters for AR coefficient.

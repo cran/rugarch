@@ -43,3 +43,16 @@ performance, \emph{Journal of Business and Economic Statistics},
 \bold{10(4)}, 461--465.\cr
 }
 \author{Alexios Ghalanos}
+\examples{
+\dontrun{
+data(dji30ret)
+spec = ugarchspec(mean.model = list(armaOrder = c(6,1), include.mean = TRUE),
+variance.model = list(model = "gjrGARCH"), distribution.model = "nig")
+fit = ugarchfit(spec, data = dji30ret[, 1, drop = FALSE], out.sample = 1000)
+pred = ugarchforecast(fit, n.ahead = 1, n.roll = 999)
+# Get Realized (Oberved) Data
+obsx = tail(dji30ret[,1], 1000)
+forc = as.numeric(as.data.frame(pred,rollframe="all",align=FALSE,which="series"))
+print(DACTest(forc, obsx, test = "PT", conf.level = 0.95))
+print(DACTest(forc, obsx, test = "AG", conf.level = 0.95))
+}}

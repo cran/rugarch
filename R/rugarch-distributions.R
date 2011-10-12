@@ -2176,7 +2176,11 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 
 .ghypscale = function(mu, sigma, skew, shape, lambda)
 {
-	ghpars = t(apply(cbind(shape, skew), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = lambda)))
+	if(length(lambda)>1){
+		ghpars = t(apply(cbind(shape, skew, lambda), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = x[3])))
+	} else{
+		ghpars = t(apply(cbind(shape, skew), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = lambda)))
+	}
 	xdensity = matrix(0, ncol = 4, nrow = length(sigma))
 	# alpha, beta, delta, mu
 	xdensity[,4] = ghpars[,1]/sigma
@@ -2320,8 +2324,13 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	}
 	
 	if(distribution == "ghyp") {
-		ans = apply(cbind(z, mu, sigma, shape, skew), 1, FUN=function(x) qgh(p = x[1],
+		if(length(lambda)>1){
+			ans = apply(cbind(z, mu, sigma, shape, skew, lambda), 1, FUN=function(x) qgh(p = x[1],
+								alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = x[6]))
+		} else{
+			ans = apply(cbind(z, mu, sigma, shape, skew), 1, FUN=function(x) qgh(p = x[1],
 							alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = lambda))
+		}
 	}
 	
 	if(distribution == "jsu") {

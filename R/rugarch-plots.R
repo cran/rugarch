@@ -1315,9 +1315,11 @@
 	if(is.vector(fdensity)){
 		xden = fdensity[[n.ahead]][,-1]
 		xdate =  as.Date(as.character(fdensity[[n.ahead]][,"fdate"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"fdate"])
 	} else{
 		xden = fdensity[,-1]
 		xdate =  as.Date(as.character(fdensity[,"fdate"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate = as.character(fdensity[,"fdate"])
 	}
 	xseq = seq(density.support[1], density.support[2], length.out=1000)
 	yseq = apply(as.data.frame(2:n), 1, FUN=function(i)  
@@ -1325,7 +1327,7 @@
 						lambda = xden[i,"fdlambda"], skew = xden[i,"fskew"], shape = xden[i,"fshape"], 
 						distribution = distribution))
 	plot(xseq, .ddensity(xseq, mu = xden[1,"fmu"], sigma = xden[1,"fsigma"], 
-					lambda = xden[i,"fdlambda"], skew = xden[1,"fskew"], shape = xden[1,"fshape"], 
+					lambda = xden[1,"fdlambda"], skew = xden[1,"fskew"], shape = xden[1,"fshape"], 
 					distribution = distribution), type="l", col = "steelblue", 
 			main = paste("n.ahead-", n.ahead," Forecast Density (time varying)",sep=""), ylab="", cex.main = 0.7)
 	for(i in 1:(n-1)){
@@ -1345,9 +1347,13 @@
 	if(is.vector(fdensity)){
 		xsig = fdensity[[n.ahead]][,"f01sigma"]
 		xdate = as.Date(as.character(fdensity[[n.ahead]][,"f01date"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"f01date"])
+		
 	} else{
 		xsig = fdensity[,"f01sigma"]
 		xdate =  as.Date(as.character(fdensity[,"f01date"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate =as.character(fdensity[,"f01date"])
+		
 	}
 	plot(xdate, xsig, type="l", col = "steelblue", main = paste("n.ahead-", n.ahead," Sigma Forecast", sep = ""), 
 			ylab = "forecast sigma", cex.main = 0.7)
@@ -1364,9 +1370,11 @@
 	if(is.vector(fdensity)){
 		xmu = fdensity[[n.ahead]][,"f01mu"]
 		xdate =  as.Date(as.character(fdensity[[n.ahead]][,"f01date"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"f01date"])
 	} else{
 		xmu = fdensity[,"f01mu"]
 		xdate =  as.Date(as.character(fdensity[,"f01date"]), format = "%Y-%m-%d")
+		if(is.na(xdate[1])) xdate =as.character(fdensity[,"f01date"])
 	}
 	actseries = x@model$modeldata$filterseries
 	plot(xdate, xmu, type="l", col = "steelblue", main = paste("n.ahead-",n.ahead," Series Forecast",sep=""), ylab="return", ylim=c(min(min(actseries),min(xmu)), max(max(actseries),max(xmu))), cex.main = 0.7)

@@ -7,7 +7,7 @@
 	Implements the Berkowitz Density Forecast Likelihood Ratio Test.
 }
 \usage{
-BerkowitzLR(data, lags = 1, significance = 0.05)
+BerkowitzLR(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
 }
 \arguments{
 	\item{data}{
@@ -19,6 +19,12 @@ BerkowitzLR(data, lags = 1, significance = 0.05)
 	}
 	\item{significance}{
 		The level of significance at which the Null Hypothesis is evaluated.
+	}
+	\item{tail.test}{
+		Whether to use the tail test of Berkowitz using a censored likelihood.
+	}
+	\item{alpha}{
+		The quantile level for the tail.test cuttoff.
 	}
 }
 \details{
@@ -37,9 +43,12 @@ BerkowitzLR(data, lags = 1, significance = 0.05)
 	significance.}
 	\item{mu }{The estimated mean of the model.}
 	\item{sigma }{The estimated sd of the model.}
-	\item{rho }{The estimated autoregressive coefficients of the model.}
-	\item{JB}{ The Jarque Bera Test of Normality Statistic.}
-	\item{JBp}{ The Jarque Beta Test Statistic p-value.}
+	\item{rho }{The estimated autoregressive coefficients of the model (not 
+	calculated when tail.test is used).}
+	\item{JB}{ The Jarque-Bera Test of Normality Statistic (not calculated when 
+	tail.test is used).}
+	\item{JBp}{ The Jarque-Beta Test Statistic p-value (not calculated when 
+	tail.test is used).}
 }
 \references{
 	Berkowitz, J. 2001, Testing density forecasts, with applications to risk 
@@ -63,7 +72,9 @@ of the forecast density (p*). This will result in a set of uniform values
 applying the standard normal quantile function (qnorm). The example below 
 hopefully clarifies this. The function also returns the Jarque Bera Normality 
 Test statistic as an additional check of the normality assumption which the test 
-does not explicitly account for (see Dowd reference).
+does not explicitly account for (see Dowd reference). When tail.test is used, 
+the test of the tail at the \dQuote{alpha} quantile level is performed using
+a censored normal likelihood.
 }
 \examples{
 \dontrun{
@@ -94,9 +105,10 @@ mu = x[2], sigma = x[3], skew = x[4], shape = x[5]))
 # hist(uvector)
 # transform to N(0,1)
 nvector = qnorm(uvector)
-test = BerkowitzLR(data = nvector, lags = 1, significance = 0.05)
-print(test)
-# We fail to reject Null at the 5\% level, but not at 10\%.
-# plot(density(nvector))
+test1 = BerkowitzLR(data = nvector, lags = 1, significance = 0.05)
+test2 = BerkowitzLR(data = nvector, alpha = 0.05, significance = 0.05, 
+tail.test=TRUE)
+test3 = BerkowitzLR(data = nvector, alpha = 0.01, significance = 0.05, 
+tail.test=TRUE)
 }
 }
