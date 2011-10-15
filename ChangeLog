@@ -1,3 +1,8 @@
+2011-10-15  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-5.
+	* Fix to makevars (for solaris build).
+	* Fix to avoid multicore note on windows checks.
+
 2011-10-12  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-4.
 	* Added tail.test option to BerkowitzLR test. This is a likelihood ratio 

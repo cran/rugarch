@@ -265,7 +265,7 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(1:100, FUN = function(i) 
+			fitlist = multicore::mclapply(1:100, FUN = function(i) 
 						ugarchfit(spec = spec, data = simdf[,i]), 
 					mc.cores = parallel.control$cores)
 		} else{
@@ -360,7 +360,7 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist2 = mclapply(1:100, FUN = function(i) 
+			fitlist2 = multicore::mclapply(1:100, FUN = function(i) 
 						ugarchfit(spec = spec2, data = simdf2[,i]), 
 					mc.cores = parallel.control$cores)
 		} else{
@@ -461,7 +461,7 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist3 = mclapply(1:100, FUN = function(i) 
+			fitlist3 = multicore::mclapply(1:100, FUN = function(i) 
 						ugarchfit(spec = spec3, data = simdf3[,i]), 
 					mc.cores = parallel.control$cores)
 		} else{

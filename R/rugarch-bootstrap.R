@@ -146,7 +146,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(1:nx, FUN = function(i) ugarchfit(spec = spec, data = path.df[, i, drop = FALSE], out.sample = 0,
+			fitlist = multicore::mclapply(1:nx, FUN = function(i) ugarchfit(spec = spec, data = path.df[, i, drop = FALSE], out.sample = 0,
 						solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
 		} else{
 			if(!exists("sfLapply")){
@@ -202,7 +202,7 @@
 	# the pertrubed parameters as in equation (7) in PRR paper.
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-			st = mclapply(as.list(1:n.bootfit), FUN = function(x) .sigmat(spec = speclist[[i]], origdata = data[1:N], m), mc.cores = parallel.control$cores)
+			st = multicore::mclapply(as.list(1:n.bootfit), FUN = function(x) .sigmat(spec = speclist[[i]], origdata = data[1:N], m), mc.cores = parallel.control$cores)
 			st = unlist(st)
 		} else{
 			nx = length(speclist)
@@ -222,7 +222,7 @@
 	xdat = tail( data[1:N], m )
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-		tmp = mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+		tmp = multicore::mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 							m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
 							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
@@ -376,7 +376,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(as.list(1:nx), FUN = function(x) ugarchfit(spec = spex, data = path.df[,i,drop = FALSE], out.sample = 0,
+			fitlist = multicore::mclapply(as.list(1:nx), FUN = function(x) ugarchfit(spec = spex, data = path.df[,i,drop = FALSE], out.sample = 0,
 								solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
 		} else{
 			if(!exists("sfLapply")){
@@ -433,7 +433,7 @@
 	# the pertrubed parameters as in equation (7) in PRR paper.
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-			st = mclapply(speclist, FUN=function(x) .sigmat(spec = x, origdata = xdata[1:N], m), mc.cores = parallel.control$cores)
+			st = multicore::mclapply(speclist, FUN=function(x) .sigmat(spec = x, origdata = xdata[1:N], m), mc.cores = parallel.control$cores)
 			st = unlist(st)
 		} else{
 			nx = length(speclist)
@@ -457,7 +457,7 @@
 	xdat =  tail(xdata[1:N], m)
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){			
-			tmp = mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+			tmp = multicore::mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 								m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 

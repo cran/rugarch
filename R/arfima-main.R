@@ -854,7 +854,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(1:nf, FUN = function(i) arfimafit(spec = specx[[i]], data = fitdata[[i]], 
+			fitlist = multicore::mclapply(1:nf, FUN = function(i) arfimafit(spec = specx[[i]], data = fitdata[[i]], 
 								solver = solver, out.sample = refit.every, solver.control = solver.control,
 								fit.control = fit.control), mc.cores = parallel.control$cores)
 		} else{
@@ -899,7 +899,7 @@
 	
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-			forecastlist = mclapply(fitlist, FUN = function(x) arfimaforecast(x, 
+			forecastlist = multicore::mclapply(fitlist, FUN = function(x) arfimaforecast(x, 
 								n.ahead = n.ahead, n.roll = refit.every-1), mc.cores = parallel.control$cores)
 		} else{
 			nx = length(fitlist)
@@ -1134,7 +1134,7 @@
 				require('multicore')
 			}
 			for(i in 1:nwindows){
-				rwindow[[i]]$fitlist = mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextractarfima(spec, x, out.sample = 0, 
+				rwindow[[i]]$fitlist = multicore::mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextractarfima(spec, x, out.sample = 0, 
 									solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
 			}
 		} else{

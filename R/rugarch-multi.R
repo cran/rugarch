@@ -90,7 +90,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(1:n, FUN = function(i) ugarchfit(spec = multispec@spec[[i]], 
+			fitlist = multicore::mclapply(1:n, FUN = function(i) ugarchfit(spec = multispec@spec[[i]], 
 								data = data[, i, drop = FALSE], out.sample = out.sample[i], solver = solver, 
 								solver.control = solver.control, fit.control = fit.control), 
 					mc.cores = parallel.control$cores)
@@ -158,7 +158,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			filterlist = mclapply(1:n, FUN = function(i) ugarchfilter(data = data[, i, drop = FALSE], spec = specx[[i]], out.sample =  out.sample[i], n.old = n.old), 
+			filterlist = multicore::mclapply(1:n, FUN = function(i) ugarchfilter(data = data[, i, drop = FALSE], spec = specx[[i]], out.sample =  out.sample[i], n.old = n.old), 
 					mc.cores = parallel.control$cores)
 		 } else{
 			 if(!exists("sfLapply")){
@@ -215,7 +215,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}	
-			filterlist = mclapply(1:n, FUN = function(i) ugarchfilter(data = data[, i, drop = FALSE], 
+			filterlist = multicore::mclapply(1:n, FUN = function(i) ugarchfilter(data = data[, i, drop = FALSE], 
 								spec = speclist@spec[[i]], out.sample =  out.sample[i], 
 								n.old = n.old), mc.cores = parallel.control$cores)
 		} else{
@@ -268,7 +268,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}	
-			forecastlist = mclapply(1:n, FUN = function(i) ugarchforecast(fitORspec = multifit@fit[[i]], data = NULL,
+			forecastlist = multicore::mclapply(1:n, FUN = function(i) ugarchforecast(fitORspec = multifit@fit[[i]], data = NULL,
 								n.ahead = n.ahead, n.roll = n.roll, external.forecasts = external.forecasts, ...), mc.cores = parallel.control$cores)
 		} else{
 			if(!exists("sfLapply")){
@@ -327,7 +327,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			forecastlist = mclapply(1:n, FUN = function(i) ugarchforecast(fitORspec = multispec@spec[[i]], data = data[, i, drop = FALSE],
+			forecastlist = multicore::mclapply(1:n, FUN = function(i) ugarchforecast(fitORspec = multispec@spec[[i]], data = data[, i, drop = FALSE],
 							n.ahead = n.ahead, n.roll = n.roll, out.sample = out.sample[i],
 							external.forecasts = external.forecasts, ...), mc.cores = parallel.control$cores)
 		} else{

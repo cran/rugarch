@@ -94,7 +94,7 @@
 				require('multicore')
 			}
 			for(i in 1:nwindows){
-				rwindow[[i]]$fitlist = mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextract(spec, x, out.sample = 0, 
+				rwindow[[i]]$fitlist = multicore::mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextract(spec, x, out.sample = 0, 
 							solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
 			}
 		} else{

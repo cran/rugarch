@@ -108,7 +108,7 @@
 			if(!exists("mclapply")){
 				require('multicore')
 			}
-			fitlist = mclapply(1:nf, FUN = function(i){
+			fitlist = multicore::mclapply(1:nf, FUN = function(i){
 						xdat = data.frame(fitdata[[i]])
 						rownames(xdat) = dates[NL[[i]]]
 					ans = ugarchfit(spec = specx[[i]], data = xdat, solver = solver,
@@ -178,7 +178,7 @@
 	filter.series = unlist(outdata)
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-			forecastlist = mclapply(fitlist, FUN = function(x) ugarchforecast(x, 
+			forecastlist = multicore::mclapply(fitlist, FUN = function(x) ugarchforecast(x, 
 							n.ahead = n.ahead, n.roll = refit.every-1), mc.cores = parallel.control$cores)
 		} else{
 			nx = length(fitlist)

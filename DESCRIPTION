@@ -1,8 +1,8 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH models
-Version: 1.0-4
-Date: 2011-10-12
+Version: 1.0-5
+Date: 2011-10-15
 Author: Alexios Ghalanos <alexios@4dscape.com>
 Maintainer: Alexios Ghalanos <alexios@4dscape.com>
 Depends: R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo (>= 0.2.5),
@@ -11,6 +11,7 @@ LinkingTo: Rcpp, RcppArmadillo
 Description: ARFIMA, in-mean, external regressors and various GARCH
         flavours, with methods for fit, forecast, simulation, inference
         and plotting.
+SystemRequirements: GNU make
 Suggests: xts, timeSeries, multicore, snowfall
 Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
         rugarch-distributions.R rugarch-kappa.R rugarch-helperfn.R
@@ -26,6 +27,6 @@ LazyLoad: yes
 License: GPL-3
 Repository: CRAN
 Repository/R-Forge/Project: rgarch
-Repository/R-Forge/Revision: 354
-Date/Publication: 2011-10-14 15:29:24
-Packaged: 2011-10-12 21:31:18 UTC; rforge
+Repository/R-Forge/Revision: 356
+Date/Publication: 2011-10-17 05:55:53
+Packaged: 2011-10-15 21:22:42 UTC; rforge
