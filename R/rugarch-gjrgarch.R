@@ -87,8 +87,7 @@
 			if(fit.control$fixed.se==0) {
 				# if all parameters are fixed an no standard erros are to
 				# be calculated then we return a ugarchfilter object
-				cat("\nugarchfit-->warning: all parameters fixed...returning ugarchfilter 
-								object instead\n")
+				warning("\nugarchfit-->warning: all parameters fixed...returning ugarchfilter object instead\n")
 				return(ugarchfilter(data = data, spec = spec))
 			} else{
 				# if all parameters are fixed but we require standard errors, we
@@ -433,7 +432,7 @@
 			mean.model = list(armaOrder = c(modelinc[2], modelinc[3]),
 					include.mean = modelinc[1], 
 					archm = ifelse(modelinc[5]>0,TRUE,FALSE), archpow = modelinc[5], arfima = modelinc[4], 
-					external.regressors = mxf[1:(N + fcreq), , drop = FALSE]), 
+					external.regressors = mxf[1:(N + fcreq), , drop = FALSE], archex = modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars = as.list(pars))
 	tmp =  data.frame(data[1:(N + fcreq)])
 	rownames(tmp) = as.character(dates[1:(N + fcreq)])
@@ -577,7 +576,7 @@
 			mean.model = list(armaOrder = c(modelinc[2], modelinc[3]),
 					include.mean = modelinc[1], 
 					archm = ifelse(modelinc[5]>0,TRUE,FALSE), archpow = modelinc[5], arfima = modelinc[4], 
-					external.regressors = mxf[1:(N + fcreq), , drop = FALSE]), 
+					external.regressors = mxf[1:(N + fcreq), , drop = FALSE], archex = modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars = as.list(pars))
 	tmp =  data.frame(data[1:(N + fcreq)])
 	rownames(tmp) = as.character(dates[1:(N + fcreq)])
@@ -690,8 +689,7 @@
 	
 	if(N < n.start){
 		startmethod[1] = "unconditional"
-		cat("\nugarchsim-->warning: n.start greater than length of data...using unconditional 
-						start method...\n")
+		warning("\nugarchsim-->warning: n.start greater than length of data...using unconditional start method...\n")
 	}
 	
 	# Random Samples from the Distribution
@@ -779,7 +777,16 @@
 		residSim[,i] = ans1$res[(n.start + m + 1):(n+m)]
 		if(modelinc[6]>0){
 			mxreg = matrix( ipars[idx["mxreg",1]:idx["mxreg",2], 1], ncol = modelinc[6] )
-			constm[,i] = constm[,i] + mxreg %*%t( matrix( mexsim[[i]], ncol = modelinc[6] ) )
+			if(modelinc[20]==0){
+				constm[,i] = constm[,i] + mxreg %*%t( matrix( mexsim[[i]], ncol = modelinc[6] ) )
+			} else{
+				if(modelinc[20] == modelinc[6]){
+					constm[,i] = constm[,i] + mxreg %*%t( matrix( mexsim[[i]]*sqrt(ans1$h), ncol = modelinc[6] ) )
+				} else{
+					constm[,i] = constm[,i] + mxreg[,1:(modelinc[6]-modelinc[20]),drop=FALSE] %*%t( matrix( mexsim[[i]][,1:(modelinc[6]-modelinc[20]),drop=FALSE], ncol = modelinc[6]-modelinc[20] ) )
+					constm[,i] = constm[,i] + mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE] %*%t( matrix( mexsim[[i]][,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]*sqrt(ans1$h), ncol = modelinc[20] ) )
+				}
+			}
 		}
 		if(modelinc[5]>0) constm[,i] = constm[,i] + ipars[idx["archm",1]:idx["archm",2], 1]*(sqrt(ans1$h)^modelinc[5])
 		
@@ -834,8 +841,7 @@
 	
 	if(N < n.start){
 		startmethod[1] = "unconditional"
-		cat("\nugarchsim-->warning: n.start greater than length of data...using unconditional 
-						start method...\n")
+		warning("\nugarchsim-->warning: n.start greater than length of data...using unconditional start method...\n")
 	}
 	
 	
@@ -936,7 +942,16 @@
 	
 	if(modelinc[6]>0){
 		mxreg = matrix( ipars[idx["mxreg",1]:idx["mxreg",2], 1], ncol = modelinc[6] )
-		mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x, ncol = modelinc[6])))
+		if(modelinc[20]==0){
+			mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x, ncol = modelinc[6])))
+		} else{
+			if(modelinc[20] == modelinc[6]){
+				mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x*sqrt(ans$h), ncol = modelinc[6])))
+			} else{
+				mxs = sapply(mexsim, FUN = function(x) mxreg[,1:(modelinc[6]-modelinc[20]),drop=FALSE]%*%t(matrix(x[,1:(modelinc[6]-modelinc[20]),drop=FALSE], ncol = modelinc[6])))
+				mxs = mxs + sapply(mexsim, FUN = function(x) mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]%*%t(matrix(x[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]*sqrt(ans$h), ncol = modelinc[20])))				
+			}
+		}
 	} else{
 		mxs = 0
 	}
@@ -1116,7 +1131,16 @@
 		residSim[,i] = ans1$res[(n.start + m + 1):(n+m)]
 		if(modelinc[6]>0){
 			mxreg = matrix( ipars[idx["mxreg",1]:idx["mxreg",2], 1], ncol = modelinc[6] )
-			constm[,i] = constm[,i] + mxreg %*%t( matrix( mexsim[[i]], ncol = modelinc[6] ) )
+			if(modelinc[20]==0){
+				constm[,i] = constm[,i] + as.numeric( mxreg %*%t( matrix( mexsim[[i]], ncol = modelinc[6] ) ) )
+			} else{
+				if(modelinc[20] == modelinc[6]){
+					constm[,i] = constm[,i] + as.numeric( mxreg %*%t( matrix( mexsim[[i]]*sqrt(ans1$h), ncol = modelinc[6] ) ) )
+				} else{
+					constm[,i] = constm[,i] + as.numeric( mxreg[,1:(modelinc[6]-modelinc[20]),drop=FALSE] %*%t( matrix( mexsim[[i]][,1:(modelinc[6]-modelinc[20]),drop=FALSE], ncol = modelinc[6]-modelinc[20] ) ) )
+					constm[,i] = constm[,i] + as.numeric( mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE] %*%t( matrix( mexsim[[i]][,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]*sqrt(ans1$h), ncol = modelinc[20] ) ) )
+				}
+			}
 		}
 		if(modelinc[5]>0) constm[,i] = constm[,i] + ipars[idx["archm",1]:idx["archm",2], 1]*(sqrt(ans1$h)^modelinc[5])
 		if(modelinc[4]>0){
@@ -1270,7 +1294,16 @@
 	
 	if(modelinc[6]>0){
 		mxreg = matrix( ipars[idx["mxreg",1]:idx["mxreg",2], 1], ncol = modelinc[6] )
-		mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x, ncol = modelinc[6])))
+		if(modelinc[20]==0){
+			mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x, ncol = modelinc[6])))
+		} else{
+			if(modelinc[20] == modelinc[6]){
+				mxs = sapply(mexsim, FUN = function(x) mxreg%*%t(matrix(x*sqrt( ans$h ), ncol = modelinc[6])))
+			} else{
+				mxs = sapply(mexsim, FUN = function(x) mxreg[,1:(modelinc[6]-modelinc[20]),drop=FALSE]%*%t(matrix(x[,1:(modelinc[6]-modelinc[20]),drop=FALSE], ncol = modelinc[6])))
+				mxs = mxs + sapply(mexsim, FUN = function(x) mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]%*%t(matrix(x[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE]*sqrt( ans$h ), ncol = modelinc[20])))				
+			}
+		}
 	} else{
 		mxs = 0
 	}

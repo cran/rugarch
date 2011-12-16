@@ -11,7 +11,7 @@ Method for creating a univariate GARCH specification object prior to fitting.
 ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1), 
 submodel = NULL, external.regressors = NULL, variance.targeting = FALSE), 
 mean.model = list(armaOrder = c(1, 1), include.mean = TRUE, archm = FALSE, 
-archpow = 1, arfima = FALSE, external.regressors = NULL), 
+archpow = 1, arfima = FALSE, external.regressors = NULL, archex = FALSE), 
 distribution.model = "norm", start.pars = list(), fixed.pars = list(), ...)
 }
 \arguments{
@@ -40,7 +40,9 @@ ARCH in mean regression.\cr
 \code{arfima} Whether to fractional differencing in the ARMA regression.\cr
 \code{external.regressors} A matrix object containing the external regressors to 
 include in the mean equation with as many rows as will be included in the data 
-(which is passed in the fit function).
+(which is passed in the fit function).\cr
+\code{archex} (integer) Whether to multiply the last 'archex' external regressors
+by the conditional standard deviation.
 }
 \item{distribution.model}{
 The conditional density to use for the innovations. Valid choices are 
@@ -74,7 +76,9 @@ The specification allows for a wide choice in univariate GARCH models,
 distributions, and mean equation modelling. For the \dQuote{fGARCH} model, 
 this represents Hentschel's omnibus model which subsumes many others.\cr
 For the mean equation, ARFIMAX is fully supported in fitting, forecasting and 
-simulation.\cr
+simulation. There is also an option to multiply the external regressors by
+the conditional standard deviation, which may be of use for example in 
+calculating the  correlation coefficient in a CAPM type setting.\cr
 The \dQuote{iGARCH} implements the integrated GARCH model. For the \dQuote{EWMA} 
 model just set \dQuote{omega} to zero in the fixed parameters list.\cr
 The asymmetry term in the rugarch package, for all implemented models, follows 

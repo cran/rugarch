@@ -15,18 +15,7 @@
 ##
 #################################################################################
 
-# Local version START
-#################################################################################
-## from fBasics library: normal, skew-normal, student, skew-student, ged, skew-ged,
-## nig, skew-nig, and sgh/gh distributions locally implemented in rugarch
-#################################################################################
-## Distributions functions from Rmetrics Libraries
-## Copyrights (C)
-##   1999 - 2008, Diethelm Wuertz, Rmetrics Foundation, GPL
-##   Diethelm Wuertz <wuertz@itp.phys.ethz.ch>
-##   info@rmetrics.org
-##   www.rmetrics.org
-#################################################################################
+# ------------------------------------------------------------------------------
 
 .dsnorm <-function(x, xi) 
 {   

@@ -54,7 +54,7 @@
 		sol$message = ans
 		sol$par = rep(NA, length(pars))
 		names(sol$par) = names(pars)
-		cat("\nrgarch-->warning: no convergence...\n")
+		warning("\nrgarch-->warning: no convergence...\n")
 	} else{
 		sol = ans
 	}

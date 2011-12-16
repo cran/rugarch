@@ -37,15 +37,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 */
 
-
-void printError(char *text, char filename[200])
-{
-  Rprintf(text);
-  Rprintf(": %s ", filename);
-  Rprintf(" !!!\n");
-  exit(0);
-}
-
 /*
 FUNCTION NAME:       	heap_sort
 AUTHOR     :        	Kjersti Aas, NR

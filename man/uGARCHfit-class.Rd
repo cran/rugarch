@@ -4,6 +4,7 @@
 \alias{as.data.frame,uGARCHfit-method}
 \alias{residuals,uGARCHfit-method}
 \alias{fitted,uGARCHfit-method}
+\alias{vcov,uGARCHfit-method}
 \alias{coef,uGARCHfit-method}
 \alias{infocriteria,uGARCHfit-method}
 \alias{infocriteria,ANY-method}
@@ -45,6 +46,9 @@
 \alias{uncmean,uGARCHfit-method}
 \alias{uncmean,ANY-method}
 \alias{uncmean}
+\alias{convergence,uGARCHfit-method}
+\alias{convergence,ANY-method}
+\alias{convergence}
 \alias{plot,uGARCHfit,missing-method}
 \alias{show,uGARCHfit-method}
 \title{class: Univariate GARCH Fit Class}
@@ -68,7 +72,10 @@ Class \code{\linkS4class{rGARCH}}, by class \code{\linkS4class{GARCHfit}}, dista
 Extracts the position (dates), data, fitted values, residuals and conditional 
 sigma.}
 \item{coef}{\code{signature(object = "uGARCHfit")}: 
-Rxtracts the coefficients. }
+Extracts the coefficients. }
+\item{vcov}{\code{signature(object = "uGARCHfit")}: 
+Extracts the covariance matrix of the parameters. Additional logical option of 
+\sQuote{robust} indicates whether to extract the robust based covariance matrix. }
 \item{infocriteria}{\code{signature(object = "uGARCHfit")}: 
 Calculates and returns various information criteria. }
 \item{nyblom}{\code{signature(object = "uGARCHfit")}: 
@@ -125,6 +132,9 @@ Calculates and returns the halflife of the GARCH fit variance given a named
 parameter vector as returned by the fit, a distribution model name and a 
 GARCH model name with a submodel included if the model is of the nested 
 type such as fGARCH.}
+\item{convergence}{\code{signature(object = "uGARCHfit")}: 
+Returns the solver convergence code for the fitted object (zero denotes
+convergence). }
 \item{plot}{\code{signature(x = "uGARCHfit", y = "missing")}: 
 Fit plots. }
 \item{show}{\code{signature(object = "uGARCHfit")}: 

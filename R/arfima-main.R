@@ -83,7 +83,7 @@
 			if(fit.control$fixed.se==0) {
 				# if all parameters are fixed an no standard erros are to
 				# be calculated then we return a ugarchfilter object
-				cat("\narfimafit-->warning: all parameters fixed...returning ugarchfilter 
+				warning("\narfimafit-->warning: all parameters fixed...returning ugarchfilter 
 								object instead\n")
 				return(arfimafilter(data = data, spec = spec, out.sample = out.sample))
 			} else{
@@ -578,8 +578,7 @@
 	Sigma = ipars[idx["sigma", 1], 1]
 	if(N < n.start){
 		startmethod[1] = "unconditional"
-		cat("\narfimasim-->warning: n.start greater than length of data...using unconditional 
-						start method...\n")
+		warning("\narfimasim-->warning: n.start greater than length of data...using unconditional start method...\n")
 	}
 	
 	# Random Samples from the Distribution

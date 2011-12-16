@@ -25,9 +25,20 @@
 		h = as.double(h)
 	}
 	data = as.double(data)
-	# flatten exogenous matrix	
+	# flatten exogenous matrix
 	if(model[6]>0){
-		imx = as.double(mexdata%*%as.matrix(pars[idx[6,1]:idx[6,2]], nrow = model[6]))
+		xmxreg = matrix( pars[idx[6,1]:idx[6,2]], ncol = model[6] )
+		if(model[20]==0){
+			imx =  xmxreg %*%t( matrix( mexdata, ncol = model[6] ) )
+		} else{
+			if(model[20] == model[6]){
+				imx = xmxreg %*%t( matrix( mexdata * h , ncol = model[6] ) )				
+			} else{
+				imx = xmxreg[,1:(model[6]-model[20]),drop=FALSE] %*%t( matrix( mexdata[,1:(model[6]-model[20]),drop=FALSE], ncol = model[6]-model[20] ) )
+				imx = imx + xmxreg[,(model[6]-model[20]+1):model[6],drop=FALSE] %*%t( matrix( mexdata[,(model[6]-model[20]+1):model[6],drop=FALSE]*h, ncol = model[20] ) )					
+			}
+		}
+		imx = as.double(imx)
 		mexdata = as.double(as.vector(mexdata))
 	} else{
 		mexdata = as.double(0)
@@ -90,66 +101,6 @@
 	res = .C("fracdiff",n = as.integer(n), d = as.double(darfima), p = as.double(p),
 			x = as.double(x), ydiff = as.double(x), PACKAGE = "rugarch")
 	return(res$ydiff)
-}
-
-.arfimaxfilterx = function(model, pars, idx, mexdata, data, N, garchenv)
-{
-	m = as.integer(N[1])
-	T = as.integer(N[2])
-	data = as.double(data)
-	# flatten exogenous matrix	
-	if(model[6]>0){
-		imx = as.double(mexdata%*%as.matrix(pars[idx[6,1]:idx[6,2]], nrow = model[6]))
-		mexdata = as.double(as.vector(mexdata))
-	} else{
-		mexdata = as.double(0)
-		imx = as.double(0)
-	}
-	model[5] = 0
-	res = double(length = T)
-	# this routine is used for the mean residuals to initiate the recursion
-	# so we ignore arfima before
-	zrf = double(length = T)
-	constm = double(length = T)
-	condm = double(length = T)
-	if(model[2]>0 | model[3]>0){
-		ans = try(.C("arfimaxfilterC", model = as.integer(model), pars = as.double(pars), idx = as.integer(idx-1), 
-						x = data, res = res, mexdata = mexdata, zrf = zrf, constm = constm, condm = condm, 
-						h = 0, m = m, T = T,  PACKAGE = "rugarch"), silent = TRUE)
-		if(inherits(ans, "try-error")){
-			assign(".csol", 1, envir = garchenv)
-			assign(".filtermessage", ans, envir = garchenv)
-			res = data - pars[idx[1,1]]
-			ans$res = res
-			if(model[4]>0)
-			{
-				ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima =  pars[idx[4]])
-				ans$res = .fracdiff(ans$res, darfima =  pars[idx[4]])
-			}
-			if(any(is.na(res))) res[which(is.na(res))]=0
-			return(ans)
-		} else{
-			assign(".csol", 0, envir = garchenv)
-			if(model[4]>0)
-			{
-				ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4]])
-				ans$res = .fracdiff(ans$res, darfima =  pars[idx[4]])
-			}
-			if(any(is.na(ans$res))) res[which(is.na(ans$res))]=0
-			return(ans)
-		}
-	} else{
-		ans = list()
-		ans$res = data - pars[idx[1,1]] - imx
-		ans$zrf = zrf
-		if(model[4]>0)
-		{
-			ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima =  pars[idx[4]])
-			ans$res = .fracdiff(ans$res, darfima =  pars[idx[4]])
-		}
-		if(any(is.na(ans$res))) res[which(is.na(ans$res))]=0
-		return(ans)
-	}
 }
 
 .arfimafitC = function(model, pars, idx, mexdata, sigma, data, zrf, N, res, garchenv)

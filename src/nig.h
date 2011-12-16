@@ -1,7 +1,6 @@
 #ifndef NIG_H
 #define NIG_H
 
-void printError(char *text, char filename[200]);
 void heapSort(int n, double *x, int *order);
 double bessk1(double);
 void dNIG(double* x, double* mu, double* delta, double* alpha, double* beta, int* n, double* d);

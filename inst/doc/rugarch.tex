@@ -77,11 +77,10 @@ data and the right hand side the MA specification on the residuals. $(L)$ is the
 lag operator, $(1 - L)^d$ the long memory fractional process with $0 < d < 1$,
 and equivalent to the Hurst Exponent $H$ - 0.5, and $\mu_t$ defined as,
 \begin{equation}\label{arfimax2}
-{\mu _t} = \mu  + \sum\limits_{i = 1}^{m} {{\delta _i}} {x_{i,t}} + \xi \sigma _t^k,
+{\mu _t} = \mu  + \sum\limits_{i = 1}^{m - n} {{\delta _i}} {x_{i,t}} + \sum\limits_{i = m - n + 1}^m {\delta _i}{x_{i,t}}{\sigma _t} + \xi \sigma _t^k,
 \end{equation}
-where we allow for \verb@m@ external regressors $x$ and ARCH-in-mean on either
-the conditional standard deviation, $k=1$ or conditional variance $k=2$.
-These options can all be passed via the arguments in the \verb@mean.model@ list
+where we allow for \verb@m@ external regressors $x$ of which $n$ (last $n$ of $m$) may optionally be multiplied by the conditional standard deviation $\sigma_t$, 
+and ARCH-in-mean on either the conditional standard deviation, $k=1$ or conditional variance $k=2$. These options can all be passed via the arguments in the \verb@mean.model@ list
 in the \verb@ugarchspec@ function,
 \begin{itemize}
 \item armaOrder 	   (default = (1,1). The order of the ARMA model.)
@@ -90,7 +89,9 @@ in the \verb@ugarchspec@ function,
 \item archpow   	   (default = 1 for standard deviation, else 2 for variance.)
 \item arfima	   	   (default = FALSE. Whether to use fractional differencing.)
 \item external.regressors (default = NULL. A matrix of external regressors of
-the same length as the data).
+the same length as the data.)
+\item archex           (default = FALSE. Either FALSE or integer denoting the number of external
+regressors from the end of the matrix to multiply by the conditional standard deviation.).
 \end{itemize}
 Since the specification allows for both fixed and starting parameters to be
 passed, it is useful to provide the naming convention for these here,
@@ -103,7 +104,7 @@ passed, it is useful to provide the naming convention for these here,
 \item the external regressor parameters are 'mxreg1', 'mxreg2', ...,
 \end{itemize}
 Note that estimation of the mean and variance equations in the maximization of
-the likelihood is carries out jointly in a single step. While it is perfectly
+the likelihood is carried out jointly in a single step. While it is perfectly
 possible and consistent to perform a 2-step estimation, the one step approach
 results in greater efficiency, particularly for smaller datasets.
 \subsection{Univariate GARCH Models}\label{section:ugarch}
@@ -816,8 +817,22 @@ Elapsed time : 1.628
 \subsection{Fit Diagnostics}\label{section:diagnostics}
 The summary method for the \verb@uGARCHfit@ object provides the parameters and
 their standard errors (and a robust version), together with a variety of tests
-which can also be called individually.
-
+which can also be called individually.\\
+The robust standard errors are based on the method of \citet{White} which produces
+asymptotically valid confidence intervals by calculating the covariance ($V$) of the
+parameters $(\theta)$ as:
+\begin{equation}
+\hat V =  {\left( -A \right)^{ - 1}}B{\left( { - A} \right)^{ - 1}}
+\end{equation}
+where,
+\begin{equation}
+\begin{gathered}
+  A = L''\left( {\hat \theta } \right) \hfill \\
+  B = {\sum\limits_{i = 1}^n {{g_i}\left( {{x_i}\left| {\hat \theta } \right.} \right)} ^T}{g_i}\left( {{x_i}\left| {\hat \theta } \right.} \right) \hfill \\
+\end{gathered}
+\end{equation}
+which is the Hessian and covariance of the scores at the optimum.
+The robust standard errors are the square roots of the diagonal of $V$.\\
 The \verb@inforcriteria@ method on a fitted or filtered object returns the
 Akaike (AIC), Bayesian (BIC), Hannan-Quinn (HQIC) and Shibata (SIC) information
 criteria to enable model selection by penalizing overfitting at different rates.
@@ -1579,7 +1594,7 @@ Schmidt, R. and Hrycej, T. and St{\"{u}}tzle, E. (2006).
 \bibitem[Schwert (1990)]{Schwert}
 Schwert, W (1990).
 \newblock Stock volatility and the crash of '87.
-\newblock In \emph{Review of financial Studies (3)}, pp.~77--102.
+\newblock In \emph{Review of financial Studies 3(1)}, pp.~77--102.
 
 \bibitem[Taylor (1986)]{Taylor}
 Taylor, S. (1986).
@@ -1590,6 +1605,11 @@ Taylor, S. (1986).
 Urbanek, S. (2009).
 \newblock multicore: Parallel processing of R code on machines with multiple cores or CPUs.
 \newblock \emph{Manual}.
+
+\bibitem[White (1982)]{White}
+White, H. (1982).
+\newblock Maximum likelihood estimation of misspecified models.
+\newblock In \emph{Econometrica 50(1)}, pp.~1--25.
 
 \bibitem[Ye (1987)]{Ye}
 Ye, Y. (1987).

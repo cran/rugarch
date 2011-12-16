@@ -40,7 +40,7 @@ TinY = 1.0e-8
 		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)), silent=TRUE)
 		if(inherits(zz, "try-error")) {
 			fit$cvar = NULL
-			cat("\nrgarch-->warning: failed to invert hessian\n")
+			warning("\nrugarch-->warning: failed to invert hessian\n")
 		} else{
 			fit$cvar = zz
 		}
@@ -165,12 +165,11 @@ TinY = 1.0e-8
 		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)), silent=TRUE)
 		if(inherits(zz, "try-error")) {
 			fit$cvar = NULL
-			cat("\nrgarch-->warning: failed to invert hessian\n")
+			warning("\nrugarch-->warning: failed to invert hessian\n")
 		} else{
 			fit$cvar = zz
 		}
 	}
-	
 	#fit$grad = grad(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(eps=1e-4, d=0.001, 
 	#				zero.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE), data = data, returnType = "llh", garchenv = garchenv)
 	# this is the sum of the scores: apply(fit$scores, 2, "sum")
@@ -389,8 +388,7 @@ nmex, " rows",sep=""))
 				msd = vector(mode = "list", length = m.sim)
 				for(i in 1:m.sim) msd[[i]] = as.matrix(mexsimdata[[1]])
 				mexsimdata = msd
-				cat("\nugarchsim-->warning: length of mexsimdata list not equal to m.sim...
-replicating first list element m.sim times.\n")
+				warning("\nugarchsim-->warning: length of mexsimdata list not equal to m.sim...\nreplicating first list element m.sim times.\n")
 			}
 			for(i in 1:m.sim){
 				if(dim(as.matrix(mexsimdata[[i]]))[2] != mxn ) 
@@ -421,8 +419,7 @@ replicating first list element m.sim times.\n")
 				vsd = vector(mode = "list", length = m.sim)
 				for(i in 1:m.sim) vsd[[i]] = as.matrix(vexsimdata[[1]])
 				vexsimdata = vsd
-				cat("\nugarchsim-->warning: length of vexsimdata list not equal to m.sim...
-replicating first list element m.sim times.\n")
+				warning("\nugarchsim-->warning: length of vexsimdata list not equal to m.sim...\nreplicating first list element m.sim times.\n")
 			}
 			for(i in 1:m.sim){
 				if(dim(as.matrix(vexsimdata[[i]]))[2] != vxn ) 

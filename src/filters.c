@@ -160,11 +160,35 @@ void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 	// Exogenous Regressor Initialization
 	if(model[5]>0)
 	{
-		int ind=0;
-		for(k=0;k<model[5];k++)
-		{
-			ind=i+(T*k);
-			constm[i]+=pars[idx[5]+k]*mexdata[ind];
+		if(model[19]==0){
+			int ind=0;
+			for(k=0;k<model[5];k++)
+			{
+				ind=i+(T*k);
+				constm[i]+=pars[idx[5]+k]*mexdata[ind];
+			}
+		} else{
+			if(model[19] == model[5]){
+				int ind=0;
+				for(k=0;k<model[5];k++)
+				{
+					ind=i+(T*k);
+					constm[i]+=pars[idx[5]+k]*(mexdata[ind]*h);
+				}
+			} else{
+				int ind=0;
+				int tmpi = model[5]-model[19];
+				for(k=0;k<tmpi;k++)
+				{
+					ind=i+(T*k);
+					constm[i]+=pars[idx[5]+k]*mexdata[ind];
+				}
+				for(k=tmpi;k<model[5];k++)
+				{
+					ind=i+(T*k);
+					constm[i]+=pars[idx[5]+k]*(mexdata[ind]*h);
+				}
+			}
 		}
 	}
 	condm[i]+=constm[i];

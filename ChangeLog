@@ -1,3 +1,17 @@
+2011-12-16  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-7.
+	* Fix to eGARCH model in the presence of variance.targeting.
+	* Fix to ugarchspec when external.regressors in variance equation > 1.
+	* Vignette clarifications.
+	* Added (experimental) archex argument in mean.model (suggestion of 
+	Pooya Nazeran)
+	* Added vcov and convergence extractor methods to uGARCHfit object.
+
+2011-10-17  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-6.
+	* '&' replaced by 'and' in some plots and summary methods for
+	better compatibility with tikz (requested by a user).
+
 2011-10-15  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-5.
 	* Fix to makevars (for solaris build).

@@ -212,9 +212,6 @@ double deltakappagh(const double x, const double lambda)
 double* paramgh(const double zeta, const double rho, const double lambda)
 {
 	double *param = malloc(4*sizeof(double));
-	if(param == NULL){
-		exit(EXIT_FAILURE);
-	}
 	double rho2 = 1 - pow(rho,2);
 	double alpha = pow(zeta,2) * kappagh(zeta, lambda)/rho2;
 	alpha = alpha * ( 1 + pow(rho,2) * pow(zeta,2) * deltakappagh(zeta, lambda)/rho2);

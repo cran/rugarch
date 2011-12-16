@@ -387,6 +387,53 @@ DACTest = function(forecast, actual, test = c("PT", "AG"), conf.level = 0.95)
   return( ans )
 }
 
+VaRtest = function(alpha = 0.05, realized, VaR, conf.level = 0.95){
+	N = length(realized)
+	VaRn = floor(N * alpha)
+	if(N != length(VaR)) stop("\nlength of realized not equal to length of VaR!")
+	tmp = LR.cc.test(p = alpha, actual = realized, VaR = VaR, conf.level = conf.level)
+	ans = list()
+	ans$expected.exceed = floor(alpha*tmp$TN)
+	ans$actual.exceed = tmp$N
+	ans$uc.H0 = "Correct Exceedances"
+	ans$uc.LRstat = tmp$stat.uc
+	ans$uc.critical = tmp$crit.val.uc
+	ans$uc.pvalue = tmp$p.value.uc
+	
+	ans$cc.H0 = "Correct Exceedances & Independent"
+	ans$cc.LRstat = tmp$stat.cc
+	ans$cc.critical = tmp$crit.val.cc
+	ans$cc.pvalue = tmp$p.value.cc
+	return(ans)
+}
+
+EStest = function(alpha = 0.05, realized, ES, VaR, conf.level = 0.95, boot = TRUE, n.boot = 1000){
+	N = length(realized)
+	if(N != length(VaR)) stop("\nlength of realized not equal to length of VaR!")
+	idx = which(as.numeric(VaR)>realized)
+	z = (ES[zx] - realized[zx])
+	.fn = function(x){
+		n = length(x)
+		1-pnorm(mean(x)/((sqrt(sd(x)^2*((n-1)/n)))/sqrt(n-1)))
+	}
+	if(boot){
+		rbt = matrix(sample(z, size = N * n.boot, replace = TRUE), nrow = n.boot)
+		pv = mean( apply(rbt, 1, FUN = function(x) .fn(x)) )
+		npv = .fn(z)
+	} else{
+		npv = .fn(z)
+		pv = NA
+	}
+	ans = list()
+	ans$expected.exceed = floor(alpha*N)
+	ans$actual.exceed = length(idx)
+	# conditional expected shortfall is systematically underestimated
+	ans$H1 = "Mean of Excess Violations of VaR is greater than zero"
+	ans$boot.p.value = pv
+	ans$p.value = npv
+	return(ans)
+}
+
 lossfn.ret = function(realized, forecast)
 {
 	x = cbind(realized, forecast)
@@ -441,7 +488,7 @@ lossfn.ret = function(realized, forecast)
 	x.dates = dates
 	zd = .makedate(as.character(dates))
 	if(zd$status == 0) dates = 1:length(dates) else dates = zd$dates
-	title = paste("Daily Returns & Value-at-Risk Exceedances\n","(Series: ", varname,", alpha=", p,")",sep="")
+	title = paste("Daily Returns and Value-at-Risk Exceedances\n","(Series: ", varname,", alpha=", p,")",sep="")
 	if(zd$status){
 		plot(x = as.Date(dates, format = zd$dformat), y = y.actual, type = "n",
 				main = title, ylab = "Daily Log Return", xlab = "time", 
@@ -492,7 +539,7 @@ lossfn.ret = function(realized, forecast)
 	cat(paste("LR.uc p-value:\t\t",round(result$p.value.uc,3),"\n",sep=""))
 	cat(paste("Reject Null:\t\t",ifelse(round(result$p.value.uc,3)< (1-conf.level), "YES","NO"),"\n",sep=""))
 	cat("\nConditional Coverage (Christoffersen)")
-	cat("\nNull-Hypothesis:\tCorrect Exceedances &\n\t\t\t\t\tIndependence of Failures\n")
+	cat("\nNull-Hypothesis:\tCorrect Exceedances and\n\t\t\t\t\tIndependence of Failures\n")
 	cat(paste("LR.cc Statistic:\t",round(result$stat.cc,3),"\n",sep=""))
 	cat(paste("LR.cc Critical:\t\t",round(result$crit.val.cc,3),"\n",sep=""))
 	cat(paste("LR.cc p-value:\t\t",round(result$p.value.cc,3),"\n",sep=""))
@@ -525,14 +572,10 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 	VaR.ind = ifelse(actual < VaR, 1, 0)
 	N = sum(VaR.ind)
 	TN = length(VaR.ind)
-	T00 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 
-												1)] == 0, 1, 0)))
-	T11 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 
-												1)] == 1, 1, 0)))
-	T01 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 
-												1)] == 0, 1, 0)))
-	T10 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 
-												1)] == 1, 1, 0)))
+	T00 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 1)] == 0, 1, 0)))
+	T11 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 1)] == 1, 1, 0)))
+	T01 = sum(c(0, ifelse(VaR.ind[2:TN] == 1 & VaR.ind[1:(TN - 1)] == 0, 1, 0)))
+	T10 = sum(c(0, ifelse(VaR.ind[2:TN] == 0 & VaR.ind[1:(TN - 1)] == 1, 1, 0)))
 	T0 = T00 + T01
 	T1 = T10 + T11
 	pi0 = T01/T0
@@ -548,8 +591,7 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 
 .LR.uc = function (p, TN, N) 
 {
-	stat.uc = -2 * .Log((1 - p)^(TN - N) * p^N) + 2 * .Log((1 - 
-						N/TN)^(TN - N) * (N/TN)^N)
+	stat.uc = -2 * .Log((1 - p)^(TN - N) * p^N) + 2 * .Log((1 - N/TN)^(TN - N) * (N/TN)^N)
 	return(stat.uc)
 }
 

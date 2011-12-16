@@ -390,7 +390,7 @@
 		armaq = length(ma)
 	}
 	if(is.null(ar) | is.null(ma)){
-		cat("\nNo plots for mean equation...\n")
+		warning("\nNo plots for mean equation...\n")
 		return()
 	}
 	
@@ -442,7 +442,7 @@
 		nma = paste("ma", 1:armaq,sep="")
 	}
 	if(is.null(ar) && is.null(ma)){
-		cat("\nNo 2dplots for mean equation...\n")
+		warning("\nNo 2dplots for mean equation...\n")
 		return(0)
 	}
 	start = dev.next(which = dev.cur())
@@ -486,7 +486,7 @@
 		warning("No bivariate GARCH plots for iGARCH model (in garch2dplot call)...")
 	}
 	if(modelinc[8] == 0 | modelinc[9] == 0 && (vmodel == "sGARCH")){
-		cat("\nNo plots for variance equation...\n")
+		warning("\nNo plots for variance equation...\n")
 	}
 	total = modelinc[8]*modelinc[10] + modelinc[8]*modelinc[11] + modelinc[8]*modelinc[12] +
 			modelinc[8]*modelinc[9] + modelinc[13]*modelinc[14] + modelinc[16]*modelinc[17] + 
@@ -658,7 +658,7 @@
 	md = as.data.frame(x, window = window)
 	
 	if(modelinc[16]==0 | modelinc[17]==0 | (modelinc[16]==0 && (modelinc[10]==0 | modelinc[11]==0 | modelinc[12]==0))){
-		cat("\nNo plots for distribution...\n")
+		warning("\nNo plots for distribution...\n")
 		return(0)
 	}
 	

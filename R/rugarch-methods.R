@@ -21,7 +21,7 @@
 ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1), 
 				submodel = NULL, external.regressors = NULL, variance.targeting = FALSE), 
 		mean.model = list(armaOrder = c(1,1), include.mean = TRUE, archm = FALSE, 
-				archpow = 1, arfima = FALSE, external.regressors = NULL), 
+				archpow = 1, arfima = FALSE, external.regressors = NULL, archex = FALSE), 
 		distribution.model = "norm", start.pars = list(), fixed.pars = list(), ...)
 {
 	UseMethod("ugarchspec")
@@ -33,7 +33,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	modelnames = NULL
 	for(i in 1:21){
 		if(model[i]>0){
-			if(any(c(2,3,6,8,9,10,11,12) == i)){
+			if(any(c(2,3,6,8,9,10,11,12,15) == i)){
 				modelnames = c(modelnames, paste(names(model)[i], 1:model[i], sep = ""))
 			} else{
 				modelnames = c(modelnames, names(model)[i])
@@ -43,10 +43,15 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	return( modelnames )
 }
 
+# Changelog:
+# 06-12-2011 Added "archex" option in mean.model so that external regressor might
+# be multiplied by conditional variance. If used must be integer and represents the
+# number of series from the end of the supplied external regressors.
+
 .ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1), 
 				submodel = NULL, external.regressors = NULL, variance.targeting = FALSE), 
 		mean.model = list(armaOrder = c(1,1), include.mean = TRUE, archm = FALSE, 
-				archpow = 1, arfima = FALSE, external.regressors = NULL), 
+				archpow = 1, arfima = FALSE, external.regressors = NULL, archex = FALSE), 
 		distribution.model = "norm", start.pars = list(), fixed.pars = list())
 {
 	# some checks and preparation to be passed on to specific models by switch
@@ -158,10 +163,19 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 		modelinc[5] = as.integer( mean.model$archpow )
 	}
 	
+
 	if(is.null(mean.model$arfima)) modelinc[4] = 0 else modelinc[4] = as.integer( mean.model$arfima )
 	
 	modeldata$mexdata = mean.model$external.regressors
 	if( !is.null(mean.model$external.regressors) ) modelinc[6] = dim( mean.model$external.regressors )[2]
+	
+	if(is.null(mean.model$archex) || !mean.model$archex){
+		modelinc[20] = 0
+	} else{
+		modelinc[20] = as.integer( mean.model$archex )
+		if(modelinc[6] == 0) stop("\narchex cannot be used without external.regressors!!\n", call. = FALSE)
+		if(modelinc[6] < modelinc[20]) stop("\narchex cannot be greater than number of external.regressors!!\n", call. = FALSE)
+	}
 	
 	maxOrder = max(modelinc[c(2,3,8,9)])
 	modelnames = .expand.model(modelinc)
@@ -591,7 +605,8 @@ getspec = function(object)
 		mean.model = list(armaOrder = c(object@model$modelinc[2],object@model$modelinc[3]), 
 				include.mean = object@model$modelinc[1], 
 				archm = ifelse(object@model$modelinc[5]>0,TRUE,FALSE), archpow = object@model$modelinc[5], 
-				arfima = object@model$modelinc[4], external.regressors = object@model$modeldata$mexdata), 
+				arfima = object@model$modelinc[4], external.regressors = object@model$modeldata$mexdata,
+				archex = object@model$modelinc[20]), 
 		distribution.model = object@model$modeldesc$distribution, start.pars  = object@model$start.pars, 
 		fixed.pars = object@model$fixed.pars)
 	return(spec)
@@ -608,7 +623,8 @@ setMethod(f = "getspec", signature(object = "uGARCHfit"), definition = .getspec)
 				mean.model = list(armaOrder = c(model$modelinc[2],model$modelinc[3]), 
 						include.mean = model$modelinc[1], 
 						archm = ifelse(model$modelinc[5]>0,TRUE,FALSE), archpow = model$modelinc[5], 
-						arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata), 
+						arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata,
+						archex = model$modelinc[20]), 
 				distribution.model = model$modeldesc$distribution)
 		setfixed(ans)<-pars
 	} else{
@@ -651,7 +667,8 @@ setGeneric("setfixed<-", function(object, value){standardGeneric("setfixed<-")})
 			mean.model = list(armaOrder = c(model$modelinc[2], model$modelinc[3]), 
 					include.mean = model$modelinc[1], 
 					archm = ifelse(model$modelinc[5]>0,TRUE,FALSE), archpow = model$modelinc[5], 
-					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata), 
+					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata,
+					archex = model$modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, start.pars  = model$start.pars, 
 			fixed.pars = as.list(fixed.pars))
 	return(tmp)
@@ -686,7 +703,8 @@ setGeneric("setstart<-", function(object, value){standardGeneric("setstart<-")})
 			mean.model = list(armaOrder = c(model$modelinc[2], model$modelinc[3]), 
 					include.mean = model$modelinc[1], 
 					archm = ifelse(model$modelinc[5]>0,TRUE,FALSE), archpow = model$modelinc[5], 
-					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata), 
+					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata,
+					archex = model$modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars  = model$fixed.pars, 
 			start.pars = as.list(start.pars))
 	return(tmp)
@@ -1260,14 +1278,14 @@ setMethod("show",
 			setfixed(xspec)<-as.list(object@model$pars[which(object@model$pars[,3]==1),1])
 			uv = uncvariance(xspec)
 			um = uncmean(xspec)
-			uncond = c(0, uv, NA, NA, um, NA, NA)
+			uncond = c(NA, uv, NA, NA, um, NA, NA)
 			dd = data.frame(Seed = object@seed, Sigma2.Mean = sd1, Sigma2.Min = sd2[1,],
 					Sigma2.Max = sd2[2,], Series.Mean = rx1, Series.Min = rx2[1,], 
 					Series.Max = rx2[2,])
 			meansim = apply(dd, 2, FUN = function(x) mean(x))
 			meansim[1] = 0
 			dd = rbind(dd, meansim, uncond)			
-			rownames(dd) = c(paste("sim", 1:m, sep = ""), "Mean(All)")
+			rownames(dd) = c(paste("sim", 1:m, sep = ""), "Mean(All)", "Unconditional")
 			print(dd, digits = 3)
 			cat("\n\n")
 			})
@@ -3147,12 +3165,25 @@ uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000
 		N = length(h)
 		
 		if(modelinc[6]>0){
-			mxreg = pars[idx["mxreg",1]:idx["mxreg",2]]
-			mexdata = matrix(object@model$modeldata$mexdata[1:N, ], ncol = modelinc[6])
-			meanmex = apply(mexdata, 2, "mean")
-			umeanmex = sum(mxreg*meanmex)
+			mxreg = matrix( pars[idx["mxreg",1]:idx["mxreg",2]], ncol = modelinc[6] )
+			if(modelinc[20]==0){
+				mexdata = matrix(object@model$modeldata$mexdata[1:N, ], ncol = modelinc[6])
+				meanmex = apply(mexdata, 2, "mean")
+				umeanmex = sum(mxreg*meanmex)			
+			} else{
+				if(modelinc[20] == modelinc[6]){
+					mexdata = matrix(object@model$modeldata$mexdata[1:N, ], ncol = modelinc[6])
+					meanmex = apply(mexdata, 2, "mean")*(uncvariance(object)^(1/2))
+					umeanmex = sum(mxreg*meanmex)	
+				} else{
+					mexdata = matrix(object@model$modeldata$mexdata[1:N, ], ncol = modelinc[6])
+					meanmex1 = apply(mexdata[,1:(modelinc[6]-modelinc[20]),drop=FALSE], 2, "mean")
+					meanmex2 = apply(mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE], 2, "mean")*(uncvariance(object)^(1/2))
+					umeanmex = sum(mxreg[,1:(modelinc[6]-modelinc[20])]*meanmex1)+sum(mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6]]*meanmex2)
+				}
+			}
 		} else{
-			umeanmex = 0
+			umeanmex = 0	
 		}
 		if(modelinc[5]>0){
 			# this is obviously an approximation....
@@ -3197,13 +3228,30 @@ uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000
 		idx = model$pidx
 		modelinc = model$modelinc
 		pars = object@model$pars[,1]
+		
+		
 		if(modelinc[6]>0){
-			mxreg = pars[idx["mxreg",1]:idx["mxreg",2]]
-			meanmex = apply(object@model$modeldata$mexdata, 2, "mean")
-			umeanmex = sum(mxreg*meanmex)
+			mxreg = matrix( pars[idx["mxreg",1]:idx["mxreg",2]], ncol = modelinc[6] )
+			if(modelinc[20]==0){
+				mexdata = matrix(object@model$modeldata$mexdata, ncol = modelinc[6])
+				meanmex = apply(mexdata, 2, "mean")
+				umeanmex = sum(mxreg*meanmex)			
+			} else{
+				if(modelinc[20] == modelinc[6]){
+					mexdata = matrix(object@model$modeldata$mexdata, ncol = modelinc[6])
+					meanmex = apply(mexdata, 2, "mean")*(uncvariance(object)^(1/2))
+					umeanmex = sum(mxreg*meanmex)	
+				} else{
+					mexdata = matrix(object@model$modeldata$mexdata, ncol = modelinc[6])
+					meanmex1 = apply(mexdata[,1:(modelinc[6]-modelinc[20]),drop=FALSE], 2, "mean")
+					meanmex2 = apply(mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6],drop=FALSE], 2, "mean")*(uncvariance(object)^(1/2))
+					umeanmex = sum(mxreg[,1:(modelinc[6]-modelinc[20])]*meanmex1)+sum(mxreg[,(modelinc[6]-modelinc[20]+1):modelinc[6]]*meanmex2)
+				}
+			}
 		} else{
-			umeanmex = 0
+			umeanmex = 0	
 		}
+		
 		if(modelinc[5]>0){
 			# this is obviously an approximation....
 			if(modelinc[5] == 2){
@@ -3227,9 +3275,6 @@ uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000
 setMethod("uncmean", signature(object = "uGARCHfit"),    definition = .unconditionalmean1)
 setMethod("uncmean", signature(object = "uGARCHfilter"), definition = .unconditionalmean1)
 setMethod("uncmean", signature(object = "uGARCHspec"),   definition = .unconditionalmean2)
-
-
-
 
 #----------------------------------------------------------------------------------
 # The mult- methods
@@ -3397,3 +3442,21 @@ fpm = function( object, summary = TRUE, ...)
 }
 setMethod("fpm", signature(object = "uGARCHforecast"),  definition = .fpm1)
 setMethod("fpm", signature(object = "uGARCHroll"),  definition = .fpm2)
+
+convergence = function(object){
+	UseMethod("convergence")
+}
+.convergence = function(object){
+	return( object@fit$convergence )
+}
+setMethod("convergence", signature(object = "uGARCHfit"),  definition = .convergence)
+
+.vcov = function(object, robust = FALSE){
+	if(robust){
+		return( object@fit$robust.cvar )
+	} else{
+		return( object@fit$cvar)
+	}
+}
+
+setMethod("vcov", signature(object = "uGARCHfit"),  definition = .vcov)

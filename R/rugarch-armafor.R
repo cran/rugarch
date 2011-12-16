@@ -26,7 +26,17 @@ armaf = function(ipars, model, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 	# x = c(data, rep(0, n.ahead))
 	x = data
 	if(model[6]>0){
-		mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+		if(model[20]==0){
+			mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+		} else{
+			if(model[20] == model[6]){
+				mu = mu + (mxfi*h)%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+				
+			} else{
+				mu = mu + (mxfi[,1:(model[6]-model[20])])%*%t(matrix(ipars[idx["mxreg",1]:(idx["mxreg",1]+(model[6]-model[20]-1)),1], ncol = model[6] - model[20]))
+				mu = mu + (mxfi[,(model[6]-model[20]+1):model[6]]*h)%*%t(matrix(tail(ipars[idx["mxreg",1]:idx["mxreg",2],1], model[20]), ncol = model[20]))
+			}
+		}
 	}
 	# comment: we allow the arch-in-mean to decay (towards its unconditional value) 
 	# at the rate of the variance forecast (->1 - persistence) rather than just using 
@@ -54,7 +64,17 @@ armaf = function(ipars, model, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 arfimaf = function(ipars, model, idx, mu, mxfi, h, epsx, z, data, N, n.ahead)
 {
 	if(model[6]>0){
-		mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+		if(model[20]==0){
+			mu = mu + mxfi%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+		} else{
+			if(model[20] == model[6]){
+				mu = mu + (mxfi*h)%*%t(matrix(ipars[idx["mxreg",1]:idx["mxreg",2],1], ncol = model[6]))
+				
+			} else{
+				mu = mu + (mxfi[,1:(model[6]-model[20])])%*%t(matrix(ipars[idx["mxreg",1]:(idx["mxreg",1]+(model[6]-model[20])),1], ncol = model[6] - model[20]))
+				mu = mu + (mxfi[,(model[6]-model[20]+1):model[6]]*h)%*%t(matrix(tail(ipars[idx["mxreg",1]:idx["mxreg",2],1], model[20]), ncol = model[20]))
+			}
+		}
 	}
 	if(model[5]>0) mu = mu + ipars[idx["archm",1],1]*(h^model[5])
 	# 20-09-2011 bug report was already passing data+n.ahead in some routines

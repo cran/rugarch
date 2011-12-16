@@ -42,6 +42,10 @@
 	modelinc = model$modelinc
 	mexdata = model$modeldata$mexdata[1:T, , drop=FALSE]
 	if(!is.null(mexdata)) colnames(mexdata)  = NULL
+	# account for archex
+	if(modelinc[20]>0 && modelinc[6]>0){
+		mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6]] = mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6]]*sd(data)
+	}
 	if( modelinc[2]!=0 | modelinc[3]!=0 ){
 		ow <- options("warn")
 		options(warn = -1)
@@ -238,6 +242,10 @@
 	mxreg = numeric()
 	if(modelinc[6] > 0){
 		mexdata = model$modeldata$mexdata[1:N,, drop = FALSE]
+		# account for archex
+		if(modelinc[20]>0){
+			mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6]] = mexdata[,(modelinc[6]-modelinc[20]+1):modelinc[6]]*sd(data)
+		}
 		# easier to NULL the names of the data rather than search them by name later
 		# (search now is 'mexdata'..1:mxn)
 		colnames(mexdata) = NULL
@@ -329,7 +337,7 @@
 			pars[idx["mxreg", 1]:idx["mxreg", 2], 1] = fit.mean$coef[i]
 			#res=as.numeric(fit.mean$residuals)
 		} else{
-			pars[idx["mu", 1]:idx["mu", 2], 1] = 0
+			pars[idx["mu", 1]:idx["mu", 2], 1] = mean(y)
 			#res=(data-mu)
 		}
 	}
