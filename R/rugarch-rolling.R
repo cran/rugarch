@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -209,12 +210,13 @@
 		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
 		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
 		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
+		if(distribution == "ghst") ghlambda.f = sapply(fitlist,FUN=function(x) -coef(x)["shape"]/2)
 		fmatrix = matrix(NA, ncol = 5, nrow = forecast.length)
 		colnames(fmatrix) = c("muf", "sigmaf", "ghlambdaf", "skewf", "shapef")
 		fmatrix[,1] = fser
 		fmatrix[,2] = fsig
 		for(i in 1:dim(eindex)[2]){
-			fmatrix[eindex[,i], 3] = rep(if(modelinc[18]>0) ghlambda.f[i] else 0, refit.every)
+			fmatrix[eindex[,i], 3] = rep(if(modelinc[18]>0 || distribution == "ghst") ghlambda.f[i] else 0, refit.every)
 			fmatrix[eindex[,i], 4] = rep(if(modelinc[16]>0) skew.f[i] else 0, refit.every)
 			fmatrix[eindex[,i], 5] = rep(if(modelinc[17]>0) shape.f[i] else 0, refit.every)
 		}
@@ -272,6 +274,8 @@
 		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
 		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
 		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
+		if(distribution == "ghst") ghlambda.f = sapply(fitlist,FUN=function(x) -coef(x)["shape"]/2)
+		
 		# split the array into 1:n-day ahead forecasts
 		flist = vector(mode="list", length = n.ahead)
 		f01density = vector(mode="list", length = n.ahead)

@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -17,6 +18,7 @@
 # fractional difference series C wrapper
 .arfimaxfilter = function(model, pars, idx, mexdata, h, data, N, garchenv)
 {
+	#if(model[1] == 0) pars[1,1] = 0
 	m = as.integer(N[1])
 	T = as.integer(N[2])
 	if(length(h) <= 1) {

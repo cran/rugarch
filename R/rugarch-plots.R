@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -114,13 +115,12 @@
 	pars  = x@fit$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
-	z1 	= rep(0.025, length(xsigma))
-	z2 	= rep(0.975, length(xsigma))
-	spars 	= .scaledist(distribution, xcmu, xsigma, ghlambda, skew, shape)
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]
+	z1 	= 0.025
+	z2 	= 0.975
 	cat("\nplease wait...calculating quantiles...\n")
-	q025 	= .qdensity(z1, spars[,"mu"], spars[,"sigma"], lambda = ghlambda, spars[,"skew"], spars[,"shape"], distribution = distribution)
-	q975 	= .qdensity(z2, spars[,"mu"], spars[,"sigma"], lambda = ghlambda, spars[,"skew"], spars[,"shape"], distribution = distribution)
+	q025 	= fitted(x) + sigma(x)* qdist(distribution, z1, 0, 1, lambda = ghlambda, skew, shape)
+	q975 	= fitted(x) + sigma(x)* qdist(distribution, z2, 0, 1, lambda = ghlambda, skew, shape)
 	plot(xdates, xseries, type = "l", col = "steelblue", ylab = "Returns", xlab="Time", main = "Series with with 2.5% VaR Limits", cex.main = 0.8)
 	lines(xdates, q025, col = "tomato1")
 	lines(xdates, q975, col = "green")
@@ -264,7 +264,7 @@
 	pars  = x@fit$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]	
 	xmean 	= mean(zseries)
 	xmedian = median(zseries)
 	xsd 	= sd(zseries)	
@@ -303,7 +303,7 @@
 	pars  = x@fit$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]
 	.qqDist(y = zseries, dist = distribution, lambda = ghlambda, skew = skew, shape = shape)
 	mtext(paste("GARCH model : ", vmodel), side = 4, adj = 0, padj=0, col = "gray", cex = 0.5)
 	if(vmodel == "fGARCH"){
@@ -493,7 +493,7 @@
 	pars  = x@filter$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]
 	z1 	= rep(0.025, length(xsigma))
 	z2 	= rep(0.975, length(xsigma))
 	spars 	= .scaledist(distribution, xcmu, xsigma, ghlambda, skew, shape)
@@ -644,7 +644,7 @@
 	pars  = x@filter$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]
 	xmean 	= mean(zseries)
 	xmedian = median(zseries)
 	xsd 	= sd(zseries)	
@@ -683,7 +683,7 @@
 	pars  = x@filter$ipars[,1]
 	skew  = pars[idx["skew",1]]
 	shape = pars[idx["shape",1]]
-	ghlambda = pars[idx["ghlambda",1]]
+	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]
 	.qqDist(y = zseries, dist = distribution, lambda = ghlambda, skew = skew, shape = shape)
 	mtext(paste("GARCH model : ", vmodel), side = 4, adj = 0, padj=0, col = "gray", cex = 0.5)
 	if(vmodel == "fGARCH"){

@@ -30,11 +30,11 @@ hosted on r-forge).
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.00-8\cr
-Date: \tab 2011-12-16\cr
+Version: \tab 1.0-8\cr
+Date: \tab 2012-02-03\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
-Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo (>= 0.2.5), numDeriv, chron, Rsolnp\cr }
+Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo, numDeriv, chron, Rsolnp\cr }
 While the package has implemented some safeguards, both during pre-estimation 
 as well as the estimation phase, there is no guarantee of convergence in the 
 fitting procedure. As a result, the fit method allows the user to input starting 
@@ -96,10 +96,10 @@ comments.
 \section{How to cite this package}{
   Whenever using this package, please cite as\cr
 
- \preformatted{@Manual{Ghalanos_2011,
+ \preformatted{@Manual{Ghalanos_2012,
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
- year         = {2011},
+ year         = {2012},
  note 	      = {R package version 1.00.},}}
 \emph{}
 }

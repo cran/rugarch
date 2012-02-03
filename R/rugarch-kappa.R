@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -57,6 +58,9 @@ fgarchKappa<-function(lambda, delta, eta1, eta2, fk, ghlambda, shape, skew, cond
 	else if(cond.density == "jsu") {
 		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
 	}
+	else if(cond.density == "ghst") {
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsghst(x, skew = skew, shape = shape)
+	}
 	else{
 		temp<-paste("d",cond.density,sep="")
 		.ddist<-eval(parse(text=paste(temp)))
@@ -107,6 +111,9 @@ gjrgarchKappa<-function(gm, ghlambda, shape, skew, cond.density,...)
 	}
 	else if(cond.density == "jsu") {
 		fun =  (x^2 + gm*(x^2)*(x<0)) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+	}
+	else if(cond.density == "ghst") {
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsghst(x, skew = skew, shape = shape)
 	}
 	else{
 		temp<-paste("d",cond.density,sep="")
@@ -161,6 +168,9 @@ pneg<-function(ghlambda, shape, skew, cond.density,...)
 	else if(cond.density == "jsu") {
 		fun = djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
 	}
+	else if(cond.density == "ghst") {
+		fun = dsghst(x, skew = skew, shape = shape)
+	}
 	else{
 		temp<-paste("d",cond.density,sep="")
 		.ddist<-eval(parse(text=paste(temp)))
@@ -212,6 +222,9 @@ egarchKappa<-function(ghlambda, shape, skew, cond.density,...)
 	else if(cond.density == "jsu") {
 		fun = abs(x) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
 	}
+	else if(cond.density == "ghst") {
+		fun = abs(x) * dsghst(x, skew = skew, shape = shape)
+	}
 	else{
 		temp<-paste("d",cond.density,sep="")
 		.ddist<-eval(parse(text=paste(temp)))
@@ -262,6 +275,9 @@ aparchKappa<-function(gm, delta, ghlambda, shape, skew, cond.density,...)
 	}
 	else if(cond.density == "jsu") {
 		fun =  ((abs(x)-gm*x)^(delta)) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+	}
+	else if(cond.density == "ghst") {
+		fun =  ((abs(x)-gm*x)^(delta)) * dsghst(x, skew = skew, shape = shape)
 	}
 	else{
 		temp<-paste("d",cond.density,sep="")

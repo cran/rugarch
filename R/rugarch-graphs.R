@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -14,7 +15,6 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
-
 .plot.acf <-
 		function (x, ci = 0.95, type = "h", xlab = "Lag", ylab = NULL,
 				ylim = NULL, main = NULL, ci.col="blue",

@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -25,7 +26,8 @@
 			nlminb = .nlminbsolver(pars, fun, gr, hessian, parscale, control, LB, UB, ...),
 			solnp = .solnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...),
 			gosolnp = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, ...),
-			lbfgs = .lbfgssolver(pars, fun, gr, parscale, control, LB, UB, ...))
+			lbfgs = .lbfgssolver(pars, fun, gr, parscale, control, LB, UB, ...),
+			nloptr = .nloptrsolver(pars, fun, Ifn, control, LB, UB, ...))
 	return(retval)
 }
 
@@ -118,6 +120,33 @@
 	return(list(sol = sol, hess = hess))
 }
 
+.nloptrsolver = function(pars, fun, Ifn, control, LB, UB, ...){
+	if(!exists("nloptr")){
+		warning("\nLoading package nloptr...")
+		require('nloptr')
+	}
+	#.ineqcon2 = function(x, ...){
+	#	return( Ifn(x, ...) - 1 )
+	#}
+	ans = try(nloptr::nloptr(x0 = pars, eval_f = fun,  eval_grad_f = NULL, eval_g_ineq = NULL, 
+					lb = LB, ub = UB, eval_jac_g_ineq = NULL, eval_g_eq = NULL, 
+					eval_jac_g_eq = NULL, opts = control,  ...), silent=TRUE)
+	if(inherits(ans, "try-error")){
+		sol = list()
+		sol$convergence = 1
+		sol$message = ans
+		sol$par = rep(NA, length(pars))
+		names(sol$par) = names(pars)
+	} else{
+		sol = list()
+		sol$convergence = 0
+		sol$message = ans$message
+		sol$par = ans$solution
+	}
+	hess = NULL
+	return(list(sol = sol, hess = hess))
+}
+
 # default control for solvers:
 .getcontrol = function(solver, control)
 {
@@ -125,7 +154,8 @@
 		nlminb = .nlminbctrl(control),
 		solnp = .solnpctrl(control),
 		gosolnp = .gosolnpctrl(control),
-		lbfgs = .lbfgsctrl(control))
+		lbfgs = .lbfgsctrl(control),
+		nloptr = .nloptrctrl(control))
 	return(ans)
 }
 
@@ -159,13 +189,13 @@
 		ans$inner.iter = 1800
 		ans$delta = 1.0e-8
 		ans$tol = 1.0e-8
-		ans$trace = 1
+		ans$trace = 0
 	} else{
 		npar = tolower(names(unlist(control)))
 		names(params) = npar
 		if(any(substr(npar, 1, 3) == "rho")) ans$rho = as.numeric(params["rho"]) else ans$rho = 1
-		if(any(substr(npar, 1, 5) == "outer.iter")) ans$outer.iter = as.numeric(params["outer.iter"]) else ans$outer.iter = 50
-		if(any(substr(npar, 1, 5) == "inner.iter")) ans$inner.iter = as.numeric(params["inner.iter"]) else ans$inner.iter = 1000
+		if(any(substr(npar, 1, 10) == "outer.iter")) ans$outer.iter = as.numeric(params["outer.iter"]) else ans$outer.iter = 50
+		if(any(substr(npar, 1, 10) == "inner.iter")) ans$inner.iter = as.numeric(params["inner.iter"]) else ans$inner.iter = 1000
 		if(any(substr(npar, 1, 5) == "delta")) ans$delta = as.numeric(params["delta"]) else ans$delta = 1.0e-8
 		if(any(substr(npar, 1, 3) == "tol")) ans$tol = as.numeric(params["tol"]) else ans$tol = 1.0e-8
 		if(any(substr(npar, 1, 5) == "trace")) ans$trace = as.numeric(params["trace"]) else ans$trace = 1
@@ -197,6 +227,53 @@
 	return(ans)
 }
 
+.nloptrctrl = function(control){
+	#solver = c("NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA", "NLOPT_LN_PRAXIS", "NLOPT_LN_NELDERMEAD", "NLOPT_LN_SBPLX",
+	# and AUGLAG + solver
+	# subsolvers:
+	xsub = c("NLOPT_LN_COBYLA", "NLOPT_LN_BOBYQA", "NLOPT_LN_PRAXIS", "NLOPT_LN_NELDERMEAD", "NLOPT_LN_SBPLX")
+	ans = list()
+	params = unlist(control)
+	if(is.null(params)) {
+		ans$ftol_rel = 1e-8
+		ans$xtol_rel = 1e-6
+		ans$maxeval = 25000
+		ans$print_level = 0
+		mainsolver = "NLOPT_LN_SBPLX"
+		subsolver = NULL
+	} else{
+		npar = tolower(names(unlist(control)))
+		names(params) = npar
+		if(any(substr(npar, 1, 8) == "ftol_rel")) ans$ftol_rel = as.numeric(params["ftol_rel"]) else ans$ftol_rel = 1e-8
+		if(any(substr(npar, 1, 8) == "xtol_rel")) ans$xtol_rel = as.numeric(params["xtol_rel"]) else ans$xtol_rel = 1e-6
+		if(any(substr(npar, 1, 7) == "maxeval")) ans$maxeval = as.numeric(params["maxeval"]) else ans$maxeval = 25000
+		if(any(substr(npar, 1, 11) == "print_level")) ans$print_level = as.numeric(params["print_level"]) else ans$print_level = 0
+		if(any(substr(npar, 1, 6) == "solver")){
+			if(abs(as.integer(params["solver"]))>5){
+				mainsolver = "NLOPT_LN_AUGLAG"
+				subsolver = xsub[min(5,abs(as.integer(params["solver"]))-5 )]
+			} else{
+				mainsolver = xsub[min(5,abs(as.integer(params["solver"])))]
+				subsolver = NULL
+			}
+		} else{
+			mainsolver = "NLOPT_LN_SBPLX"
+			subsolver = NULL
+		}
+	}
+	if(is.null(subsolver)){
+		ans$algorithm = mainsolver
+	} else{
+		ans$algorithm = mainsolver
+		ans$local_opts$algorithm = subsolver
+		ans$local_opts$ftol_abs = ans$ftol_rel
+		ans$local_opts$xtol_rel = ans$xtol_rel
+		ans$local_opts$maxeval = 2000
+		ans$local_opts$print_level = 0
+		
+	}
+	return(ans)
+}
 #----------------------------------------------------------------------------------
 .garchconbounds = function(){
 	return(list(LB = eps,UB = 0.999))
@@ -269,3 +346,8 @@
 	if(is.na(con)) con = 1
 	return(con)
 }
+
+
+
+
+

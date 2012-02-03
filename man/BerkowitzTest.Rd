@@ -1,5 +1,5 @@
-\name{BerkowitzLR}
-\alias{BerkowitzLR}
+\name{BerkowitzTest}
+\alias{BerkowitzTest}
 \title{
 	Berkowitz Density Forecast Likelihood Ratio Test
 }
@@ -7,7 +7,7 @@
 	Implements the Berkowitz Density Forecast Likelihood Ratio Test.
 }
 \usage{
-BerkowitzLR(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
+BerkowitzTest(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
 }
 \arguments{
 	\item{data}{
@@ -51,16 +51,16 @@ BerkowitzLR(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05
 	tail.test is used).}
 }
 \references{
-	Berkowitz, J. 2001, Testing density forecasts, with applications to risk 
-	management, 
-	\emph{Journal of Business and Economic Statistics}, \bold{19(4)}, 465--474.\cr
-	Dowd, K. 2004, A modified Berkowitz back-test, \emph{RISK Magazine}, 
-	\bold{17(4)}, 86--87.\cr
-	Jarque, C.M. and Bera, A.K. 1987m A test for normality of observations and 
-	regression residuals, \emph{International Statistical Review}, \bold{55(2)}, 
-	163--172.\cr
-	Rosenblatt, M. 1952, Remarks on a multivariate transformation, \emph{The Annals 
-	of Mathematical Statistics}, \bold{23(3)}, 470--472.\cr
+Berkowitz, J. 2001, Testing density forecasts, with applications to risk 
+management, \emph{Journal of Business and Economic Statistics}, 
+\bold{19(4)}, 465--474.\cr
+Dowd, K. 2004, A modified Berkowitz back-test, \emph{RISK Magazine}, 
+\bold{17(4)}, 86--87.\cr
+Jarque, C.M. and Bera, A.K. 1987, A test for normality of observations and 
+regression residuals, \emph{International Statistical Review}, \bold{55(2)}, 
+163--172.\cr
+Rosenblatt, M. 1952, Remarks on a multivariate transformation, \emph{The Annals 
+of Mathematical Statistics}, \bold{23(3)}, 470--472.
 }
 \author{Alexios Ghalanos}
 \note{
@@ -105,10 +105,10 @@ mu = x[2], sigma = x[3], skew = x[4], shape = x[5]))
 # hist(uvector)
 # transform to N(0,1)
 nvector = qnorm(uvector)
-test1 = BerkowitzLR(data = nvector, lags = 1, significance = 0.05)
-test2 = BerkowitzLR(data = nvector, alpha = 0.05, significance = 0.05, 
+test1 = BerkowitzTest(data = nvector, lags = 1, significance = 0.05)
+test2 = BerkowitzTest(data = nvector, alpha = 0.05, significance = 0.05, 
 tail.test=TRUE)
-test3 = BerkowitzLR(data = nvector, alpha = 0.01, significance = 0.05, 
+test3 = BerkowitzTest(data = nvector, alpha = 0.01, significance = 0.05, 
 tail.test=TRUE)
 }
 }

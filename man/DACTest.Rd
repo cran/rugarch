@@ -40,7 +40,7 @@ predictability, \emph{Journal of Business and Economic Statistics}, \bold{23(4)}
 455--461.\cr
 Pesaran, M.H. and Timmermann, A. 1992, A simple nonparametric test of predictive 
 performance, \emph{Journal of Business and Economic Statistics}, 
-\bold{10(4)}, 461--465.\cr
+\bold{10(4)}, 461--465.
 }
 \author{Alexios Ghalanos}
 \examples{

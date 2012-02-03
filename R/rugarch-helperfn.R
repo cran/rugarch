@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -22,12 +23,17 @@ TinY = 1.0e-8
 # Helper Functions
 .makearfimafitmodel = function(f, data, T, m, timer, convergence, message, hess, garchenv)
 {
+	# Need to turn off stationarity check:
+	fit.control = get("fit.control",  envir = garchenv)
+	fit.control$stationarity = 0
+	assign("fit.control", fit.control, , envir = garchenv)
+	
 	ipars = get("ipars", garchenv)
 	fit = vector(mode = "list")
 	model = get("model", garchenv)
 	estidx = get("estidx", garchenv)
 	idx = model$pidx
-	assign(".llh",1, envir = garchenv)	
+	assign(".llh",1, envir = garchenv)
 	if(is.null(hess)){
 		#fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
 		fit$hessian = .hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)
@@ -147,6 +153,10 @@ TinY = 1.0e-8
 
 .makefitmodel = function(garchmodel, f, data, T, m, timer, convergence, message, hess, garchenv)
 {
+	# Turn Stationarity Off for numerical derivative calculation
+	fit.control = get("fit.control",  envir = garchenv)
+	fit.control$stationarity = 0
+	assign("fit.control", fit.control, envir = garchenv)
 	ipars = get("ipars", garchenv)
 	fit = vector(mode = "list")
 	model = get("model", garchenv)

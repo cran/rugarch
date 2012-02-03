@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -14,6 +15,89 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
+
+# ------------------------------------------------------------------------------
+# Skew Generalized Hyberolic Student's T 
+# alpha = abs(beta)+1e-12, lambda = -nu/2
+# ------------------------------------------------------------------------------
+
+# Location-Scale Invariant Parametrization
+.paramGHST = function(betabar, nu){
+	# Alexios Ghalanos 2012
+	# betabar is the skew parameter = beta*delta (parametrization 4 in Prause)
+	# nu is the shape parameter
+	delta = ( ((2 * betabar^2)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) )^(-0.5)
+	beta = betabar/delta
+	mu = -( (beta * (delta^2))/(nu-2))
+	return(c(mu, delta, beta, nu))
+}
+
+dsghst = function(x, mean=0, sd=1, skew=1, shape=8, log = FALSE){
+	z = (x - mean)/sd
+	params = .paramGHST(skew, shape)
+	f = dgh(z, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
+			mu = params[1], lambda = -shape/2, log = FALSE)/sd
+	if(log) f = log(f)
+	return(f)
+}
+
+psghst = function(q, mean=0, sd=1, skew=1, shape=8){
+	z = (q - mean)/sd
+	params = .paramGHST(skew, shape)
+	f = pgh(z, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
+			mu = params[1], lambda = -shape/2)
+	return(f)
+}
+
+qsghst = function(p, mean=0, sd=1, skew=1, shape=8){
+	params = .paramGHST(skew, shape)
+	f = qgh(p, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
+			mu = params[1], lambda = -shape/2)*sd + mean
+	return(f)
+}
+
+rsghst = function(n, mean=0, sd=1, skew=1, shape=8){
+	params = .paramGHST(skew, shape)
+	ans = rgh(n, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2], mu = params[1], lambda = -shape/2)*sd + mean
+	return(ans)
+}
+
+ghstFit = function(x, control){
+	
+	f = function(pars, x){
+		return(-sum(dsghst(x, mean=pars[1], sd=pars[2], skew=pars[3], shape=pars[4], log = TRUE)))
+	}
+	x = as.numeric(x)
+	x0 = c(mean(x), sd(x), 0.2, 5)
+	fit = try(solnp(x0, fun = f, LB = c(-5, 1e-10, -80, 4.00001), UB = c(5, 10, 80, 80), control = control, x = x), 
+			silent = TRUE)
+	
+	# Add Names to $par
+	names(fit$par) = c("mean", "sd", "skew", "shape")
+	
+	# Return Value:
+	return(fit)
+
+}
+# equivalence: 
+# 1. dskewhyp(x, mu = (sigma*params[1]+0.5), delta = params[2]*sigma, beta = params[3]/sigma, nu = shape)
+# 2. dskewhyp(z, mu = params[1], delta = params[2], beta = params[3], nu = shape)/sigma
+
+# Local version START
+#################################################################################
+## from fBasics library: normal, skew-normal, student, skew-student, ged, skew-ged,
+## nig, skew-nig, and sgh/gh distributions locally implemented in rugarch
+#################################################################################
+## Distributions functions from Rmetrics Libraries
+## Copyrights (C)
+##   1999 - 2008, Diethelm Wuertz, Rmetrics Foundation, GPL
+##   Diethelm Wuertz <wuertz@itp.phys.ethz.ch>
+##   info@rmetrics.org
+##   www.rmetrics.org
+#################################################################################
+
+
+
 
 # ------------------------------------------------------------------------------
 
@@ -1863,10 +1947,18 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 		shape.LB = 0.1
 		shape.UB = 10
 	}
+	if(distribution == "ghst"){
+		skew 	= 0
+		skew.LB	= -80
+		skew.UB	= 80
+		shape 	= 8
+		shape.LB = 4.1
+		shape.UB = 25
+	}
 	# johnson has 2 shape parameters. The second one we model with the "skew"
 	# representation in rugarch
-	skewed.dists = c("snorm", "sged", "sstd", "nig", "ghyp", "jsu")
-	shaped.dists = c("ged", "sged", "std", "sstd", "nig", "ghyp", "jsu")
+	skewed.dists = c("snorm", "sged", "sstd", "nig", "ghyp", "jsu", "ghst")
+	shaped.dists = c("ged", "sged", "std", "sstd", "nig", "ghyp", "jsu", "ghst")
 	skew0  = 0
 	shape0 = 0
 	if(any(skewed.dists == distribution)) include.skew=TRUE else include.skew=FALSE
@@ -1933,6 +2025,12 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 			djsu(z, mu = 0 , sigma = 1, nu = skew, tau = shape)
 		}
 	}
+	
+	if(cond.distribution == "ghst") {
+		.garchDensity = function(z, hh, lambda = 0, skew, shape) {
+			dsghst(z, mean=0, sd = 1, skew = skew, shape = shape)
+		}
+	}
 	# Return Value:
 	return(.garchDensity)
 }
@@ -1990,6 +2088,12 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	if(cond.distribution == "jsu") {
 		.garchDist = function(z, hh, lambda = 0, skew, shape) {
 			pjsu(z, mu = 0 , sigma = 1, nu = skew, tau = shape)
+		}
+	}
+	
+	if(cond.distribution == "ghst") {
+		.garchDist = function(z, hh, lambda = 0, skew, shape) {
+			psghst(z, mean=0, sd = 1, skew = skew, shape = shape)
 		}
 	}
 	
@@ -2054,6 +2158,12 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 			qjsu(z, mu = 0 , sigma = 1, nu = skew, tau = shape)
 		}
 	}
+	
+	if(cond.distribution == "ghst") {
+		.garchQuantile = function(z, hh, lambda = 0, skew, shape) {
+			qsghst(z, mean=0, sd = 1, skew = skew, shape = shape)
+		}
+	}
 	# Return Value:
 	return(.garchQuantile)
 }
@@ -2097,6 +2207,10 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	if(distribution == "jsu"){
 			x = rjsu(n, mu = 0, sigma = 1, nu = skew, tau = shape)
 	}
+	
+	if(distribution == "ghst"){
+		x = rsghst(n, mean=0, sd = 1, skew = skew, shape = shape)
+	}
 	# Return Value:
 	return(x)
 }
@@ -2114,7 +2228,8 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 			ghyp  = .ghypscale(mu, sigma, skew, shape, lambda),
 			ged   = .gedscale(mu, sigma, shape),
 			sged  = .sgedscale(mu, sigma, skew, shape),
-			jsu   = .jsuscale(mu, sigma, skew, shape)
+			jsu   = .jsuscale(mu, sigma, skew, shape),
+			ghst  = .ghstscale(mu, sigma, skew, shape)
 			)
 	return(ans)
 }
@@ -2162,6 +2277,22 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	colnames(xdensity) = c("mu", "sigma", "skew", "shape")
 	return(xdensity)
 }
+
+.ghstscale = function(mu, sigma, skew, shape)
+{
+	ghpars = t(apply(cbind(skew, shape), 1, FUN=function(x) .paramGHST(betabar = x[1], nu = x[2])))
+	xdensity = matrix(0, ncol = 5, nrow = length(sigma))
+	# alpha, beta, delta, mu
+	xdensity[,5] = -shape/2
+	xdensity[,4] = (abs(ghpars[,3])+1e-12)/sigma
+	xdensity[,3] = ghpars[,3]/sigma
+	xdensity[,2] = ghpars[,2]*sigma
+	xdensity[,1] = ghpars[,1]*sigma + mu
+	colnames(xdensity) = c("mu", "sigma", "skew", "shape", "lambda")
+	return(xdensity)
+}
+
+
 
 .ghypscale = function(mu, sigma, skew, shape, lambda)
 {
@@ -2326,6 +2457,15 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 		ans = apply(cbind(z, mu, sigma, skew, shape), 1, FUN=function(x) qjsu(p = x[1], 
 							mu = x[2], sigma = x[3], nu = x[4], tau = x[5]))
 	}
+	if(distribution == "ghst") {
+		if(length(lambda)>1){
+			ans = apply(cbind(z, mu, sigma, shape, skew, lambda), 1, FUN=function(x) qgh(p = x[1],
+								alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = x[6]))
+		} else{
+			ans = apply(cbind(z, mu, sigma, shape, skew), 1, FUN=function(x) qgh(p = x[1],
+								alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = lambda))
+		}
+	}
 	return(ans)
 }
 
@@ -2367,56 +2507,12 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	if(distribution == "jsu") {
 		ans = djsu(y = z, mu = mu, sigma = sigma, nu = skew, tau = shape)
 	}
-	return(ans)
-}
-
-.dskewness = function(mu, sigma,  lambda = -0.5, skew, shape, distribution)
-{
-	if(distribution == "sstd"){
-		eta = shape
-		k2  = skew
-		lda = ( k2-1 )/( k2+1 )
-		ep1 = ( eta+1 )/2
-		lnc = lgamma( ep1 ) - lgamma( eta/2 ) -0.5*log( pi*( eta-2 ) )
-		cc  = exp(lnc)
-		a   = 4*lda*cc*( eta-2 )/( eta-1 )
-		b   = sqrt( 1+3*lda^2-a^2 )		
-		my2 = 1+3*lda^2
-		my3 = 16*cc*lda*( 1+lda^2 )*( ( eta-2 )^2 )/( ( eta-1 )*( eta-3 ) )
-		ans = ( my3-3*a*my2+2*a^3 )/( b^3 )
-	}
-}
-.dexkurtosis = function(mu, sigma, lambda = -0.5,  skew, shape, distribution)
-{
-	if(distribution == "norm") {
-		ans = 0
-	}
-	if(distribution == "snorm"){
-
-	}
-	if(distribution == "std"){
-		ans = 6/(shape-4)
-	}
-	if(distribution == "sstd"){
-		eta = shape
-		k2  = skew
-		lda = ( k2-1 )/( k2+1 )
-		ep1 = ( eta+1 )/2
-		lnc = lgamma( ep1 ) - lgamma( eta/2 ) -0.5*log( pi*( eta-2 ) )
-		cc  = exp(lnc)
-		a   = 4*lda*cc*( eta-2 )/( eta-1 )
-		b   = sqrt( 1+3*lda^2-a^2 )		
-		my2 = 1+3*lda^2
-		my3 = 16*cc*lda*( 1+lda^2 )*( (eta-2)^2 )/( ( eta-1 )*( eta-3 ) )
-		my4 = 3*( eta-2 )*( 1+10*lda^2+5*lda^4 )/( eta-4 )
-		m3  = ( my3-3*a*my2+2*a^3 )/( b^3 )
-		ans = ( my4-4*a*my3+6*( a^2 )*my2-3*a^4 )/( b^4 ) - 3
-	}
-	if(distribution == "ged"){
-		ans = gamma(5/shape)*gamma(1/shape)/gamma(3/shape)^2 - 3
+	if(distribution == "ghst") {
+		ans = dgh(z, alpha = shape, beta = skew, delta = sigma, mu = mu, lambda = lambda)
 	}
 	return(ans)
 }
+
 
 #---------------------------------------------------------------------------------
 # functions for export:
@@ -2436,7 +2532,7 @@ ghyptransform = function(mu = 0, sigma = 1,  skew = 0, shape = 3, lambda = -0.5)
 
 fitdist = function(distribution = "norm", x, control=list()){
 	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig",
-			"ghyp", "jsu")
+			"ghyp", "jsu", "ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	ans = switch(distribution,
@@ -2448,14 +2544,15 @@ fitdist = function(distribution = "norm", x, control=list()){
 			sged = sgedFit(x, control),
 			nig = nigFit(x, control),
 			ghyp = ghFit(x, control),
-			jsu = jsuFit(x, control)
+			jsu = jsuFit(x, control),
+			ghst = ghstFit(x, control)
 	)
-	
+	return(ans)
 }
 ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5)
 {
 	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig",
-			"ghyp", "jsu")
+			"ghyp", "jsu", "ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	if(distribution == "nig" | distribution == "ghyp"){
@@ -2469,6 +2566,15 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 		beta = pars[2]
 		delta = pars[3]
 		xmu = pars[4]
+	}
+	if( distribution == "ghst" ){
+		pars = .paramGHST(nu = shape, betabar = skew)
+		#return(c(mu, delta, beta, nu))
+		xmu = pars[1]*sigma + mu
+		delta = pars[2]*sigma
+		beta = pars[3]/sigma
+		alpha = (abs(pars[3])+1e-12)/sigma
+		lambda = -pars[4]/2
 	}
 	ans = switch(distribution,
 		norm = dnorm(y, mean = mu, sd = sigma, log = FALSE),
@@ -2479,7 +2585,8 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 		sged = dsged(y, mean = mu, sd = sigma, nu = shape, xi = skew),
 		nig = dnig(y, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 		ghyp = dgh(y, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
-		jsu = djsu(y, mu = mu, sigma = sigma, nu = skew, tau = shape)
+		jsu = djsu(y, mu = mu, sigma = sigma, nu = skew, tau = shape),
+		ghst = dgh(y, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 		)
 	return(ans)
 }
@@ -2487,7 +2594,7 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5)
 {
 	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig",
-			"ghyp", "jsu")
+			"ghyp", "jsu","ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	if(distribution == "nig" | distribution == "ghyp"){
@@ -2501,6 +2608,15 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 		beta = pars[2]
 		delta = pars[3]
 		xmu = pars[4]
+	}
+	if( distribution == "ghst" ){
+		pars = .paramGHST(nu = shape, betabar = skew)
+		#return(c(mu, delta, beta, nu))
+		xmu = pars[1]*sigma + mu
+		delta = pars[2]*sigma
+		beta = pars[3]/sigma
+		alpha = (abs(pars[3])+1e-12)/sigma
+		lambda = -pars[4]/2
 	}
 	ans = switch(distribution,
 			norm = pnorm(q, mean = mu, sd = sigma, log.p = FALSE),
@@ -2511,7 +2627,8 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 			sged = psged(q, mean = mu, sd = sigma, nu = shape, xi = skew),
 			nig = pnig(q, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = pgh(q, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
-			jsu = pjsu(q, mu = mu, sigma = sigma, nu = skew, tau = shape)
+			jsu = pjsu(q, mu = mu, sigma = sigma, nu = skew, tau = shape),
+			ghst = pgh(q, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda)
 	)
 	return(ans)
 }
@@ -2519,7 +2636,7 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5)
 {
 	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig",
-			"ghyp", "jsu")
+			"ghyp", "jsu","ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	if(distribution == "nig" | distribution == "ghyp"){
@@ -2534,6 +2651,15 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
+	if( distribution == "ghst" ){
+		pars = .paramGHST(nu = shape, betabar = skew)
+		#return(c(mu, delta, beta, nu))
+		xmu = pars[1]*sigma + mu
+		delta = pars[2]*sigma
+		beta = pars[3]/sigma
+		alpha = (abs(pars[3])+1e-12)/sigma
+		lambda = -pars[4]/2
+	}
 	ans = switch(distribution,
 			norm = qnorm(p, mean = mu, sd = sigma, log.p = FALSE),
 			snorm = qsnorm(p, mean = mu, sd = sigma, xi = skew),
@@ -2543,7 +2669,8 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 			sged = qsged(p, mean = mu, sd = sigma, nu = shape, xi = skew),
 			nig = qnig(p, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = qgh(p, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
-			jsu = qjsu(p, mu = mu, sigma = sigma, nu = skew, tau = shape)
+			jsu = qjsu(p, mu = mu, sigma = sigma, nu = skew, tau = shape),
+			ghst = qgh(p, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 	)
 	return(ans)
 }
@@ -2551,7 +2678,7 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5)
 {
 	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig",
-			"ghyp", "jsu")
+			"ghyp", "jsu","ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distribution\n", call. = FALSE)
 	if(distribution == "nig" | distribution == "ghyp"){
@@ -2566,6 +2693,15 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
+	if( distribution == "ghst" ){
+		pars = .paramGHST(nu = shape, betabar = skew)
+		#return(c(mu, delta, beta, nu))
+		xmu = pars[1]*sigma + mu
+		delta = pars[2]*sigma
+		beta = pars[3]/sigma
+		alpha = (abs(pars[3])+1e-12)/sigma
+		lambda = -pars[4]/2
+	}
 	ans = switch(distribution,
 			norm = rnorm(n, mean = mu, sd = sigma),
 			snorm = rsnorm(n, mean = mu, sd = sigma, xi = skew),
@@ -2575,7 +2711,8 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 			sged = rsged(n, mean = mu, sd = sigma, nu = shape, xi = skew),
 			nig = rnig(n, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = rgh(n, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
-			jsu = rjsu(n, mu = mu, sigma = sigma, nu = skew, tau = shape)
+			jsu = rjsu(n, mu = mu, sigma = sigma, nu = skew, tau = shape),
+			ghst = rgh(n, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda)
 	)
 	return(ans)
 }
@@ -2583,7 +2720,7 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 
 dskewness = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 {
-	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig", "ghyp", "jsu")
+	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig", "ghyp", "jsu","ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distribution\n", call. = FALSE)
 	if( distribution == "nig" | distribution == "ghyp"){
@@ -2598,14 +2735,15 @@ dskewness = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 			sged 	= .sgedskew(skew = skew, shape = shape),
 			nig 	= .nigskew(alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]),
 			ghyp 	= .ghypskew(lambda = lambda, alpha = pars[1], beta = pars[2],  delta = pars[3], mu = pars[4]),
-			jsu 	= .jsuskew(mu = 0, sigma = 1, skew = skew, shape = shape)
+			jsu 	= .jsuskew(mu = 0, sigma = 1, skew = skew, shape = shape),
+			ghst	= .ghstskew(skew, shape)
 	)
 	return(as.numeric(ans))
 }
 
 dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 {
-	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig", "ghyp", "jsu")
+	valid.distributions = c("norm", "snorm", "std", "sstd", "ged", "sged", "nig", "ghyp", "jsu","ghst")
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distribution\n", call. = FALSE)
 	if( distribution == "nig" | distribution == "ghyp"){
@@ -2620,7 +2758,8 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 			sged 	= .sgedexkurt(skew = skew, shape = shape),
 			nig 	= .nigexkurt(alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]),
 			ghyp 	= .ghypexkurt(lambda = lambda, alpha = pars[1], beta = pars[2],  delta = pars[3], mu = pars[4]),
-			jsu 	= .jsuexkurt(mu = 0, sigma = 1, skew = skew, shape = shape)
+			jsu 	= .jsuexkurt(mu = 0, sigma = 1, skew = skew, shape = shape),
+			ghst	= .ghstexkurt(skew, shape)
 	)
 	return(as.numeric(ans))
 }
@@ -2791,4 +2930,38 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 {
 	f = function(x) ( (x-mu)^4 )*djsu(x, mu = mu, sigma = sigma, nu = skew, tau = shape, log = FALSE)
 	(integrate(f, -Inf, Inf)$value/sigma^4)-3
+}
+
+.ghstskew = function(skew, shape){
+	if(shape<6){
+		ans = NA
+	} else{
+		params = .paramGHST(nu = shape, betabar = skew)
+		delta = params[2]
+		beta = params[3]
+		nu = params[4]
+		beta2 = beta*beta
+		delta2 = delta*delta
+		ans = ( (2 * sqrt(nu - 4)*beta*delta)/( (2*beta2*delta2 + (nu-2)*(nu-4))^(3/2) ) ) * (3*(nu-2) + ((8*beta2*delta2)/(nu-6)))
+	}
+	return( ans )
+}
+
+.ghstexkurt = function(skew, shape){
+	if(shape<8){
+		ans = NA
+	} else{
+		params = .paramGHST(nu = shape, betabar = skew)
+		delta = params[2]
+		beta = params[3]
+		nu = params[4]
+		beta2 = beta*beta
+		delta2 = delta*delta
+		k1 = 6/( (2*beta2*delta2+(nu-2)*(nu-4))^2)
+		k21 = (nu-2)*(nu-2)*(nu-2)
+		k22 = (16*beta2*delta2*(nu-2)*(nu-4))/(nu-6)
+		k23 = (8*(beta2^2)*(delta2^2)*(5*nu-22))/((nu-6)*(nu-8))
+		ans = k1*(k21+k22+k23)
+	}
+	return( ans )
 }

@@ -22,7 +22,8 @@ A univariate GARCH spec object of class \code{\linkS4class{uGARCHspec}}.}
 A positive integer indicating the number of periods before the last to keep for 
 out of sample forecasting (see details).}
 \item{solver}{
-One of either \dQuote{nlminb}, \dQuote{solnp} or \dQuote{gosolnp}. }
+One of either \dQuote{nlminb}, \dQuote{solnp}, \dQuote{lbfgs}, 
+\dQuote{gosolnp} or \dQuote{nloptr}. }
 \item{solver.control}{
 Control arguments list passed to optimizer.}
 \item{fit.control}{
@@ -58,6 +59,23 @@ is the number of solver restarts required (defaults to 1), \dQuote{parallel} and
 \dQuote{parallel.control} for use of the parallel functionality, \dQuote{rseed} 
 is the seed to initialize the random number generator, and \dQuote{n.sim} is the 
 number of simulated parameter vectors to generate per n.restarts.
+}
+\note{
+The nloptr solver takes the following options in the solver.control list:\cr
+\tabular{llll}{
+\tab ftol_rel \tab function value relative tolerance \tab default: 1e-8\cr
+\tab xtol_rel \tab parameter value relative tolerance \tab default: 1e-6\cr
+\tab maxeval \tab maximum function evaluations \tab default: 25000\cr
+\tab print_level \tab trace level \tab default: 1\cr
+\tab solver \tab the nloptr solver to use \tab default: 1 (\sQuote{SBPLX}).\cr
+}
+The solver option for nloptr has 10 different choices (1:10), which are
+1:\sQuote{COBYLA}, 2:\sQuote{BOBYQA}, 3:\sQuote{PRAXIS}, 4:\sQuote{NELDERMEAD},
+5:\sQuote{SBPLX}, 6:\sQuote{AUGLAG}+\sQuote{COBYLA},
+7:\sQuote{AUGLAG}+\sQuote{BOBYQA}, 8:\sQuote{AUGLAG}+\sQuote{PRAXIS}, 
+9:\sQuote{AUGLAG}+\sQuote{NELDERMEAD} and 10:\sQuote{AUGLAG}+\sQuote{SBPLX}.
+As always, your mileage will vary and care should be taken on the choice of 
+solver, tuning parameters etc. If you do use this solver try 9 or 10 first.
 }
 \author{Alexios Ghalanos}
 \seealso{

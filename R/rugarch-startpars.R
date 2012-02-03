@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -333,11 +334,15 @@
 			mxn = modelinc[6]
 			fit.mean = lm(y~mexdata)
 			i = which(substr(names(fit.mean$coef), 1, 7) == "mexdata")
-			pars[idx["mu", 1]:idx["mu", 2], 1] = fit.mean$coef["(Intercept)"]
+			if(modelinc[1]>0){
+				pars[idx["mu", 1]:idx["mu", 2], 1] = fit.mean$coef["(Intercept)"]
+			}
 			pars[idx["mxreg", 1]:idx["mxreg", 2], 1] = fit.mean$coef[i]
 			#res=as.numeric(fit.mean$residuals)
 		} else{
-			pars[idx["mu", 1]:idx["mu", 2], 1] = mean(y)
+			if(modelinc[1]>0){
+				pars[idx["mu", 1]:idx["mu", 2], 1] = mean(y)
+			}
 			#res=(data-mu)
 		}
 	}

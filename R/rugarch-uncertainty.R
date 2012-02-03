@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -74,7 +75,7 @@
 						rep(10, length(fixpars)),rep(0,length(fixpars))))
 	}
 	# fit to simulated series (using starting parameters)
-	setstart(spec) = fixpars
+	#setstart(spec) = fixpars
 
 	fitlist = vector( mode = "list", length = m.sim )
 	if( parallel ){

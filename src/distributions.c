@@ -1,14 +1,14 @@
 /*################################################################################
 ##
-##   R package rgarch by Alexios Ghalanos Copyright (C) 2009, 2010, 2011
-##   This file is part of the R package rgarch.
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2009, 2010, 2011, 2012
+##   This file is part of the R package rugarch.
 ##
-##   The R package rgarch is free software: you can redistribute it and/or modify
+##   The R package rugarch is free software: you can redistribute it and/or modify
 ##   it under the terms of the GNU General Public License as published by
 ##   the Free Software Foundation, either version 3 of the License, or
 ##   (at your option) any later version.
 ##
-##   The R package rgarch is distributed in the hope that it will be useful,
+##   The R package rugarch is distributed in the hope that it will be useful,
 ##   but WITHOUT ANY WARRANTY; without even the implied warranty of
 ##   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ##   GNU General Public License for more details.
@@ -21,6 +21,33 @@
 # include "nig.h"
 # include <math.h>
 # include <Rmath.h>
+
+double* paramghskt(const double betabar, const double nu)
+{
+	double *param = malloc(4*sizeof(double));
+	double delta = 	sqrt(1/( ((2 * betabar*betabar)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) ));
+	double beta = betabar/delta;
+	double mu = -( (beta * (delta*delta))/(nu-2));
+	param[0]=(double) nu;
+	param[1]=(double) beta;
+	param[2]=(double) delta;
+	param[3]=(double) mu;
+	return param;
+}
+
+double dghsktstd(const double x, const double betabar, const double nu)
+{
+	double *param;
+	param = paramghskt(betabar, nu);
+	double alpha = fabs(param[1])+1e-12;
+	double beta = param[1];
+	double delta = param[2];
+	double mu = param[3];
+	double lambda = -nu/2.0;
+	double pdf = dgh(x, alpha, beta, delta, mu, lambda, 0);
+	free(param);
+	return pdf;
+}
 
 double rghyp(const double zeta, const double rho, const double lambda)
 {
@@ -403,6 +430,8 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 			 6 - skew-ged
 			 7 - Normal Inverse Gaussian (NIG)
 			 8 - Generalized Hyperbolic (GHYP)
+			 9 - JSU
+			 10 - GH Skew Student
 	distEq: [0]: Skew, [1]: Shape, ... additionally can be used for normal mixture
 	(not yet implemented)
 	*/
@@ -442,6 +471,10 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 	if(ndis==9)
 	{
 		pdf=djsustd(zz,shape,skew)/hh;
+	}
+	if(ndis==10)
+	{
+		pdf = dghsktstd(zz, skew, shape)/hh;
 	}
 	return pdf;
 }

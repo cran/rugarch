@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -296,7 +297,7 @@ lossfn.ret = function(realized, forecast)
 # From his 2001 paper. Also added the Jarque Bera Test as reccomended by Dowd
 # since the test does not really account for residuals being from the Normal distribution.
 
-BerkowitzLR = function(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
+BerkowitzTest = function(data, lags = 1, significance = 0.05, tail.test = FALSE, alpha = 0.05)
 {
 	if(tail.test){
 		ans = .BerkowitztLRtail(data, alpha = alpha, significance = significance)
@@ -326,7 +327,7 @@ BerkowitzLR = function(data, lags = 1, significance = 0.05, tail.test = FALSE, a
 		k2 = (m4/m2^2)
 		JB = n * k1/6 + n * (k2 - 3)^2/24
 		JBp = 1 - pchisq(JB, df = 2)
-		return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, Test = res, 
+		return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, Decision = res, 
 						mu = mean(data), sigma = summary(ans)$sigma, rho =  coef(ans)[1:(lags)],
 				JB = JB, JBp = JBp))
 	}
@@ -349,7 +350,7 @@ BerkowitzLR = function(data, lags = 1, significance = 0.05, tail.test = FALSE, a
 	else res = paste("fail to reject NULL")
 	H0 = paste("Normal(0,1)")
 	return(list(uLL = uLL, rLL = rLL, LR = LR, LRp = chid, H0 = H0, 
-					Test = res, mu = tst$par[1], sigma = tst$par[2]))
+					Decision = res, mu = tst$par[1], sigma = tst$par[2]))
 }
 
 # Tests of Directional Accuracy
@@ -387,37 +388,39 @@ DACTest = function(forecast, actual, test = c("PT", "AG"), conf.level = 0.95)
   return( ans )
 }
 
-VaRtest = function(alpha = 0.05, realized, VaR, conf.level = 0.95){
-	N = length(realized)
+VaRTest = function(alpha = 0.05, actual, VaR, conf.level = 0.95){
+	N = length(actual)
 	VaRn = floor(N * alpha)
 	if(N != length(VaR)) stop("\nlength of realized not equal to length of VaR!")
-	tmp = LR.cc.test(p = alpha, actual = realized, VaR = VaR, conf.level = conf.level)
+	tmp = LR.cc.test(p = alpha, actual = actual, VaR = VaR, conf.level = conf.level)
 	ans = list()
 	ans$expected.exceed = floor(alpha*tmp$TN)
 	ans$actual.exceed = tmp$N
 	ans$uc.H0 = "Correct Exceedances"
 	ans$uc.LRstat = tmp$stat.uc
 	ans$uc.critical = tmp$crit.val.uc
-	ans$uc.pvalue = tmp$p.value.uc
+	ans$uc.LRp = tmp$p.value.uc
+	ans$uc.Decision = ifelse(ans$uc.LRp<(1-conf.level), "Reject H0", "Fail to Reject H0")
 	
 	ans$cc.H0 = "Correct Exceedances & Independent"
 	ans$cc.LRstat = tmp$stat.cc
 	ans$cc.critical = tmp$crit.val.cc
-	ans$cc.pvalue = tmp$p.value.cc
+	ans$cc.LRp = tmp$p.value.cc
+	ans$cc.Decision = ifelse(ans$cc.LRp<(1-conf.level), "Reject H0", "Fail to Reject H0")
 	return(ans)
 }
 
-EStest = function(alpha = 0.05, realized, ES, VaR, conf.level = 0.95, boot = TRUE, n.boot = 1000){
-	N = length(realized)
+ESTest = function(alpha = 0.05, actual, ES, VaR, conf.level = 0.95, boot = FALSE, n.boot = 1000){
+	N = length(actual)
 	if(N != length(VaR)) stop("\nlength of realized not equal to length of VaR!")
-	idx = which(as.numeric(VaR)>realized)
-	z = (ES[zx] - realized[zx])
+	idx = which(as.numeric(VaR)>actual)
+	z = (ES[idx] - actual[idx])
 	.fn = function(x){
 		n = length(x)
 		1-pnorm(mean(x)/((sqrt(sd(x)^2*((n-1)/n)))/sqrt(n-1)))
 	}
 	if(boot){
-		rbt = matrix(sample(z, size = N * n.boot, replace = TRUE), nrow = n.boot)
+		rbt = matrix(sample(z, size = length(z) * n.boot, replace = TRUE), nrow = n.boot)
 		pv = mean( apply(rbt, 1, FUN = function(x) .fn(x)) )
 		npv = .fn(z)
 	} else{
@@ -431,8 +434,277 @@ EStest = function(alpha = 0.05, realized, ES, VaR, conf.level = 0.95, boot = TRU
 	ans$H1 = "Mean of Excess Violations of VaR is greater than zero"
 	ans$boot.p.value = pv
 	ans$p.value = npv
+	ans$Decision = ifelse(npv<(1-conf.level),"Reject H0", "Fail to Reject H0")
 	return(ans)
 }
+
+
+VaRDurTest = function(alpha, actual, VaR, conf.level = 0.95){
+	VaR.ind = ifelse(actual < VaR, 1, 0)
+	N = sum(VaR.ind)
+	TN = length(VaR.ind)
+	D = rep(0, N)
+	C = rep(0, N)
+	D = diff(which(VaR.ind==1))
+	# left-censored
+	if(VaR.ind[1]==0){
+		C = c(1, C)
+		# the number of days until we get the first hit
+		D = c(which(VaR.ind==1)[1], D)
+	}
+	# right-censored
+	if(VaR.ind[N]==0){
+		C = c(C, 1)
+		# the number of days after the last one in the hit sequence
+		D = c(D, TN - tail(which(VaR.ind==1), 1))
+	}
+	N = length(D)
+	sol = try(optim(par = 2, fn = .likDurationW, gr = NULL, D = D, C = C, N = N, 
+			method = "L-BFGS-B", lower = 0.001, upper = 10, control = list(trace=0)), silent = TRUE)
+	b = sol$par
+	uLL = -sol$value
+	rLL = -.likDurationW(1, D, C, N)
+	LR = 2*(uLL - rLL)
+	LRp = 1 - pchisq(LR, 1)
+	H0 = "Duration Between Exceedances have no memory (Weibull b=1 = Exponential)"
+	#i.e. whether we fail to reject the alternative in the LR test that b=1 (hence correct model)
+	Decision = ifelse(LRp<(1-conf.level),"Reject H0", "Fail to Reject H0")
+	return(list(b = b, uLL = uLL, rLL = rLL, LRp = LRp, H0 = H0, Decision = Decision))
+}
+
+.likDurationW = function(pars, D, C, N){
+	b = pars[1]
+	a = ( (N - C[1] - C[N])/(sum(D^b)) )^(1/b)
+	lik = C[1]*log(.pweibull(D[1],a,b,survival=TRUE)) + (1-C[1])*.dweibull(D[1], a, b, log = TRUE) + 
+					sum(.dweibull(D[2:(N-1)], a, b, log = TRUE) ) + C[N]*log(.pweibull(D[N],a,b,survival=TRUE) )  + 
+									(1 - C[N]) *.dweibull(D[N], a, b, log = TRUE)
+	if(!is.finite(lik) || is.nan(lik)) lik = 1e10 else lik = -lik
+	return(lik)
+}
+	
+# When b=1 we get the exponential
+.dweibull = function(D, a, b, log = FALSE){
+	# density of Weibull
+	pdf = (a^b)*b*(D^(b-1))*exp(-(a*D)^b)
+	if(log) pdf = log(pdf)
+	return(pdf)
+}
+.pweibull = function(D, a, b, survival = FALSE){
+	# distribution of Weibull
+	cdf = 1 - exp(-(a*D)^b)
+	if(survival) cdf = 1 - cdf
+	return(cdf)
+}
+.hweibull = function(D, a, b){
+	# hazard of Weibull
+	h = (a^b)*b*(D^(b-1))
+	return(h)
+}
+
+#####################################################################################
+GMMTest = function(z, lags = 1, skew=0, kurt=0, conf.level = 0.95){
+	if(length(skew)>1) sk = skew[-c(1:lags)] else sk = skew
+	if(length(kurt)>1) ku = kurt[-c(1:lags)] else ku = kurt
+	z = matrix(z, ncol = 1)
+	N = dim(z)[1] - lags
+	zlag = z[-c(1:lags), , drop = FALSE]
+	orthmat = matrix(NA, ncol = 6, nrow = 3)
+	colnames(orthmat) = c("E[z]", "E[z^2]-1", "E[z^3]", "E[z^4]-3", "Q2","J")
+	rownames(orthmat) = c("mean", "var", "t.value")
+	f1 = zlag[,1]
+	orthmat[1:3,1] = c(mean(f1), mean(f1^2)/N, mean(f1)/sqrt(mean(f1^2)/N))
+	f2 = (zlag[,1]^2)-1
+	orthmat[1:3,2] = c(mean(f2), mean(f2^2)/N, mean(f2)/sqrt(mean(f2^2)/N))
+	f3 = zlag[,1]^3-sk
+	orthmat[1:3,3] = c(mean(f3), mean(f3^2)/N, mean(f3)/sqrt(mean(f3^2)/N))
+	f4 = zlag[,1]^4-ku
+	orthmat[1:3,4] = c(mean(f4), mean(f4^2)/N, mean(f4)/sqrt(mean(f4^2)/N))
+	M = rbind(t(f1), t(f2), t(f3), t(f4))
+	
+	tmp1 = .waldcomomtest(z[,1]^2-1, lags, N)
+	orthmat[3, 5] = tmp1$tval[lags+1]
+	
+	M = rbind(M, tmp1$h)
+	g = c(as.numeric(orthmat[1,1:4]), tmp1$g)
+	
+	# all moments
+	S = (M %*% t(M))/N
+	jtval = N*t(g)%*%solve(S)%*%g
+	orthmat[3,6] = jtval
+	p = rep(conf.level, 2)
+	df = c(lags, (4+1*lags))	
+	critical.values = qchisq(p,df)
+	# i.e. if tval>critical value reject the NULL
+	Decision = NULL
+	Decision[1] = ifelse(orthmat[3, 5]<critical.values[1], "Fail to Reject H0", "Reject H0")
+	Decision[2] = ifelse(orthmat[3, 6]<critical.values[2], "Fail to Reject H0", "Reject H0")
+	H0 = "[Moment Conditions] Model is Correctly Specified"
+	moment.mat = orthmat[1:3,1:4]
+	joint.mat = rbind(orthmat[3,5:6], critical.values)
+	rownames(joint.mat) = c("t-value", "critical.value")
+	return(list(joint.mat = joint.mat, moment.mat = moment.mat, H0 = H0, Decision = Decision) )
+}
+
+.waldcomomtest = function(z, lags, N){
+	f0 = z %*% matrix(1, nrow = 1, ncol = lags)
+	fx = NULL
+	for(i in 1:lags) fx = cbind(fx, rugarch:::.lagx(z, n.lag = i, pad = 0))
+	fx = fx[-c(1:lags), , drop = FALSE]
+	f0 = f0[-c(1:lags), , drop = FALSE]
+	fmat = f0 * fx
+	g = colMeans(fmat)
+	varg = apply(fmat, 2, FUN = function(x) mean(x^2)/N)
+	tval = g/varg
+	h = t(fmat)
+	S = (h%*%t(h))/N
+	joint = N*t(g)%*%solve(S)%*%g
+	tval = c(tval, joint)
+	return(list(tval = tval, h = h, g = g, varg = varg, S = S))
+}
+
+# currenly only quartic kernel implemented
+# Hong and Li Test
+HLTest = function(PIT, lags = 4, kernel = "quartic", conf.level = 0.95){
+	p = lags
+	Vcon = 2*(50/49 - 300/294 + 1950/1960 - 900/1568 + 450/2304)^2
+	Qhatvector = matrix(0, p,1)
+	res = rep(0, 5)
+	Acon2 = integrate(funb, 0, 1)$value
+	T = length(PIT)
+	hpit = sd(PIT) * T^(-1/6)
+	Acon11 = (1/hpit-2)*(5/7)
+	Acon_1 = (Acon11 + 2*Acon2)^2 - 1
+	for(i in 1:p){
+		Mhat1 = gauss_legendre2D(f = ghat, 0,1,0,1, pit = PIT, i = i, T = T, hpit = hpit) 			
+		Qhatvector[i,1] = ( (T-i)*hpit*Mhat1 - hpit*Acon_1 )/sqrt(Vcon)
+	}
+	res[5] = sum(Qhatvector[,1])/sqrt(p)
+	res[1] = Momstat(1,1, p, PIT, T)
+	res[2] = Momstat(2,2, p, PIT, T)
+	res[3] = Momstat(3,3, p, PIT, T)
+	res[4] = Momstat(4,4, p, PIT, T)
+	names(res) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "W")
+	Decision = NULL
+	RejectH0 = as.logical( res>rep( qnorm(conf.level), 5 ))
+	Decision[1] = ifelse(RejectH0[1], "Reject H0", "Fail to Reject H0")
+	Decision[2] = ifelse(RejectH0[2], "Reject H0", "Fail to Reject H0")
+	Decision[3] = ifelse(RejectH0[3], "Reject H0", "Fail to Reject H0")
+	Decision[4] = ifelse(RejectH0[4], "Reject H0", "Fail to Reject H0")
+	Decision[5] = ifelse(RejectH0[5], "Reject H0", "Fail to Reject H0")
+	names(Decision) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "W")
+	H0 = NULL
+	H0[1] = "M(1) Correctly Specified"
+	H0[2] = "M(2) Correctly Specified"
+	H0[3] = "M(3) Correctly Specified"
+	H0[4] = "M(4) Correctly Specified"
+	H0[5] = "Model Correctly Specified"
+	return(list(statistic = res, H0 = H0, Decision = Decision))
+}
+
+funb = function(b){
+	tmp1 = (8/15 + b - (2/3)*(b^3)+(1/5)*(b^5))^(-2)
+	tmp2 = b*( (1-b^2)^4 )+128/315+(8/3)*(b^3)-(24/5)*(b^5)+(24/7)*(b^7)-(8/9)*(b^9)
+	ans = tmp1 * tmp2
+	return(ans)
+}
+
+ghat = function(x, pit, i, T, hpit){
+	z1 = x[1]
+	z2 = x[2]
+	n = length(pit)
+	b1 = fnbound( z1, pit[-c(1:i)], hpit)
+	b2 = fnbound( z2, pit[-c((n-i+1):n)], hpit)
+	g = sum(b1* b2)/(T-i)
+	return( (g - 1)^2 )
+}
+
+fnbound = function(x, y, hpit)
+{
+	K1 = quartic( (x - y)/hpit )/hpit
+	if( (x >= 0)*(x < hpit) ){
+		K2 = integrate(quartic, (-x/hpit), 1)$value
+		return(K1/K2)
+	} else if ((x >= hpit)*(x <= (1-hpit))){
+		return( K1 )
+	} else if( (x>(1-hpit))*(x <= 1) ){
+		K2 = integrate(quartic, -1, (1-x)/hpit )$value
+		return(K1/K2)
+	}
+}
+
+quartic = function(z){
+	kernell = rep(0, length(z))
+	nonzeros = which(z<=1 & z>=-1)
+	v = z[nonzeros]
+	v = 1-v^2
+	kernell[nonzeros] = (15/16)*(v^2)
+	return(kernell)
+}
+
+
+Momstat = function(m, ll, p, pit, T){
+	part1 = 0
+	part2 = 0
+	part3 = 0
+	for(j in 1:p){
+		w = 1 - j/p
+		part1 = part1 + (w^2)*(T-j)*((Rcc1(j, m, ll, pit, T)/Rcc1(0, m, ll, pit, T))^2)
+		part2 = part2 + w^2
+		part3 = part3 + w^4
+	}
+	return( (part1-part2)/part3 )
+}
+
+Rcc1 = function(j, m, ll, pit, T){
+	R1 = sum( (pit[(j+1):T]^m) * (pit[1:(T-j)]^ll) ) / T
+	R2 = sum( (pit[(j+1):T]^m) ) / T
+	R3 = sum( (pit[1:(T-j)]^ll) ) / T
+	return( R1 - R2*R3 )
+}
+
+
+##############################################################################
+# 2D Integration
+# Code from forums:
+# http://tolstoy.newcastle.edu.au/R/e5/help/08/09/2919.html
+# posted by Earl F. Glynn
+
+gauss_legendre2D_helper <- function(f, x, a2,b2, nodes, weights, ...) {
+	C <- (b2 - a2) / 2
+	D <- (b2 + a2) / 2
+	
+	sum <- 0.0
+	for (i in 1:length(nodes))
+	{
+		y <- nodes[i]*C + D
+		sum <- sum + weights[i] * f(c(x,y), ...)
+	}
+	
+	return(C * sum)
+}
+
+gauss_legendre2D <- function(f, a1,b1, a2,b2, ...) {
+	#library(statmod)
+	#N <- 12
+	#GL <- gauss.quad(N)
+	nodes = c(-0.9815606, -0.9041173, -0.7699027, -0.5873180, -0.3678315, 
+			-0.1252334, 0.1252334, 0.3678315, 0.5873180, 0.7699027, 0.9041173, 
+			0.9815606)
+	weights = c(0.04717534, 0.10693933, 0.16007833, 0.20316743, 
+			0.23349254, 0.24914705, 0.24914705, 0.23349254, 0.20316743, 
+			0.16007833, 0.10693933, 0.04717534)	
+	C <- (b1 - a1) / 2
+	D <- (b1 + a1) / 2
+	sum <- 0.0
+	for (i in 1:length(nodes))
+	{
+		x <- nodes[i]*C + D
+		sum <- sum + weights[i] * gauss_legendre2D_helper(f, x, a2, b2, nodes, weights, ...)
+	}
+	
+	return(C * sum)
+}
+#####################################################################################
 
 lossfn.ret = function(realized, forecast)
 {

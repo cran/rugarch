@@ -1,3 +1,16 @@
+2012-02-03  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-8.
+	* Turned off stationarity check during calculation of numerical derivatives
+	to avoid boundary case problems.
+	* Addded nloptr solver to estimation toolbox.
+	* Added Generalized Hyperbolic Skew Student distribution ("GHST").
+	* Added a battery of tests including VaRTest, VaRDurTest, ESTest, GMMTest
+	and HLTest.
+	* Renamed BerkowitzLR to BerkowitzTest.
+	* Updated Vignette with details on changes.
+	* Fixed a bug when spec had include.mean = FALSE but fitting routine 
+	was still subtracting the mean.
+
 2011-12-16  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-7.
 	* Fix to eGARCH model in the presence of variance.targeting.

@@ -1,6 +1,7 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
+##	 2012
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -64,7 +65,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	modeldata = list()
 	# distribution model
 	if(is.null(distribution.model)) modeldesc$distribution = "norm"
-	valid.distribution = c("norm", "snorm", "std", "sstd","ged", "sged", "nig", "ghyp", "jsu")
+	valid.distribution = c("norm", "snorm", "std", "sstd","ged", "sged", "nig", "ghyp", "jsu", "ghst")
 	distribution = distribution.model
 	
 	if(!is.character(distribution[1]))

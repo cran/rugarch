@@ -1,0 +1,1689 @@
+\section{Introduction}
+The pioneering work of \cite{Box1994} in the area of autoregressive moving
+average models paved the way for related work in the area of volatility
+modelling with the introduction of ARCH and then GARCH models by \cite{Engle1982}
+and \cite{Bollerslev1986}, respectively. In terms of the statistical framework,
+these models provide motion dynamics for the dependency in the conditional
+time variation of the distributional parameters of the mean and variance, in an
+attempt to capture such phenomena as autocorrelation in returns and squared
+returns. Extensions to these models have included more sophisticated dynamics
+such as threshold models to capture the asymmetry in the news impact, as well
+as distributions other than the normal to account for the skewness and excess
+kurtosis observed in practice. In a further extension, \cite{Hansen1994}
+generalized the \verb@GARCH@ models to capture time variation in the full density
+parameters, with the Autoregressive Conditional Density Model\footnote{This may
+be included in the package at a future date.}, relaxing the assumption that the
+conditional distribution of the standardized innovations is independent of the
+conditioning information.
+
+The \verb@rugarch@ package aims to provide for a comprehensive set of methods
+for modelling univariate \verb@GARCH@ processes, including fitting, filtering,
+forecasting, simulation as well as diagnostic tools including plots and various
+tests. Additional methods such as rolling estimation, bootstrap forecasting and
+simulated parameter density to evaluate model uncertainty provide a rich
+environment for the modelling of these processes. This document discusses the
+finer details of the included models and conditional distributions and
+how they are implemented in the package with numerous examples.
+
+The \verb@rugarch@ package forms part of the rgarch project on r-forge
+\url{rgarch.r-forge.r-project.org/} which also includes the \verb@rmgarch@
+package for multivariate \verb@GARCH@ models. Previously, both univariate and
+multivariate models were included in one large package which was split for
+release to CRAN in August 2011.
+
+The package is provided AS IS, without any implied warranty as to its accuracy
+or suitability. A lot of time and effort has gone into the development of this
+package, and it is offered under the GPL-3 license in the spirit of open
+knowledge sharing and dissemination. If you do use the model in published work
+DO remember to cite the package and author (type \verb@citation@("rugarch") for
+the appropriate BibTeX entry) , and if you have used it and found it
+useful, drop me a note and let me know.
+
+A section on FAQ is included at the end of this document.
+\section{Model Specification}
+This section discusses the key step in the modelling process, namely that of the
+specification. This is defined via a call to the \verb@ugarchspec@ function,
+\begin{Schunk}
+\begin{Sinput}
+> args(ugarchspec)
+\end{Sinput}
+\begin{Soutput}
+function (variance.model = list(model = "sGARCH", garchOrder = c(1,
+    1), submodel = NULL, external.regressors = NULL, variance.targeting = FALSE),
+    mean.model = list(armaOrder = c(1, 1), include.mean = TRUE,
+        archm = FALSE, archpow = 1, arfima = FALSE, external.regressors = NULL,
+        archex = FALSE),
+    distribution.model = "norm", start.pars = list(), fixed.pars = list(),
+    ...)
+NULL
+\end{Soutput}
+\end{Schunk}
+Thus a model, in the \verb@rugarch@ package, may be described by the dynamics of
+the conditional mean and variance, and the distribution to which they belong,
+which determines any additional parameters. The following sub-sections will
+outline the background and details of the dynamics and distributions implemented
+in the package.
+
+\subsection{Univariate ARFIMAX Models}\label{section:umean}
+The univariate GARCH specification allows to define dynamics for the conditional
+mean from the general ARFIMAX model with the addition of ARCH-in-mean effects
+introduced in \cite{Engle1987}.
+The ARFIMAX-ARCH-in-mean specification may be formally defined as,
+\begin{equation}\label{arfimax1}
+\Phi(L){(1 - L)^d}({y_t} - {\mu _t}) = \Theta (L){\varepsilon _t},
+\end{equation}
+with the left hand side denoting the Fractional AR specification on the demeaned
+data and the right hand side the MA specification on the residuals. $(L)$ is the
+lag operator, $(1 - L)^d$ the long memory fractional process with $0 < d < 1$,
+and equivalent to the Hurst Exponent $H$ - 0.5, and $\mu_t$ defined as,
+\begin{equation}\label{arfimax2}
+{\mu _t} = \mu  + \sum\limits_{i = 1}^{m - n} {{\delta _i}} {x_{i,t}} + \sum\limits_{i = m - n + 1}^m {\delta _i}{x_{i,t}}{\sigma _t} + \xi \sigma _t^k,
+\end{equation}
+where we allow for \verb@m@ external regressors $x$ of which $n$ (last $n$ of $m$) 
+may optionally be multiplied by the conditional standard deviation $\sigma_t$,
+and ARCH-in-mean on either the conditional standard deviation, $k=1$ or conditional 
+variance $k=2$. These options can all be passed via the arguments in the \verb@mean.model@ 
+list in the \verb@ugarchspec@ function,
+\begin{itemize}
+\item armaOrder 	   (default = (1,1). The order of the ARMA model.)
+\item include.mean 	   (default = TRUE.  Whether the mean is modelled.)
+\item archm			   (default = FALSE. The ARCH-in-mean parameter.)
+\item archpow   	   (default = 1 for standard deviation, else 2 for variance.)
+\item arfima	   	   (default = FALSE. Whether to use fractional differencing.)
+\item external.regressors (default = NULL. A matrix of external regressors of
+the same length as the data.)
+\item archex           (default = FALSE. Either FALSE or integer denoting the number of external
+regressors from the end of the matrix to multiply by the conditional standard deviation.).
+\end{itemize}
+Since the specification allows for both fixed and starting parameters to be
+passed, it is useful to provide the naming convention for these here,
+\begin{itemize}
+\item AR parameters are 'ar1', 'ar2', ...,
+\item MA parameters are 'ma1', 'ma2', ...,
+\item mean parameter is 'mu'
+\item archm parameter is 'archm'
+\item the arfima parameter is 'arfima'
+\item the external regressor parameters are 'mxreg1', 'mxreg2', ...,
+\end{itemize}
+Note that estimation of the mean and variance equations in the maximization of
+the likelihood is carried out jointly in a single step. While it is perfectly
+possible and consistent to perform a 2-step estimation, the one step approach
+results in greater efficiency, particularly for smaller datasets.
+\subsection{Univariate GARCH Models}\label{section:ugarch}
+In GARCH models, the density function is usually written in terms of the
+location and scale parameters, normalized to give zero mean and  unit variance,
+\begin{equation}\label{garchdensity1}
+{\alpha _t} = ({\mu_t},{\sigma_t},{\omega}),
+\end{equation}
+where the conditional mean is given by
+\begin{equation}\label{garchdensity2}
+{\mu _t} = \mu (\theta ,{x_t}) = E({y_t}|{x_t}),
+\end{equation}
+and the conditional variance is,
+\begin{equation}\label{garchdensity3}
+\sigma _t^2 = {\sigma ^2}(\theta ,{x_t}) = E({({y_t} - {\mu _t})^2}|{x_t}),
+\end{equation}
+with ${\omega} = \omega (\theta ,{x_t})$ denoting the remaining parameters of
+the distribution, perhaps a shape and skew parameter. The conditional mean and
+variance are used to scale the innovations,
+\begin{equation}\label{garchdensity4}
+{z_t}(\theta ) = \frac{{{y_t} - \mu (\theta ,{x_t})}}{{\sigma (\theta ,{x_t})}},
+\end{equation}
+having conditional density which may be written as,
+\begin{equation}\label{garchdensity5}
+g(z|{\omega}) = \frac{d}{{dz}}P({z_t} < z|{\omega}),
+\end{equation}
+and related to $f(y|\alpha)$ by,
+\begin{equation}\label{garchdensity6}
+f({y_t}|{\mu _t},\sigma _t^2,{\omega}) = \frac{1}{{{\sigma_t}}}g({z_t}|{\omega}).
+\end{equation}
+
+The \verb@rugarch@ package implements a rich set of univariate GARCH models and
+allows for the inclusion of external regressors in the variance equation as well
+as the possibility of using variance targeting as in \cite{Engle1995a}.
+These options can all be passed via the arguments in the \verb@variance.model@
+list in the \verb@ugarchspec@ function,
+\begin{itemize}
+\item model			(default = 'sGARCH' (vanilla GARCH).
+Valid models are 'iGARCH', 'gjrGARCH', 'eGARCH', 'apARCH' and 'fGARCH').
+\item garchOrder	(default = c(1,1).  The order of the GARCH model.)
+\item submodel  	(default = NULL. In the case of the 'fGARCH'
+omnibus model, valid choices are 'GARCH', 'TGARCH', 'GJRGARCH', 'AVGARCH',
+'NGARCH', 'NAGARCH', 'APARCH' and 'ALLGARCH')
+\item external.regressors (default = NULL. A matrix of external regressors of
+the same length as the data).
+\item variance.targeting  (default = FALSE. Whether to include variance
+targeting.)
+\end{itemize}
+The rest of this section discusses the various flavors of GARCH implemented in
+the package, while  Section \ref{section:distributions} discusses the
+distributions implemented and their standardization for use in GARCH processes.
+
+\subsubsection{The standard GARCH model ('sGARCH')}\label{section:sgarch}
+The standard GARCH model (\cite{Bollerslev1986}) may be written as:
+\begin{equation}\label{eq:sgarch}
+\sigma _t^2 = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {{\alpha _j}\varepsilon _{t - j}^2 + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^2},
+\end{equation}
+with $\sigma_t^2$ denoting the conditional variance, $\omega$ the intercept
+and $\varepsilon_t^2$ the residuals from the mean filtration process discussed
+previously. The GARCH order is defined by $(q, p)$ (ARCH, GARCH), with possibly
+\verb@m@ external regressors $v_j$ which are passed \emph{pre-lagged}.
+If variance targeting is used, then $\omega$ is replaced by,
+\begin{equation}\label{eq:sgarchvt}
+{{\bar \sigma }^2}\left( {1 - \hat P} \right) - \sum\limits_{j = 1}^m {{\zeta _j}{{\bar v}_j}}
+\end{equation}
+where ${\bar \sigma}^2$ is the unconditional variance of $\varepsilon^2$ which
+is consistently estimated by its sample counterpart at every iteration of the
+solver following the mean equation filtration, and ${\bar v}_j$ represents the
+sample mean of the $j^{th}$ external regressors in the variance equation
+(assuming stationarity), and $\hat P$ is the persistence and defined below.
+One of the key features of the observed behavior of financial data which GARCH
+models capture is volatility clustering which may be quantified in the
+persistence parameter $\hat P$. For the 'sGARCH' model this may be calculated as,
+\begin{equation}\label{eq:sgarchp}
+\hat P = \sum\limits_{j = 1}^q {{\alpha _j}}  + \sum\limits_{j = 1}^p {{\beta _j}}.
+\end{equation}
+Related to this measure is the 'half-life' (call it $h2l$) defined as the number
+of days it takes for half of the expected reversion back
+towards $E\left( {{\sigma ^2}} \right)$ to occur,
+\begin{equation}\label{eq:sgarchh2l}
+h2l = \frac{{ - {{\log }_e}2}}{{{{\log }_e}\hat P}}.
+\end{equation}
+Finally, the unconditional variance of the model ${\hat \sigma }^2$, and related
+to its persistence, is,
+\begin{equation}\label{eq:sgarchuncv}
+{{\hat \sigma }^2} = \frac{{\hat \omega }}{{1 - \hat P}},
+\end{equation}
+where $\hat \omega$ is the estimated value of the intercept from the GARCH model.
+The naming conventions for passing fixed or starting parameters for this model
+are:
+\begin{itemize}
+\item ARCH(q) parameters are 'alpha1', 'alpha2', ...,
+\item GARCH(p) parameters are 'beta1', 'beta2', ...,
+\item variance intercept parameter is 'omega'
+\item the external regressor parameters are 'vxreg1', 'vxreg2', ...,
+\end{itemize}
+
+\subsubsection{The integrated GARCH model ('iGARCH')}\label{section:igarch}
+The integrated GARCH model (see \cite{Engle1986}) assumes that the
+persistence $\hat P = 1$, and imposes this during the estimation procedure.
+Because of unit persistence, none of the other results can be calculated
+(i.e. unconditional variance, half life etc). The stationarity of the model has
+been established in the literature, but one should investigate the possibility
+of omitted structural breaks before adopting the iGARCH as the model of choice.
+The way the package enforces the sum of the ARCH and GARCH parameters to be 1,
+is by subtracting $1 - \sum\limits_{i = 1}^q {{\alpha _i} - } \sum\limits_{i > 1}^p {{\beta _i}}$,
+so that the last beta is never estimated but instead calculated.
+\subsubsection{The exponential GARCH model}\label{section:egarch}
+The exponential model of \cite{Nelson1991} is defined as,
+\begin{equation}\label{eq:egarch}
+{\log _e}\left( {\sigma _t^2} \right) = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {\left( {{\alpha _j}{z_{t - j}} + {\gamma _j}\left( {\left| {{z_{t - j}}} \right| - E\left| {{z_{t - j}}} \right|} \right)} \right) + } \sum\limits_{j = 1}^p {{\beta _j}{{\log }_e}\left( {\sigma _{t - j}^2} \right)}
+\end{equation}
+where the coefficient $\alpha_j$ captures the sign effect and $\gamma_j$ the
+size effect. The expected value of the absolute standardized innovation, $z_t$
+is,
+\begin{equation}\label{eq:egarchE}
+E\left| {{z_t}} \right| = \int\limits_{ - \infty }^\infty  {\left| z \right|} f\left( {z,0,1,...} \right)dz
+\end{equation}
+The persistence $\hat P$ is given by,
+\begin{equation}\label{eq:egarchp}
+\hat P = \sum\limits_{j = 1}^p {{\beta _j}}.
+\end{equation}
+If variance targeting is used, then $\omega$ is replaced by,
+\begin{equation}\label{eq:egarchvt}
+{\log _e}\left( {{{\bar \sigma }^2}} \right)\left( {1 - \hat P} \right) - \sum\limits_{j = 1}^m {{\zeta _j}{{\bar v}_j}}
+\end{equation}
+The unconditional variance and half life follow from the persistence parameter
+and are calculated as in Section \ref{section:sgarch}.
+
+\subsubsection{The GJR-GARCH model ('gjrGARCH')}\label{section:gjrgarch}
+The GJR GARCH model of \cite{Glosten1993} models positive and negative shocks on
+the conditional variance asymmetrically via the use of the indicator function $I$,
+\begin{equation}\label{eq:gjrgarch}
+\sigma _t^2 = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {\left( {{\alpha _j}\varepsilon _{t - j}^2 + {\gamma _j}{{I}_{t - j}}\varepsilon _{t - j}^2} \right) + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^2},
+\end{equation}
+where $\gamma_j$ now represents the 'leverage' term. The indicator function $I$
+takes on value of 1 for $\varepsilon \le 0$ and 0 otherwise. Because of the
+presence of the indicator function, the persistence of the model now crucially
+depends on the asymmetry of the conditional distribution used. The persistence
+of the model $\hat P$ is,
+\begin{equation}\label{eq:gjrgarchp}
+\hat P = \sum\limits_{j = 1}^q {{\alpha _j}}  + \sum\limits_{j = 1}^p {{\beta _j} + } \sum\limits_{j = 1}^q {{\gamma _j}\kappa },
+\end{equation}
+where $\kappa$ is the expected value of the standardized residuals $z_t$ below
+zero (effectively the probability of being below zero),
+\begin{equation}\label{eq:gjrgarchkappa}
+\kappa  = E\left[ {{I_{t - j}}z_{t - j}^2} \right] = \int\limits_{ - \infty }^0 {f\left( {z,0,1,...} \right)dz}
+\end{equation}
+where $f$ is the standardized conditional density with any additional skew and
+shape parameters $(\dots)$. In the case of symmetric distributions the value of
+$\kappa$ is simply equal to $0.5$. The variance targeting, half-life and
+unconditional variance follow from the persistence parameter and are calculated
+as in Section \ref{section:sgarch}.
+The naming conventions for passing fixed or starting parameters for this model
+are:
+\begin{itemize}
+\item ARCH(q) parameters are 'alpha1', 'alpha2', ...,
+\item Leverage(q) parameters are 'gamma1', 'gamma2', ...,
+\item GARCH(p) parameters are 'beta1', 'beta2', ...,
+\item variance intercept parameter is 'omega'
+\item the external regressor parameters are 'vxreg1', 'vxreg2', ...,
+\end{itemize}
+Note that the Leverage parameter follows the order of the ARCH parameter.
+
+\subsubsection{The asymmetric power ARCH model ('apARCH')}\label{section:aparch}
+The asymmetric power ARCH model of \cite{Ding1993} allows for both leverage and
+the Taylor effect, named after \cite{Taylor1986} who observed that the sample
+autocorrelation of absolute returns was usually larger than that of squared
+returns.
+\begin{equation}\label{eq:aparch}
+\sigma _t^\delta  = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {{\alpha _j}{{\left( {\left| {{\varepsilon _{t - j}}} \right| - {\gamma _j}{\varepsilon _{t - j}}} \right)}^\delta } + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^\delta }
+\end{equation}
+where $\delta  \in {\mathbb{R}^ + }$, being a Box-Cox transformation of $\sigma_t$,
+and $\gamma_j$ the coefficient in the leverage term. Various submodels arise
+from this model:
+\begin{itemize}
+\item The simple GARCH model of \cite{Bollerslev1986} when $\delta=2$ and $\gamma_j=0$.
+\item The Absolute Value GARCH (AVGARCH) model of \cite{Taylor1986} and \cite{Schwert1990} when $\delta=1$ and $\gamma_j=0$.
+\item The GJR GARCH (GJRGARCH) model of \cite{Glosten1993} when $\delta=2$.
+\item The Threshold GARCH (TGARCH) model of \cite{Zakoian1994} when $\delta=1$.
+\item The Nonlinear ARCH model of \cite{Higgins1992} when $\gamma_j=0$ and $\beta_j=0$.
+\item The Log ARCH model of \cite{Geweke1986} and \cite{Pantula1986} when $\delta  \to 0$.
+\end{itemize}
+The persistence of the model is given by,
+\begin{equation}\label{eq:aparchp}
+\hat P = \sum\limits_{j = 1}^p {{\beta_j} + } \sum\limits_{j = 1}^q {{\alpha_j}} {\kappa_j}
+\end{equation}
+where $\kappa_j$ is the expected value of the standardized residuals $z_t$ under
+the Box-Cox transformation of the term which includes the leverage coefficient
+$\gamma_j$,
+\begin{equation}\label{eq:aparchkappa}
+\kappa_j  = E{\left( {\left| z \right| - {\gamma _j}z} \right)^\delta } = \int\limits_{ - \infty }^\infty  {{{\left( {\left| z \right| - {\gamma _j}z} \right)}^\delta }f\left( {z,0,1,...} \right)dz}
+\end{equation}
+If variance targeting is used, then $\omega$ is replaced by,
+\begin{equation}\label{eq:aparchvt}
+{{\bar \sigma }^\delta }\left( {1 - \hat P} \right) - \sum\limits_{j = 1}^m {{\zeta _j}{{\bar v}_j}}.
+\end{equation}
+Finally, the unconditional variance of the model ${\hat \sigma }^2$ is,
+\begin{equation}\label{eq:aparchuncv}
+{{\hat \sigma }^2} = {\left( {\frac{{\hat \omega }}{{1 - \hat P}}} \right)^{2/\delta }}
+\end{equation}
+where $\hat \omega$ is the estimated value of the intercept from the GARCH model.
+The half-life follows from the persistence parameter and is calculated as in
+Section \ref{section:sgarch}. The naming conventions for passing fixed or
+starting parameters for this model are:
+\begin{itemize}
+\item ARCH(q) parameters are 'alpha1', 'alpha2', ...,
+\item Leverage(q) parameters are 'gamma1', 'gamma2', ...,
+\item Power parameter is 'delta',
+\item GARCH(p) parameters are 'beta1', 'beta2', ...,
+\item variance intercept parameter is 'omega'
+\item the external regressor parameters are 'vxreg1', 'vxreg2', ...,
+\end{itemize}
+In particular, to obtain any of the submodels simply pass the appropriate
+parameters as fixed.
+
+\subsubsection{The family GARCH model ('fGARCH')}\label{section:fgarch}
+The family GARCH model of \cite{Hentschel1995} is another omnibus model which
+subsumes some of the most popular GARCH models. It is similar to the apARCH
+model, but more general since it allows the decomposition of the residuals in
+the conditional variance equation to be driven by different powers for $z_t$
+and $\sigma_t$ and also allowing for both shifts and rotations in the news
+impact curve, where the shift is the main source of asymmetry for small shocks
+while rotation drives large shocks.
+\begin{equation}\label{eq:fgarch}
+\sigma _t^\lambda  = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {{\alpha _j}\sigma _{t - 1}^\lambda {{\left( {\left| {{z_{t - j}} - {\eta _{2j}}} \right| - {\eta _{1j}}\left( {{z_{t - j}} - {\eta _{2j}}} \right)} \right)}^\delta } + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^\lambda }
+\end{equation}
+which is a Box-Cox transformation for the conditional standard deviation whose
+shape is determined by $\lambda$, and the parameter $\delta$ transforms the
+absolute value function which it subject to rotations and shifts through the
+$\eta_{1j}$ and $\eta_{2j}$ parameters respectively. Various submodels arise
+from this model, and are passed to the \verb@ugarchspec@ 'variance.model' list
+via the submodel option,
+\begin{itemize}
+\item The simple GARCH model of \cite{Bollerslev1986} when $\lambda=\delta=2$ and $\eta_1j=\eta_2j=0$ (submodel = 'GARCH').
+\item The Absolute Value GARCH (AVGARCH) model of \cite{Taylor1986} and \cite{Schwert1990} when $\lambda=\delta=1$ and $|{{\eta _{1j}}}| \leq 1$ (submodel = 'AVGARCH').
+\item The GJR GARCH (GJRGARCH) model of \cite{Glosten1993} when $\lambda=\delta=2$ and $\eta_{2j}=0$ (submodel = 'GJRGARCH').
+\item The Threshold GARCH (TGARCH) model of \cite{Zakoian1994} when $\lambda=\delta=1$, $\eta_{2j}=0$ and $|{{\eta _{1j}}}| \leq 1$ (submodel = 'TGARCH').
+\item The Nonlinear ARCH model of \cite{Higgins1992} when $\delta=\lambda$ and  $\eta_1j=\eta_2j=0$ (submodel = 'NGARCH').
+\item The Nonlinear Asymmetric GARCH model of \cite{Engle1993} when $\delta=\lambda=2$ and $\eta_1j=0$ (submodel = 'NAGARCH').
+\item The Asymmetric Power ARCH model of \cite{Ding1993} when $\delta=\lambda$, $\eta_{2j}=0$ and $|{{\eta _{1j}}}| \leq 1$ (submodel = 'APARCH').
+\item The Exponential GARCH model of \cite{Nelson1991} when $\delta=1$, $\lambda=0$ and $\eta_{2j}=0$ (not implemented as a submodel of fGARCH).
+\item The Full fGARCH model of \cite{Hentschel1995} when $\delta=\lambda$ (submodel = 'ALLGARCH').
+\end{itemize}
+The persistence of the model is given by,
+\begin{equation}\label{eq:fgarchp}
+\hat P = \sum\limits_{j = 1}^p {{\beta_j} + } \sum\limits_{j = 1}^q {{\alpha_j}} {\kappa_j}
+\end{equation}
+where $\kappa_j$ is the expected value of the standardized residuals $z_t$ under
+the Box-Cox transformation of the absolute value asymmetry term,
+\begin{equation}\label{eq:fgarchkappa}
+{\kappa _j} = E{\left( {\left| {{z_{t - j}} - {\eta _{2j}}} \right| - {\eta _{1j}}\left( {{z_{t - j}} - {\eta _{2j}}} \right)} \right)^\delta } = \int\limits_{ - \infty }^\infty  {{{\left( {\left| {z - {\eta _{2j}}} \right| - {\eta _{1j}}\left( {z - {\eta _{2j}}} \right)} \right)}^\delta }f\left( {z,0,1,...} \right)dz}
+\end{equation}
+
+If variance targeting is used, then $\omega$ is replaced by,
+\begin{equation}\label{eq:fgarchvt}
+{{\bar \sigma }^\lambda }\left( {1 - \hat P} \right) - \sum\limits_{j = 1}^m {{\zeta _j}{{\bar v}_j}}
+\end{equation}
+Finally, the unconditional variance of the model ${\hat \sigma }^2$ is,
+\begin{equation}\label{eq:fgarchuncv}
+{{\hat \sigma }^2} = {\left( {\frac{{\hat \omega }}{{1 - \hat P}}} \right)^{2/\lambda }}
+\end{equation}
+where $\hat \omega$ is the estimated value of the intercept from the GARCH model.
+The half-life follows from the persistence parameter and is calculated as in
+Section \ref{section:sgarch}.
+The naming conventions for passing fixed or starting parameters for this model
+are:
+\begin{itemize}
+\item ARCH(q) parameters are 'alpha1', 'alpha2', ...,
+\item Asymmetry1(q) - rotation - parameters are 'eta11', 'eta12', ...,
+\item Asymmetry2(q) - shift - parameters are 'eta21', 'eta22', ...,
+\item Asymmetry Power parameter is 'delta',
+\item Conditional Sigma Power parameter is 'lambda',
+\item GARCH(p) parameters are 'beta1', 'beta2', ...,
+\item variance intercept parameter is 'omega'
+\item the external regressor parameters are 'vxreg1', 'vxreg2', ...,
+\end{itemize}
+
+\subsection{Conditional Distributions}\label{section:distributions}
+The \verb@rugarch@ package supports a range of univariate distributions
+including the Normal ('norm'), Generalized Error ('ged'), Student ('std')
+and their skew variants ('snorm', 'sged' and 'sstd') based on the transformations
+described in \cite{Fernandez1998} and \cite{Ferreira2006}.\footnote{These were
+originally taken from the fBasics package  but have been adapted and re-written
+in C for the likelihood estimation.} Additionally, the Generalized Hyperbolic
+('ghyp'), Normal Inverse Gaussian ('nig') and GH Skew-Student ('ghst')\footnote{Since version 1.0-8.}
+distributions are also implemented as is Johnson's reparametrized SU ('jsu')
+distribution\footnote{From the gamlss package.} The choice of distribution is entered via the
+'distribution.model' option of the \verb@ugarchspec@ method. The package also
+implements a set of functions to work with the parameters of these distributions.
+These are:
+\begin{itemize}
+\item ddist(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5). The density (d*) function.
+\item pdist(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5). The distribution (p*) function.
+\item qdist(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5). The quantile (q*) function.
+\item rdist(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, skew = 1, shape = 5). The sampling (q*) function.
+\item fitdist(distribution = "norm", x, control = list()). A function for fitting data using any of the included distributions.
+\item dskewness(distribution = "norm", skew = 1, shape = 5, lambda = -0.5). The distribution skewness (analytical where possible else by quadrature integration).
+\item dkurtosis(distribution = "norm", skew = 1, shape = 5, lambda = -0.5). The distribution excess kurtosis (analytical where it exists else by quadrature integration).
+\end{itemize}
+This section provides a dry but comprehensive exposition of the required
+standardization of these distributions for use in GARCH modelling.
+
+The conditional distribution in GARCH processes should be self-decomposable
+which is a key requirement for any autoregressive type process, while
+possessing the linear transformation property is required to center ($x_t-\mu_t$)
+and scale ($\varepsilon_t/\sigma_t$) the innovations, after which the modelling
+is carried out directly using the zero-mean, unit variance, distribution of the
+standardized variable $z_t$ which is a scaled version of the same conditional
+distribution of $x_t$, as described in Equations \ref{garchdensity4},
+\ref{garchdensity5} and \ref{garchdensity6}.
+
+\subsubsection{The Normal Distribution}\label{normdist}
+The Normal Distribution is a spherical distribution described completely by it
+first two moments, the mean and variance. Formally, the random variable $x$ is
+said to be normally distributed with mean $\mu$ and variance $\sigma^2$
+(both of which may be time varying), with density given by,
+\begin{equation}\label{eq:dnorm1}
+f\left( x \right) = \frac{{{e^{\frac{{ - 0.5{{\left( {x - \mu } \right)}^2}}}
+{{{\sigma ^2}}}}}}}
+{{\sigma \sqrt {2\pi } }}.
+\end{equation}
+Following a mean filtration or whitening process, the residuals $\varepsilon$,
+standardized by $\sigma$ yield the standard normal density given by,
+\begin{equation}\label{eq:dnorm2}
+f\left( {\frac{{x - \mu }}{\sigma }} \right) = \frac{1}
+{\sigma }f\left( z \right) = \frac{1}
+{\sigma }\left( {\frac{{{e^{ - 0.5{z^2}}}}}
+{{\sqrt {2\pi } }}} \right).
+\end{equation}
+To obtain the conditional likelihood of the GARCH process at each point in time
+($LL_t$), the conditional standard deviation $\sigma_t$ from the GARCH motion
+dynamics, acts as a scaling factor on the density, so that:
+\begin{equation}\label{eq:dnorm3}
+L{L_t}\left( {{z_t};{\sigma _t}} \right) = \frac{1}
+{{{\sigma _t}}}f\left( {{z_t}} \right)
+\end{equation}
+which illustrates the importance of the scaling property. Finally, the normal
+distribution has zero skewness and zero excess kurtosis.
+
+\subsubsection{The Student Distribution}\label{tdist}
+The GARCH-Student model was first used described in \cite{Bollerslev1987} as an
+alternative to the Normal distribution for fitting the standardized innovations.
+It is described completely by a shape parameter $\nu$, but for standardization
+we proceed by using its 3 parameter representation as follows:
+\begin{equation}\label{eq:dstd1}
+f\left( x \right) = \frac{{\Gamma \left( {\frac{{\nu  + 1}}
+{2}} \right)}}
+{{\sqrt {\beta \nu \pi } \Gamma \left( {\frac{\nu }
+{2}} \right)}}{\left( {1 + \frac{{{{\left( {x - \alpha } \right)}^2}}}
+{{\beta \nu }}} \right)^{ - \left( {\frac{{\nu  + 1}}
+{2}} \right)}}
+\end{equation}
+where $\alpha$, $\beta$, and $\nu$ are the location, scale\footnote{In some representations,
+mostly Bayesian, this is represented in its inverse form to denote the precision.}
+and shape parameters respectively, and $\Gamma$ is the Gamma function. Similar to
+the GED distribution described later, this is a unimodal and symmetric distribution
+where the location parameter $\alpha$ is the mean (and mode) of the distribution
+while the variance is:
+\begin{equation}\label{eq:dstd2}
+Var\left( x \right) = \frac{{\beta \nu }}{{\left( {\nu  - 2} \right)}}.
+\end{equation}
+For the purposes of standardization we require that:
+\begin{equation}\label{eq:dstd3}
+\begin{gathered}
+  Var(x) = \frac{{\beta \nu }}
+{{\left( {\nu  - 2} \right)}} = 1 \hfill \\
+  \therefore \beta  = \frac{{\nu  - 2}}
+{\nu } \hfill \\
+\end{gathered}
+\end{equation}
+Substituting $\frac{(\nu- 2)}{\nu }$ into \ref{eq:dstd1} we obtain the
+standardized Student's distribution:
+\begin{equation}\label{eq:dstd4}
+f\left( {\frac{{x - \mu }}{\sigma }} \right) = \frac{1}
+{\sigma }f\left( z \right) = \frac{1}
+{\sigma }\frac{{\Gamma \left( {\frac{{\nu  + 1}}
+{2}} \right)}}{{\sqrt {\left( {\nu  - 2} \right)\pi } \Gamma \left( {\frac{\nu }
+{2}} \right)}}{\left( {1 + \frac{{{z^2}}}
+{{\left( {\nu  - 2} \right)}}} \right)^{ - \left( {\frac{{\nu  + 1}}
+{2}} \right)}}.
+\end{equation}
+In terms of \verb@R@'s standard implementation of the Student density ('dt'),
+and including a scaling by the standard deviation, this can be represented as:
+\begin{equation}\label{eq:dstd5}
+\frac{{dt\left( {\frac{{{\varepsilon _t}}}
+{{\sigma \sqrt {\left( {v - 2} \right)/\nu } }},\nu } \right)}}
+{{\sigma \sqrt {\left( {v - 2} \right)/\nu } }}
+\end{equation}
+The Student distribution has zero skewness and excess kurtosis equal to
+$6/(\nu  - 4)$ for $\nu > 4$.
+\subsubsection{The Generalized Error Distribution}\label{geddist}
+The Generalized Error Distribution (GED) is a 3 parameter distribution belonging
+to the exponential family with conditional density given by,
+\begin{equation}\label{eq:ged1}
+f\left( x \right) = \frac{{\kappa {e^{ - 0.5{{\left| {\frac{{x - \alpha }}
+{\beta }} \right|}^\kappa }}}}}
+{{{2^{1 + {\kappa ^{ - 1}}}}\beta \Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+\end{equation}
+with $\alpha$, $\beta$ and $\kappa$ representing the location, scale and
+shape parameters. Since the distribution is symmetric and unimodal the location
+parameter is also the mode, median and mean of the distribution (i.e. $\mu$).
+By symmetry, all odd moments beyond the mean are zero. The variance and kurtosis
+are given by,
+\begin{equation}\label{eq:ged2}
+\begin{gathered}
+  Var\left( x \right) = {\beta ^2}{2^{2/\kappa }}\frac{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {{\kappa ^{ - 1}}} \right)}} \hfill \\
+  Ku\left( x \right) = \frac{{\Gamma \left( {5{\kappa ^{ - 1}}} \right)\Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)\Gamma \left( {3{\kappa ^{ - 1}}} \right)}} \hfill \\
+\end{gathered}
+\end{equation}
+As $\kappa$ decreases the density gets flatter and flatter while in the limit as
+$\kappa  \to \infty$, the distribution tends towards the uniform. Special cases
+are the Normal when $\kappa=2$, the Laplace when $\kappa=1$. Standardization is
+simple and involves rescaling the density to have unit standard deviation:
+\begin{equation}\label{eq:ged3}
+\begin{gathered}
+  Var\left( x \right) = {\beta ^2}{2^{2/\kappa }}\frac{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {{\kappa ^{ - 1}}} \right)}} = 1 \hfill \\
+  \therefore \beta  = \sqrt {{2^{ - 2/\kappa }}\frac{{\Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)}}}  \hfill \\
+\end{gathered}
+\end{equation}
+Finally, substituting into the scaled density of $z$:
+\begin{equation}\label{eq:ged3}
+f\left( {\frac{{x - \mu }}
+{\sigma }} \right) = \frac{1}
+{\sigma }f\left( z \right) = \frac{1}
+{\sigma }\frac{{\kappa {e^{ - 0.5{{\left| {\sqrt {{2^{ - 2/\kappa }}\frac{{\Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)}}} z} \right|}^\kappa }}}}}
+{{\sqrt {{2^{ - 2/\kappa }}\frac{{\Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+{{\Gamma \left( {3{\kappa ^{ - 1}}} \right)}}} {2^{1 + {\kappa ^{ - 1}}}}\Gamma \left( {{\kappa ^{ - 1}}} \right)}}
+\end{equation}
+
+\subsubsection{Skewed Distributions by Inverse Scale Factors}\label{skewdist}
+\cite{Fernandez1998} proposed introducing skewness into unimodal and symmetric
+distributions by introducing inverse scale factors in the positive and negative
+real half lines. Given a skew parameter, $\xi$\footnote{When $\xi=1$, the
+distribution is symmetric.}, the density of a random variable z can be
+represented as:
+\begin{equation}\label{eq:skew1}
+f\left( {z|\xi } \right) = \frac{2}
+{{\xi  + {\xi ^{ - 1}}}}\left[ {f\left( {\xi z} \right)H\left( { - z} \right) + f\left( {{\xi ^{ - 1}}z} \right)H\left( z \right)} \right]
+\end{equation}
+where $\xi  \in {\mathbb{R}^ + }$ and $H(.)$ is the Heaviside function. The
+absolute moments, required for deriving the central moments, are generated from
+the following function:
+\begin{equation}\label{eq:skew2}
+{M_r} = 2\int_0^\infty  {{z^r}f\left( z \right)dz}.
+\end{equation}
+The mean and variance are then defined as:
+\begin{equation}\label{eq:skew3}
+\begin{gathered}
+  E\left( z \right) = {M_1}\left( {\xi  - {\xi ^{ - 1}}} \right) \hfill \\
+  Var\left( z \right) = \left( {{M_2} - M_1^2} \right)\left( {{\xi ^2} + {\xi ^{ - 2}}} \right) + 2M_1^2 - {M_2} \hfill \\
+\end{gathered}
+\end{equation}
+The Normal, Student and GED distributions have skew variants which have been
+standardized to zero mean, unit variance by making use of the moment conditions
+given above.
+
+\subsubsection{The Generalized Hyperbolic Distribution and Sub-Families}\label{ghyp}
+In distributions where the expected moments are functions of all the parameters,
+it is not immediately obvious how to perform such a transformation. In the case
+of the GHYP distribution, because of the existence of location and scale
+invariant parametrizations and the possibility of expressing the variance in
+terms of one of those parametrization, namely the $(\zeta, \rho)$, the task of
+standardizing and estimating the density can be broken down to one of estimating
+those 2 parameters, representing a combination of shape and skewness, followed
+by a series of transformation steps to demean, scale and then translate the
+parameters into the $(\alpha, \beta, \delta, \mu)$ parametrization for which
+standard formulae exist for the likelihood function. The $(\xi, \chi)$
+parametrization, which is a simple transformation of the $(\zeta, \rho)$,
+could also be used in the first step and then transformed into the latter before
+proceeding further. The only difference is the kind of 'immediate' inference one
+can make from the different parametrizations, each providing a different direct
+insight into the kind of dynamics produced and their place in the overall GHYP
+family particularly with regards to the limit cases.\\
+The \verb@rugarch@ package performs estimation using the $(\zeta, \rho)$
+parametrization\footnote{Credit is due to Diethelm Wurtz for his original
+implementation in the fBasics package of the transformation and standardization
+function.}, after which a series of steps transform those parameters into
+the $(\alpha, \beta, \delta, \mu)$ while at the same time including the
+necessary recursive substitution of parameters in order to standardize the
+resulting distribution.
+\begin{proof}
+The Standardized Generalized Hyperbolic Distribution. Let $\varepsilon_t$ be a
+r.v. with mean $(0)$ and variance $({\sigma}^2)$ distributed as $GHYP(\zeta, \rho)$,
+and let $z$ be a scaled version of the r.v. $\varepsilon$ with variance $(1)$
+and also distributed as $GHYP(\zeta, \rho)$.\footnote{The parameters
+$\zeta$ and $\rho$ do not change as a result of being location and scale
+invariant} The density $f(.)$ of $z$ can be expressed as
+\begin{equation}\label{sgh1}
+f(\frac{\varepsilon_t}{\sigma}; \zeta ,\rho ) = \frac{1}{\sigma}f_t(z;\zeta ,\rho ) =
+\frac{1}{\sigma}f_t(z;\tilde \alpha, \tilde \beta, \tilde \delta ,\tilde \mu ),
+\end{equation}
+where we make use of the $(\alpha, \beta, \delta, \mu)$ parametrization since we
+can only naturally express the density in that parametrization. The steps to
+transforming from the $(\zeta, \rho)$ to the $(\alpha, \beta, \delta, \mu)$
+parametrization, while at the same time standardizing for zero mean and unit
+variance are given henceforth.\\
+Let
+\begin{eqnarray}
+\zeta & = & \delta \sqrt {{\alpha ^2} - {\beta ^2}} \hfill\label{sgh21} \\
+\rho & = & \frac{\beta }{\alpha }, \hfill\label{sgh22}
+\end{eqnarray}
+which after some substitution may be also written in terms of  $\alpha$ and $\beta$ as,
+\begin{eqnarray}
+\alpha & = & \frac{\zeta }{{\delta \sqrt {(1 - {\rho ^2})} }},\hfill\label{sgh31}\\
+\beta  & = &\alpha \rho.\hfill\label{sgh32}
+\end{eqnarray}
+For standardization we require that,
+\begin{eqnarray}
+  E\left(X\right) & = & \mu  + \frac{{\beta \delta }}{{\sqrt {{\alpha ^2} - {\beta ^2}} }}\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}} = \mu  + \frac{{\beta {\delta ^2}}}{\zeta }\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}} = 0 \hfill\nonumber \\
+  \therefore \mu  & = & - \frac{{\beta {\delta ^2}}}{\zeta }\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}}\hfill\label{sgh41} \\
+  Var\left(X\right) & = & {\delta ^2}\left(\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{\zeta {K_\lambda }\left(\zeta \right)}} + \frac{{{\beta ^2}}}{{{\alpha ^2} - {\beta ^2}}}\left(\frac{{{K_{\lambda  + 2}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}} - {\left(\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}}\right)^2}\right)\right) = 1 \hfill\nonumber \\
+  \therefore \delta  & = & {\left(\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{\zeta {K_\lambda }\left(\zeta \right)}} + \frac{{{\beta ^2}}}{{{\alpha ^2} - {\beta ^2}}}\left(\frac{{{K_{\lambda  + 2}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}} - {\left(\frac{{{K_{\lambda  + 1}}\left(\zeta \right)}}{{{K_\lambda }\left(\zeta \right)}}\right)^2}\right)\right)^{ - 0.5}} \hfill\label{sgh42}
+\end{eqnarray}
+Since we can express, $\beta^2/\left(\alpha^2 - \beta^2\right)$ as,
+\begin{equation}\label{sgh43}
+\frac{{{\beta ^2}}}{{{\alpha ^2} - {\beta ^2}}} = \frac{{{\alpha ^2}{\rho ^2}}}{{{a^2} - {\alpha ^2}{\rho ^2}}} = \frac{{{\alpha ^2}{\rho ^2}}}{{{a^2}\left(1 - {\rho ^2}\right)}} = \frac{{{\rho ^2}}}{{\left(1 - {\rho ^2}\right)}},
+\end{equation}
+then we can re-write the formula for $\delta$ in terms of the estimated parameters $\hat\zeta$ and $\hat\rho$ as,
+\begin{equation}\label{sgh44}
+\delta  = {\left(\frac{{{K_{\lambda  + 1}}\left(\hat \zeta \right)}}{{\hat \zeta {K_\lambda }\left(\hat \zeta \right)}} + \frac{{{{\hat \rho }^2}}}{{\left(1 - {{\hat \rho }^2}\right)}}\left(\frac{{{K_{\lambda  + 2}}\left(\hat \zeta \right)}}{{{K_\lambda }\left(\hat \zeta \right)}} - {\left(\frac{{{K_{\lambda  + 1}}\left(\hat \zeta \right)}}{{{K_\lambda }\left(\hat \zeta \right)}}\right)^2}\right)\right)^{ - 0.5}}
+\end{equation}
+Transforming into the $(\tilde \alpha ,\tilde \beta ,\tilde \delta ,\tilde \mu )$
+parametrization proceeds by first substituting \ref{sgh44} into \ref{sgh31} and
+simplifying,
+\begin{eqnarray}
+  \tilde \alpha & = & \,{\frac{{\hat \zeta \left( {\frac{{{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{\hat \zeta {{\text{K}}_\lambda }\left( {\hat \zeta } \right)}} + \frac{{{{\hat \rho }^2}\left( {\frac{{{{\text{K}}_{\lambda  + 2}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}} - \frac{{{{\left( {{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)} \right)}^2}}}{{{{\left( {{{\text{K}}_\lambda }\left( {\hat \zeta } \right)} \right)}^2}}}} \right)}}{{\left( {1 - {{\hat \rho }^2}} \right)}}} \right)}}{{\sqrt {(1 - {{\hat \rho }^2})} }}^{0.5}}, \hfill\nonumber \\
+   & = &\,{\frac{{\left( {\frac{{\hat \zeta {{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}} + \frac{{{{\hat \zeta }^2}{{\hat \rho }^2}\left( {\frac{{{{\text{K}}_{\lambda  + 2}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}} - \frac{{{{\left( {{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)} \right)}^2}}}{{{{\left( {{{\text{K}}_\lambda }\left( {\hat \zeta } \right)} \right)}^2}}}} \right)}}{{\left( {1 - {{\hat \rho }^2}} \right)}}} \right)}}{{\sqrt {(1 - {\hat \rho ^2})} }}^{0.5}}, \hfill\nonumber \\
+   & = & {\left( {\left. {\frac{{\frac{{\hat \zeta {{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}}}}{{(1 - {{\hat \rho }^2})}} + \frac{{{\hat \zeta ^2}{\hat \rho ^2}\left( {\frac{{{{\text{K}}_{\lambda  + 2}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}\frac{{{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}} - \frac{{{{\left( {{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)} \right)}^2}}}{{{{\left( {{{\text{K}}_\lambda }\left( {\hat \zeta } \right)} \right)}^2}}}} \right)}}{{{{\left( {1 - {{\hat \rho }^2}} \right)}^2}}}} \right)} \right.^{0.5}}, \hfill\nonumber \\
+   & = & {\left( {\left. {\frac{{\frac{{\hat \zeta {{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}}}}{{(1 - {{\hat \rho }^2})}}\left(1 + \frac{{\hat \zeta {{\hat \rho }^2}\left( {\frac{{{{\text{K}}_{\lambda  + 2}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}} - \frac{{{{\text{K}}_{\lambda  + 1}}\left( {\hat \zeta } \right)}}{{{{\text{K}}_\lambda }\left( {\hat \zeta } \right)}}} \right)}}{{\left( {1 - {{\hat \rho }^2}} \right)}}\right)} \right)} \right.^{0.5}}. \hfill\label{sgh51}
+\end{eqnarray}
+Finally, the rest of the parameters are derived recursively from $\tilde\alpha$
+and the previous results,
+\begin{eqnarray}
+  \tilde \beta  & = & \tilde \alpha \hat \rho,\hfill\label{sgh52}\\
+  \tilde \delta & = & \frac{{\hat \zeta }}{{\tilde \alpha \sqrt {1 - {{\hat \rho }^2}} }}, \hfill\label{sgh53}\\
+  \tilde \mu & = & \frac{{ - \tilde \beta {{\tilde \delta }^2}{K_{\lambda  + 1}}\left(\hat \zeta \right)}}{{\hat \zeta {K_\lambda }\left(\hat \zeta \right)}}.\hfill\label{sgh54}
+\end{eqnarray}
+For the use of the $(\xi, \chi)$ parametrization in estimation, the additional
+preliminary steps of converting to the $(\zeta, \rho)$ are,
+\begin{eqnarray}
+  \zeta  & = & \frac{1}{{{{\hat \xi }^2}}} - 1, \hfill\label{sgh62}\\
+  \rho  & = & \frac{{\hat \chi }}{{\hat \xi }}. \hfill\label{sgh63}
+\end{eqnarray}
+\end{proof}
+Particular care should be exercised when choosing the GH distribution in GARCH models
+since allowing the GIG $\lambda$ parameter to vary is quite troublesome in practice
+and may lead to identification problems since different combinations of the 2 shape
+($\lambda$, $\zeta$) and 1 skew ($\rho$) parameters may lead to the same or close
+likelihood. In addition, large sections of the likelihood surface for some combinations
+of the distribution parameters is quite flat. Figure \ref{fig:ghsurface} shows the skewness,
+kurtosis and 2 quantiles surfaces for different combinations of the ($\rho$, $\zeta$)
+parameters for two popular choices of $\lambda$.
+\begin{landscape}
+\begin{figure}[!ht]
+\centering
+\subfloat[$\lambda=1$(HYP)]{\label{fig:ghyp2}\includegraphics[scale=0.4, angle=0]{ghyp2.png}}
+\subfloat[$\lambda=-0.5$(NIG)]{\label{fig:ghyp3}\includegraphics[scale=0.4, angle=0]{ghyp3.png}}
+\caption[GH Distribution Skewness, Kurtosis and Quantile Surfaces]{GH Distribution Skewness, Kurtosis and Quantile Surfaces}\label{fig:ghsurface}
+\end{figure}
+\end{landscape}
+
+\subsubsection{The Generalized Hyperbolic Skew Student Distribution}\label{ghskt}
+The GH Skew-Student distribution was popularized by \cite{Aas2006} because of its uniqueness
+in the GH family in having one tail with polynomial and one with exponential behaviour.
+This distribution is a limiting case of the GH when $\alpha  \to \left| \beta  \right|$
+and $\lambda=-\nu/2$, where $\nu$ is the shape parameter of the Student distribution.
+The domain of variation of the parameters is $\beta  \in \mathbb{R}$ and $\nu>0$, but
+for the variance to be finite $\nu>4$, while for the existence of skewness and kurtosis,
+$\nu>6$ and $\nu>8$ respectively. The density of the random variable $x$ is then given
+by:
+\begin{equation}
+f\left( x \right) = \frac{{{2^{\left( {1 - \nu } \right)/2}}{\delta ^\nu }{{\left| \beta  \right|}^{\left( {\nu  + 1} \right)/2}}{K_{\left( {\nu  + 1} \right)/2}}\left( {\sqrt {{\beta ^2}\left( {{\delta ^2} + {{\left( {x - \mu } \right)}^2}} \right)} } \right)\exp \left( {\beta \left( {x - \mu } \right)} \right)}}
+{{\Gamma \left( {\nu /2} \right)\sqrt \pi  {{\left( {\sqrt {{\delta ^2} + {{\left( {x - \mu } \right)}^2}} } \right)}^{\left( {\nu  + 1} \right)/2}}}}
+\end{equation}
+To standardize the distribution to have zero mean and unit variance, I make use
+of the first two moment conditions for the distribution which are:
+\begin{equation}
+\begin{gathered}
+  E\left( x \right) = \mu  + \frac{{\beta {\delta ^2}}}
+{{\nu  - 2}} \hfill \\
+  Var\left( x \right) = \frac{{2{\beta ^2}{\delta ^4}}}
+{{{{\left( {\nu  - 2} \right)}^2}\left( {\nu  - 4} \right)}} + \frac{{{\delta ^2}}}
+{{\nu  - 2}} \hfill \\
+\end{gathered}
+\end{equation}
+We require that $Var(x)=1$, thus:
+\begin{equation}
+\delta  = {\left( {\frac{{2{{\bar \beta }^2}}}
+{{{{\left( {\nu  - 2} \right)}^2}\left( {\nu  - 4} \right)}} + \frac{1}
+{{\nu  - 2}}} \right)^{ - 1/2}}
+\end{equation}
+where I have made use of the $4^{th}$ parametrization of the GH distribution given in
+\cite{Prause1999} where $\hat \beta = \beta \delta$. The location parameter is then rescaled
+by substituting into the first moment formula $\delta$ so that it has zero mean:
+\begin{equation}
+\bar \mu  =  - \frac{{\beta {\delta ^2}}}{{\nu  - 2}}
+\end{equation}
+Therefore, we model the GH Skew-Student using the location-scale invariant parametrization $(\bar \beta, \nu)$
+and then translate the parameters into the usual GH distribution's $(\alpha, \beta, \delta, \mu)$, setting
+$\alpha = abs(\beta)+1e-12$.
+\subsubsection{Johnson's Reparametrized SU Distribution}\label{jsu}
+The reparametrized Johnson SU distribution, discussed in \cite{Rigby2005}, is a
+four parameter distribution denoted by $JSU\left(\mu,\sigma,\nu,\tau\right)$,
+with mean $\mu$ and standard deviation $\sigma$ for all values of the skew and
+shape parameters $\nu$ and $\tau$ respectively. The implementation is taken
+from the GAMLSS package of \cite{Stasinopoulos2009} and the reader is referred 
+there for further details.
+
+\section{Fitting}\label{section:fitting}
+Once a \verb@uGARCHspec@ has been defined, the \verb@ugarchfit@ method takes
+the following arguments:
+\begin{Schunk}
+\begin{Sinput}
+> args(ugarchfit)
+\end{Sinput}
+\begin{Soutput}
+function (spec, data, out.sample = 0, solver = "solnp", solver.control = list(),
+    fit.control = list(stationarity = 1, fixed.se = 0, scale = 0),
+    ...)
+NULL
+\end{Soutput}
+\end{Schunk}
+The out.sample option controls how many data points from the end to keep for out
+of sample forecasting, while the solver.control and fit.control provide additional
+options to the fitting routine. Currently, 5 solvers \footnote{Since version $1.0-8$ the
+'nlopt' solver of Johnson (interfaced to R by Jelmer Ypma in the 'nloptr' package)
+has  been added, greatly expanding the range of possibilities available via its
+numerous subsolver options - see documentation.} are supported, with the main
+one being the augmented Lagrange solver solnp of \cite{Ye1997} implemented in R by
+\cite{Ghalanos2011}. The main functionality, namely the GARCH dynamics and
+conditional likelihood calculations are done in C for speed. For reference, there
+is a benchmark routine called \verb@ugarchbench@ which provides a comparison of
+rugarch against 2 published GARCH models with analytic standard errors, and a
+small scale comparison with a commercial GARCH implementation.
+The fitted object is of class \verb@uGARCHfit@ which can be passed to a variety
+of other methods such as show (summary), plot, ugarchsim, ugarchforecast etc.
+The following example illustrates its use, but the interested reader should
+consult the documentation on the methods available for the returned class.
+\begin{Schunk}
+\begin{Sinput}
+> spec = ugarchspec()
+> data(sp500ret)
+> fit = ugarchfit(spec = spec, data = sp500ret, solver.control = list(trace = 0))
+> show(fit)
+\end{Sinput}
+\begin{Soutput}
+*---------------------------------*
+*          GARCH Model Fit        *
+*---------------------------------*
+
+Conditional Variance Dynamics
+-----------------------------------
+GARCH Model     : sGARCH(1,1)
+Mean Model      : ARFIMA(1,0,1)
+Distribution    : norm
+
+Optimal Parameters
+------------------------------------
+        Estimate  Std. Error  t value Pr(>|t|)
+mu      0.000517    0.000090   5.7620        0
+ar1     0.834804    0.058900  14.1732        0
+ma1    -0.865358    0.054076 -16.0028        0
+omega   0.000001    0.000000   5.2865        0
+alpha1  0.087730    0.007667  11.4428        0
+beta1   0.904987    0.008387 107.9058        0
+
+Robust Standard Errors:
+        Estimate  Std. Error  t value Pr(>|t|)
+mu      0.000517    0.000101   5.1181 0.000000
+ar1     0.834804    0.048413  17.2435 0.000000
+ma1    -0.865358    0.044909 -19.2691 0.000000
+omega   0.000001    0.000001   2.1924 0.028351
+alpha1  0.087730    0.029486   2.9753 0.002927
+beta1   0.904987    0.028773  31.4530 0.000000
+
+LogLikelihood : 17901.99
+
+Information Criteria
+------------------------------------
+
+Akaike       -6.4805
+Bayes        -6.4733
+Shibata      -6.4805
+Hannan-Quinn -6.4780
+
+Q-Statistics on Standardized Residuals
+------------------------------------
+      statistic  p-value
+Lag10     14.11 0.078859
+Lag15     27.78 0.009717
+Lag20     31.01 0.028675
+
+H0 : No serial correlation
+
+Q-Statistics on Standardized Squared Residuals
+------------------------------------
+      statistic p-value
+Lag10     3.069  0.9299
+Lag15     5.905  0.9495
+Lag20     8.424  0.9716
+
+ARCH LM Tests
+------------------------------------
+             Statistic DoF P-Value
+ARCH Lag[2]      1.482   2  0.4765
+ARCH Lag[5]      1.738   5  0.8841
+ARCH Lag[10]     3.018  10  0.9810
+
+Nyblom stability test
+------------------------------------
+Joint Statistic:  175.774
+Individual Statistics:
+mu      0.1978
+ar1     0.2202
+ma1     0.1678
+omega  21.5725
+alpha1  0.1341
+beta1   0.1122
+
+Asymptotic Critical Values (10% 5% 1%)
+Joint Statistic:         1.49 1.68 2.12
+Individual Statistic:    0.35 0.47 0.75
+
+Sign Bias Test
+------------------------------------
+                   t-value      prob sig
+Sign Bias           0.3309 7.407e-01
+Negative Sign Bias  3.0036 2.680e-03 ***
+Positive Sign Bias  2.4489 1.436e-02  **
+Joint Effect       29.0989 2.135e-06 ***
+
+
+Adjusted Pearson Goodness-of-Fit Test:
+------------------------------------
+  group statistic p-value(g-1)
+1    20     182.8    8.624e-29
+2    30     188.2    3.007e-25
+3    40     230.3    5.779e-29
+4    50     234.0    6.090e-26
+
+
+Elapsed time : 1.628
+\end{Soutput}
+\end{Schunk}
+
+\subsection{Fit Diagnostics}\label{section:diagnostics}
+The summary method for the \verb@uGARCHfit@ object provides the parameters and
+their standard errors (and a robust version), together with a variety of tests
+which can also be called individually.\\
+The robust standard errors are based on the method of \cite{White1982} which produces
+asymptotically valid confidence intervals by calculating the covariance ($V$) of the
+parameters $(\theta)$ as:
+\begin{equation}
+\hat V =  {\left( -A \right)^{ - 1}}B{\left( { - A} \right)^{ - 1}}
+\end{equation}
+where,
+\begin{equation}
+\begin{gathered}
+  A = L''\left( {\hat \theta } \right) \hfill \\
+  B = {\sum\limits_{i = 1}^n {{g_i}\left( {{x_i}\left| {\hat \theta } \right.} \right)} ^T}{g_i}\left( {{x_i}\left| {\hat \theta } \right.} \right) \hfill \\
+\end{gathered}
+\end{equation}
+which is the Hessian and covariance of the scores at the optimum.
+The robust standard errors are the square roots of the diagonal of $V$.\\
+The \verb@inforcriteria@ method on a fitted or filtered object returns the
+Akaike (AIC), Bayesian (BIC), Hannan-Quinn (HQIC) and Shibata (SIC) information
+criteria to enable model selection by penalizing overfitting at different rates.
+Formally, they may be defined as:
+\begin{equation}\label{inforcriteria}
+\begin{gathered}
+  AIC = \frac{{ - 2LL}}
+{N} + \frac{{2m}}
+{N} \hfill \\
+  BIC = \frac{{ - 2LL}}
+{N} + \frac{{m{{\log }_e}\left( N \right)}}
+{N} \hfill \\
+  HQIC = \frac{{ - 2LL}}
+{N} + \frac{{\left( {2m{{\log }_e}\left( {{{\log }_e}\left( N \right)} \right)} \right)}}
+{N} \hfill \\
+  SIC = \frac{{ - 2LL}}
+{N} + {\log _e}\left( {\frac{{\left( {N + 2m} \right)}}
+{N}} \right) \hfill \\
+\end{gathered}
+\end{equation}
+
+The Q-Statistics are the test statistics from the Box-Pierce test on the
+Standardized Residuals with $(10,15,20)$ lags and d.o.f the number of the
+AR and MA parameters, and Squared Standardized Residuals with
+$(10,15,20)$ lags and d.o.f the number of ARCH and GARCH parameters $(q,p)$
+Looking at the summary report, the high p-values for the Standardized Squared
+Residuals indicates that there is little chance of serial correlation at the
+lags tested. The evidence for the Standardized Residuals is not as convincing
+but one should consider other factors, particularly when it comes to forecasting
+models.
+
+The ARCH LM test of \cite{Engle1982} tests the presence of ARCH effects by regressing
+the squared residuals of a series against its own lags. Since the Null is of No
+ARCH effects, a high p-value, as evidenced by the summary indicates that the
+GARCH model used was adequate to remove any such effects present prior to
+fitting (i.e. it is a good idea to test the series prior to fitting a GARCH model!).
+
+The \verb@signbias@ calculates the Sign Bias Test of \cite{Engle1993}, and is also
+displayed in the summary. This tests the presence of leverage effects in the
+standardized residuals (to capture possible misspecification of the GARCH model),
+by regressing the squared standardized residuals on lagged negative and positive
+shocks as follows:
+\begin{equation}\label{signbias}
+\hat z_t^2 = {c_0} + {c_1}{I_{{{\hat z}_{t - 1}} < 0}} + {c_2}{I_{{{\hat z}_{t - 1}} < 0}}{\hat z_{t - 1}} + {c_3}{I_{{{\hat z}_{t - 1}} \geqslant 0}}{\hat z_{t - 1}} + {u_t}
+\end{equation}
+where $I$ is the indicator function and $\hat z_t$ the estimated standardized residuals
+from the GARCH process. The Null Hypotheses are $H_0:c_i=0$ (for $i=1,2,3$), and that
+jointly $H_0:c_1=c_2=c_3=0$. As can be inferred from the summary of the previous
+fit, there is significant Negative and Positive reaction to shocks. Using
+instead a model such as the apARCH would likely alleviate these effects.
+
+The \verb@gof@ calculates the chi-squared goodness of fit test, which compares
+the empirical distribution of the standardized residuals with the theoretical
+ones from the chosen density. The implementation is based on the test of
+\cite{Palm1996} which adjusts the tests in the presence on non-i.i.d. observations
+by reclassifying the standardized residuals not according to their value (as in
+the standard test), but instead on their magnitude, calculating the probability
+of observing a value smaller than the standardized residual, which should be
+identically standard uniform distributed. The function must take 2 arguments, the
+fitted object as well as the number of bins to classify the values. In the
+summary to the fit, a choice of $(20,30,40,50)$ bins is used, and from the
+summary of the previous example it is clear that the Normal distribution does
+not adequately capture the empirical distribution based on this test.
+
+The \verb@nymblom@ test calculates the parameter stability test of \cite{Nyblom1989},
+as well as the joint test. Critical values against which to compare the results
+are displayed.
+
+Finally, some informative plots can be drawn either interactively(which = 'ask'),
+individually (which = 1:12) else all at once (which = 'all') as in Figure
+\ref{fig:fitplot}.
+
+\begin{landscape}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=22cm]{fitplot.png}
+\caption[uGARCHfit Plots]{uGARCHfit Plots}\label{fig:fitplot}
+\end{figure}
+\end{landscape}
+
+\section{Filtering}\label{section:filtering}
+Sometimes it is desirable to simply filter a set of data with a predefined set
+of parameters. This may for example be the case when new data has arrived and
+one might not wish to re-fit. The \verb@ugarchfilter@ method does exactly that,
+taking a \verb@uGARCHspec@ object with fixed parameters. Setting fixed or
+starting parameters on the GARCH spec object may be done either through the
+\verb@ugarchspec@ function when it is called via the fixed.pars arguments to the
+function, else by using the \verb@setfixed<-@ method on the spec object.
+The example which follows explains how:
+\begin{Schunk}
+\begin{Sinput}
+> data(sp500ret)
+> spec = ugarchspec(variance.model = list(model = "apARCH"), distribution.model = "std")
+> setfixed(spec) <- list(mu = 0.01, ma1 = 0.2, ar1 = 0.5, omega = 1e-05,
++     alpha1 = 0.03, beta1 = 0.9, gamma1 = 0.01, delta = 1, shape = 5)
+> filt = ugarchfilter(spec = spec, data = sp500ret)
+> show(filt)
+\end{Sinput}
+\begin{Soutput}
+*------------------------------------*
+*          GARCH Model Filter        *
+*------------------------------------*
+
+Conditional Variance Dynamics
+--------------------------------------
+GARCH Model     : apARCH(1,1)
+Mean Model      : ARFIMA(1,0,1)
+Distribution    : std
+
+Filter Parameters
+---------------------------------------
+
+mu     1e-02
+ar1    5e-01
+ma1    2e-01
+omega  1e-05
+alpha1 3e-02
+beta1  9e-01
+gamma1 1e-02
+delta  1e+00
+shape  5e+00
+
+LogLikelihood : 5627.291
+
+Information Criteria
+---------------------------------------
+
+Akaike       -2.0345
+Bayes        -2.0237
+Shibata      -2.0345
+Hannan-Quinn -2.0307
+
+Q-Statistics on Standardized Residuals
+---------------------------------------
+      statistic p-value
+Lag10      1231       0
+Lag15      1240       0
+Lag20      1248       0
+
+H0 : No serial correlation
+
+Q-Statistics on Standardized Squared Residuals
+---------------------------------------
+      statistic p-value
+Lag10     179.2       0
+Lag15     185.3       0
+Lag20     189.8       0
+
+ARCH LM Tests
+---------------------------------------
+             Statistic DoF P-Value
+ARCH Lag[2]      171.5   2       0
+ARCH Lag[5]      176.4   5       0
+ARCH Lag[10]     177.9  10       0
+
+
+Sign Bias Test
+---------------------------------------
+                   t-value      prob sig
+Sign Bias            8.299 1.303e-16 ***
+Negative Sign Bias   5.695 1.297e-08 ***
+Positive Sign Bias   0.572 5.673e-01
+Joint Effect        95.584 1.383e-20 ***
+
+
+Adjusted Pearson Goodness-of-Fit Test:
+---------------------------------------
+  group statistic p-value(g-1)
+1    20     27973            0
+2    30     39420            0
+3    40     49738            0
+4    50     58614            0
+\end{Soutput}
+\end{Schunk}
+The returned object is of class \verb@uGARCHfilter@ and shares many of the methods
+as the \verb@uGARCHfit@ class. Additional arguments to the function are explained
+in the documentation.
+
+\section{Forecasting and the GARCH Bootstrap}\label{section:forecasting}
+There are 2 types of forecasts available with the package. A rolling method,
+whereby consecutive 1-ahead forecasts are created based on the out.sample option
+set in the fitting routine, and an unconditional method for n>1 ahead forecasts.
+It is also possible to combine the 2 creating a rather complicated object.
+Additionally, it is possible to estimate the forecast density by means of the
+\verb@ugarchboot@ method which implements the strategy described in
+\cite{Pascual2006}. This method also includes the option to include parameter
+uncertainty via a monte carlo method. An example illustrates together with
+Figure \ref{fig:bootplot} created using the plot command on the resulting
+\verb@uGARCHboot@ object:
+\begin{Schunk}
+\begin{Sinput}
+> data(sp500ret)
+> spec = ugarchspec(variance.model = list(model = "eGARCH", garchOrder = c(1,
++     1)), mean.model = list(armaOrder = c(1, 1), arfima = FALSE),
++     distribution.model = "std")
+> fit = ugarchfit(spec = spec, data = sp500ret, out.sample = 0,
++     solver = "solnp", solver.control = list(trace = 0))
+> bootpred = ugarchboot(fit, method = "Partial", n.ahead = 120,
++     n.bootpred = 2000)
+> show(bootpred)
+\end{Sinput}
+\begin{Soutput}
+*-----------------------------------*
+*     GARCH Bootstrap Forecast      *
+*-----------------------------------*
+Model : eGARCH
+n.ahead : 120
+Bootstrap method:  partial
+
+Series (summary):
+          min      q.25      mean     q.75      max forecast
+t+1  -0.16970 -0.012573  0.000160 0.014647 0.087117 0.001266
+t+2  -0.14045 -0.012198  0.000820 0.015917 0.088455 0.001043
+t+3  -0.15926 -0.013462  0.000291 0.014136 0.097728 0.000880
+t+4  -0.11009 -0.012629  0.000991 0.014653 0.088158 0.000761
+t+5  -0.26634 -0.013391 -0.000698 0.013250 0.123779 0.000674
+t+6  -0.24480 -0.012854 -0.000012 0.013587 0.089862 0.000610
+t+7  -0.13669 -0.011373  0.001100 0.015331 0.097236 0.000564
+t+8  -0.38366 -0.013117 -0.000036 0.014572 0.084560 0.000530
+t+9  -0.26574 -0.012405  0.000074 0.014094 0.088518 0.000505
+t+10 -0.21571 -0.011858  0.000652 0.013448 0.127877 0.000486
+.....................
+
+Sigma (summary):
+          min    q0.25     mean    q0.75      max forecast
+t+1  0.024673 0.024673 0.024673 0.024673 0.024673 0.024673
+t+2  0.023374 0.023534 0.024438 0.024645 0.044920 0.024368
+t+3  0.022176 0.022738 0.024186 0.025007 0.049329 0.024071
+t+4  0.021142 0.022094 0.023938 0.025026 0.047645 0.023781
+t+5  0.020084 0.021567 0.023656 0.024912 0.051322 0.023498
+t+6  0.019257 0.021188 0.023476 0.024977 0.065176 0.023221
+t+7  0.018390 0.020751 0.023252 0.024853 0.065914 0.022951
+t+8  0.017720 0.020401 0.023005 0.024788 0.062841 0.022688
+t+9  0.016862 0.020194 0.022880 0.024554 0.093453 0.022430
+t+10 0.016061 0.019880 0.022697 0.024362 0.088260 0.022178
+.....................
+\end{Soutput}
+\end{Schunk}
+\begin{figure}
+\centering
+\includegraphics{boot.png}
+\caption[GARCH Bootstrap Forecast Plots]{GARCH Bootstrap Forecast Plots}\label{fig:bootplot}
+\end{figure}
+
+\section{Simulation}\label{section:simulation}
+Simulation may be carried out either directly on a fitted object (\verb@ugarchsim@)
+else on a GARCH spec with fixed parameters (\verb@ugarchpath@). The \verb@ugarchsim@
+method takes the following arguments:
+\begin{Schunk}
+\begin{Sinput}
+> args(ugarchsim)
+\end{Sinput}
+\begin{Soutput}
+function (fit, n.sim = 1000, n.start = 0, m.sim = 1, startMethod = c("unconditional",
+    "sample"), presigma = NA, prereturns = NA, preresiduals = NA,
+    rseed = NA, custom.dist = list(name = NA, distfit = NA),
+    mexsimdata = NULL, vexsimdata = NULL, ...)
+NULL
+\end{Soutput}
+\end{Schunk}
+where the n.sim indicates the length of the simulation while m.sim the number of
+independent simulations. For reasons of speed, when n.sim is large relative to
+m.sim, the simulation code is executed in C, while for large m.sim a special
+purpose C++ code (using Rcpp and RcppArmadillo) is used which was found to lead
+to significant speed increase. Key to replicating results is the rseed argument
+which is used to pass a user seed to initialize the random number generator, else
+one will be assigned by the program. In any case, the returned object, of class
+\verb@uGARCHsim@ (or \verb@uGARCHpath@) contains a slot with the seed(s) used.
+\section{Rolling Estimation}\label{section:rolling}
+The \verb@ugarchroll@ method allows to perform a rolling estimation and
+forecasting of a model/dataset combination, optionally returning the VaR at
+specified levels. More importantly, it returns the distributional forecast
+parameters necessary to calculate any required measure on the forecasted density.
+The following example illustrates the use of the method where use is also made
+of the parallel option and run on 10 cores. Figure \ref{fig:roll} is generated
+by calling the plot function on the returned \verb@uGARCHroll@ object.
+Additional methods, and more importantly extractor functions can be found in the
+documentation.
+\begin{Schunk}
+\begin{Sinput}
+> data(sp500ret)
+> spec = ugarchspec(variance.model = list(model = "eGARCH"), distribution.model = "jsu")
+> roll = ugarchroll(spec, data = sp500ret, n.ahead = 1, forecast.length = 500,
++     refit.every = 25, refit.window = "recursive", parallel = TRUE,
++     parallel.control = list(pkg = "snowfall", cores = 10), solver = "solnp",
++     solver.control = list(tol = 1e-05, delta = 1e-06, trace = 0),
++     calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
+\end{Sinput}
+\begin{Sinput}
+> report(roll, type = "VaR", n.ahead = 1, VaR.alpha = 0.01, conf.level = 0.95)
+\end{Sinput}
+\begin{Soutput}
+VaR Backtest Report
+===========================================
+Model:                  eGARCH-jsu
+Backtest Length:        500
+Data:                   SP500RET
+
+==========================================
+alpha:                  1%
+Expected Exceed:        5
+Actual VaR Exceed:      9
+Actual %:               1.8%
+
+Unconditional Coverage (Kupiec)
+Null-Hypothesis:        Correct Exceedances
+LR.uc Statistic:        2.613
+LR.uc Critical:         3.841
+LR.uc p-value:          0.106
+Reject Null:            NO
+
+Conditional Coverage (Christoffersen)
+Null-Hypothesis:        Correct Exceedances &
+                        Independence of Failures
+LR.cc Statistic:        2.943
+LR.cc Critical:         5.991
+LR.cc p-value:          0.23
+Reject Null:            NO
+\end{Soutput}
+\begin{Sinput}
+> report(roll, type = "fpm")
+\end{Sinput}
+\begin{Soutput}
+GARCH Roll Mean Forecast Performance Measures
+---------------------------------------------
+Model : eGARCH
+no.refits : 20
+n.ahead   : 1
+n.rolls   : 500
+
+    n.ahead.1
+MSE 4.080e-04
+MAE 1.295e-02
+DAC 5.500e-01
+N   5.000e+02
+\end{Soutput}
+\end{Schunk}
+\begin{figure}
+\centering
+\includegraphics{roll.png}
+\caption[GARCH Rolling Forecast Plots]{GARCH Rolling Forecast Plots}\label{fig:roll}
+\end{figure}
+
+\section{Simulated Parameter Distribution and RMSE}\label{section:ugarchdist}
+It is sometimes instructive to be able to investigate the underlying
+density of the estimated parameters under different models. The \verb@ugarchdistribution@
+method performs a monte carlo experiment by simulating and fitting a model
+multiple times and for different 'window' sizes. This allows to obtain some insight
+on the consistency of the parameter estimates as the data window increases by
+looking at the rate of decrease of the Root Mean Squared Error and whether we
+have $\sqrt N$ consistency. This is a computationally expensive exercise and as
+such should only be undertaken in the presence of ample computing power and RAM.
+As in other functions, parallel functionality is enabled if available.
+The example which follows illustrates an instance of this test on one model and
+one set of parameters. Figures \ref{fig:dist1} and \ref{fig:dist2} complete this
+example.
+\begin{Schunk}
+\begin{Sinput}
+> spec = ugarchspec(variance.model = list(model = "gjrGARCH"),
++     distribution.model = "ged")
+> print(persistence(pars = unlist(list(mu = 0.001, ar1 = 0.4, ma1 = -0.1,
++     omega = 1e-06, alpha1 = 0.05, beta1 = 0.9, gamma1 = 0.05,
++     shape = 1.5)), distribution = "ged", model = "gjrGARCH"))
+\end{Sinput}
+\begin{Soutput}
+persistence
+      0.975
+\end{Soutput}
+\begin{Sinput}
+> setfixed(spec) <- list(mu = 0.001, ar1 = 0.4, ma1 = -0.1, omega = 1e-06,
++     alpha1 = 0.05, beta1 = 0.9, gamma1 = 0.05, shape = 1.5)
+> dist = ugarchdistribution(fitORspec = spec, n.sim = 2000, n.start = 1,
++     m.sim = 100, recursive = TRUE, recursive.length = 6000, recursive.window = 1000,
++     rseed = 1066, solver = "solnp", solver.control = list(trace = 0),
++     parallel = TRUE, parallel.control = list(pkg = "snowfall",
++         cores = 20))
+> show(dist)
+\end{Sinput}
+\begin{Soutput}
+*------------------------------------*
+*    GARCH Parameter Distribution    *
+*------------------------------------*
+Model : gjrGARCH
+No. Paths (m.sim) : 100
+Length of Paths (n.sim) : 2000
+Recursive : TRUE
+Recursive Length : 6000
+Recursive Window : 1000
+
+Coefficients: True vs Simulation Mean (Window-n)
+                    mu     ar1       ma1      omega   alpha1   beta1   gamma1
+true-coef   0.00100000 0.40000 -0.100000 1.0000e-06 0.050000 0.90000 0.050000
+window-2000 0.00097122 0.39691 -0.097773 1.0672e-06 0.046603 0.90054 0.051852
+window-3000 0.00101426 0.38922 -0.089512 1.0209e-06 0.047097 0.90072 0.052936
+window-4000 0.00099796 0.39372 -0.095054 1.0219e-06 0.049798 0.90056 0.047732
+window-5000 0.00099337 0.40143 -0.102950 1.0081e-06 0.048943 0.90087 0.049678
+window-6000 0.00098468 0.39561 -0.096174 1.0102e-06 0.049052 0.90009 0.050879
+             shape
+true-coef   1.5000
+window-2000 1.4944
+window-3000 1.4960
+window-4000 1.4929
+window-5000 1.4899
+window-6000 1.4902
+\end{Soutput}
+\end{Schunk}
+
+\begin{landscape}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=22cm]{dist1.png}
+\caption[GARCH Simulated Parameters Density]{Simulated Parameter Density}\label{fig:dist1}
+\end{figure}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=22cm]{dist11.png}
+\caption[GARCH Parameters RMSE Rate of Change]{RMSE Rate of Change}\label{fig:dist2}
+\end{figure}
+\begin{figure}[!ht]
+\centering
+\subfloat[Bivariate Parameter Plots]{\label{fig:dist3}\includegraphics[scale=0.4, angle=0]{dist2.png}}
+\subfloat[GARCH Stat Plots]{\label{fig:dist4}\includegraphics[scale=0.4, angle=0]{dist3.png}}
+\caption[GARCH Simulated Parameters Density]{GARCH Simulated Parameters Density}\label{fig:dist3}
+\end{figure}
+\end{landscape}
+
+\section{The ARFIMAX Model with constant variance}\label{section:arfima}
+The \verb@rugarch@ package implements an additional set of methods and classes,
+mirroring those of the GARCH specification, for modelling ARFIMAX processes
+with constant variance via Maximum Likelihood. With the exception of plots, the
+functionality is very similar to that covered so far for GARCH methods. The main
+functions are \verb@arfimaspec@, \verb@arfimafit@, \verb@arfimaforecast@,
+\verb@arfimasim@, \verb@arfimapath@, \verb@arfimadistirbution@ and \verb@arfimaroll@.
+The usual extractor, inference and summary methods are replicated for all the
+ARFIMA classes and the user should consult the documentation for further details.
+
+\section{Mispecification and Other Tests}
+Apart from the usual tests presented in the summary to the fit object, a number 
+of other interesting and useful tests are uniquely implemented in the rugarch 
+package, and described in this section.
+\subsection{The GMM Orthogonality Test}
+The GMM type moment (orthogonality) tests of \cite{Hansen1982} have been applied 
+to test the adequacy of model in a variety of setups. Under a correctly
+specified model, certain population moment conditions should be satisfied and 
+hold in the sample using the standardized residuals. The moment conditions can
+be tested both individually using a t-test or jointly using a Wald test. Formally, 
+the following moment conditions are tested:
+\begin{equation}\label{eq:gmm}
+\begin{array}{*{20}{c}}
+{{M_1}}&{E\left[ {{z_t}} \right]}&{ = 0}\\
+{{M_2}}&{E\left[ {z_t^2 - 1} \right]}&{ = 0}\\
+{{M_3}}&{E\left[ {z_t^3} \right]}&{ = 0}\\
+{{M_4}}&{E\left[ {z_t^4 - 3} \right]}&{ = 0}\\
+{{Q_2}}&{E\left[ {\left( {z_t^2 - 1} \right)\left( {z_{t - j}^2 - 1} \right)} \right]}&{ = 0}\\
+\end{array}
+\end{equation}
+where $j=1\dots,p$ is the lag and usually $p$ is set to 4. The last condition 
+tests the conditional variance using $p$ lags and may be
+tested jointly using a Wald test distributed $\chi^2$ with $p$ d.o.f. It is also 
+possible to test all the conditions jointly using a Wald test distributed $\chi^2$ 
+with $4+p$ d.o.f. The test is implemented under the name: \verb@GMMTest@.
+\subsection{Parametric and Non-Parametric Density Tests}
+A novel method to analyze how well a conditional density fits the underlying data 
+is through the probability integral transformation (\emph{PIT}) discussed in 
+\cite{Rosenblatt1952} and defined as:
+\begin{equation}
+{x_t} = \int\limits_{ - \infty }^{{y_t}} {\hat f\left( u \right)du = \hat F\left( {{y_t}} \right)}
+\end{equation}
+which transforms the data $y_t$, using the estimated distribution $\hat F$ into 
+i.i.d. $U(0,1)$ under the correctly specified model. Based on this transformation,
+\cite{Tay1998} provide for a visual assessment test, while \cite{Berkowitz2001} 
+provides a more formal test, implemented in the package under the name \verb@BerkowitzTest@. 
+Because of the difficulty in testing a $U(0,1)$ sequence, the PIT data is 
+transformed into $N(0,1)$ by Berkowitz using the normal quantile function, and 
+tested using a Lagrange Multiplier (\emph{LM}) test for any residual 
+autocorrelation given a specified number of lags. In addition, a tail
+test based on the censored Normal is also provided, under the Null that the 
+standardized tail data has mean zero and unit variance. More recently, 
+\cite{Hong2005} introduced a nonparametric portmanteau test, building on the work 
+of \cite{Ait-Sahalia1996}, which tests the joint hypothesis of i.i.d \emph{AND} $U(0,1)$ 
+for the sequence $x_t$. As noted by the authors, testing $x_t$ using a standard 
+goodness-of-fit test (such as the Kolmogorov-Smirnov) would only check the $U(0,1)$ 
+assumption under i.i.d. and not the joint assumption of $U(0,1)$ and i.i.d. Their 
+approach is to compare a kernel estimator $\hat g_j\left(x_1,x_2\right)$ for the 
+joint density $g_j\left(x_1,x_2\right)$ of the pair  $\left\{ {x_t,x_{t-j}} \right\}$ 
+(where $j$ is the lag order) with unity, the product of two $U(0,1)$ densities. 
+Given a sample size $n$ and lag order $j>0$, their joint density estimator is:
+\begin{equation}\label{eq:HL1}
+{{\hat g}_j}\left( {{x_1},{x_2}} \right) \equiv {\left( {n - j} \right)^{ - 1}}\sum\limits_{t = j + 1}^n {{K_h}\left( {{x_1},{{\hat X}_t}} \right){K_h}\left( {{x_2},{{\hat X}_{t - j}}} \right)}
+\end{equation}
+where ${{\hat X}_t} = {X_t}\left( {\hat \theta } \right)$, and $\hat \theta$ is a $\sqrt n$ consistent estimator of $\theta_0$. The function $K_h$ is a boundary
+modified kernel defined as:
+\begin{equation}\label{eq:HL2}
+{K_h}\left( {x,y} \right) \equiv \left\{ {\begin{array}{*{20}{c}}
+{{{{h^{ - 1}}k\left( {\frac{{x - y}}{h}} \right)} \mathord{\left/
+ {\vphantom {{{h^{ - 1}}k\left( {\frac{{x - y}}{h}} \right)} {\int_{ - \left( {x/h} \right)}^1 {k\left( u \right)du} ,}}} \right.
+ \kern-\nulldelimiterspace} {\int_{ - \left( {x/h} \right)}^1 {k\left( u \right)du} ,}}}&{{\rm{if }}x \in \left[ {0,h} \right),}\\
+{{h^{ - 1}}k\left( {\frac{{x - y}}{h}} \right),}&{{\rm{if }}x \in \left[ {h,1 - h} \right],}\\
+{{{{h^{ - 1}}k\left( {\frac{{x - y}}{h}} \right)} \mathord{\left/
+ {\vphantom {{{h^{ - 1}}k\left( {\frac{{x - y}}{h}} \right)} {\int_{ - 1}^{\left( {1 - x} \right)/h} {k\left( u \right)du} ,}}} \right.
+ \kern-\nulldelimiterspace} {\int_{ - 1}^{\left( {1 - x} \right)/h} {k\left( u \right)du} ,}}}&{{\rm{if }}x \in \left( {1 - h,1} \right],}
+\end{array}} \right.
+\end{equation}
+where $h\equiv h\left(n \right)$ is a bandwidth such that $h\rightarrow 0$ as $n\rightarrow \infty$, and the kernel $k(.)$ is a pre-specified symmetric probability density, which is implemented as suggested by the authors using a quartic kernel,
+\begin{equation}\label{eq:quartic}
+k\left( u \right) = \frac{{15}}{{16}}{\left( {1 - {u^2}} \right)^2}{\bf{1}}\left( {\left| u \right| \le 1} \right),
+\end{equation}
+where $\bf{1}\left(.\right)$ is the indicator function. Their portmanteau test statistic is defined as:
+\begin{equation}\label{eq:HL3}
+\hat W\left( p \right) \equiv {p^{ - 1/2}}\sum\limits_{j = 1}^p {\hat Q\left( j \right)},
+\end{equation}
+where
+\begin{equation}\label{eq:HL4}
+\hat Q\left( j \right) \equiv {{\left[ {\left( {n - j} \right)h\hat M\left( j \right) - A_h^0} \right]} \mathord{\left/
+ {\vphantom {{\left[ {\left( {n - j} \right)h\hat M\left( j \right) - A_h^0} \right]} {V_0^{1/2}}}} \right.
+ \kern-\nulldelimiterspace} {V_0^{1/2}}},
+\end{equation}
+and
+\begin{equation}\label{eq:HL5}
+\hat M\left( j \right) \equiv \int_0^1 {\int_0^1 {{{\left[ {{{\hat g}_j}\left( {{x_1},{x_2}} \right) - 1} \right]}^2}d{x_1}d{x_2}} }.
+\end{equation}
+The centering and scaling factors $A_h^0$ and $V_0$ are defined as:
+\begin{equation}\label{eq:HL6}
+\begin{array}{l}
+A_h^0 \equiv {\left[ {\left( {{h^{ - 1}} - 2} \right)\int_{ - 1}^1 {{k^2}\left( u \right)du + 2\int_0^1 {\int_{ - 1}^b {k_b^2\left( u \right)dudb} } } } \right]^2} - 1\\
+{V_0} \equiv 2{\left[ {\int_{ - 1}^1 {{{\left[ {\int_{ - 1}^1 {k\left( {u + v} \right)k\left( v \right)dv} } \right]}^2}du} } \right]^2}
+\end{array}
+\end{equation}
+where,
+\begin{equation}\label{eq:HL7}
+{k_b}\left( . \right) \equiv {{k\left( . \right)} \mathord{\left/{\vphantom {{k\left( . \right)} {\int_{ - 1}^b {k\left( v \right)dv} }}} \right.\kern-\nulldelimiterspace} {\int_{ - 1}^b {k\left( v \right)dv} }}.
+\end{equation}
+Under the correct model specification, the authors show that 
+$\hat W\left( p \right)\rightarrow N\left(0,1\right)$ in distribution. Because 
+negative values of the test statistic only occur under the Null Hypothesis of a 
+correctly specified model, the authors indicate that only upper tail critical values 
+need be considered. The test is quite robust to model misspecification as parameter 
+uncertainty has no impact on the asymptotic distribution of the test statistic as 
+long as the parameters are $\sqrt n$ consistent. Finally, in order to explore possible 
+causes of misspecification when the statistic rejects a model, the authors develop 
+the following test statistic:
+\begin{equation}\label{eq:HL8}
+M\left( {m,l} \right) \equiv {{\left[ {\sum\limits_{j = 1}^{n - 1} {{w^2}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)\left( {n - j} \right)\hat \rho _{ml}^2\left( j \right) - \sum\limits_{j = 1}^{n - 1} {{w^2}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)} } } \right]} \mathord{\left/
+ {\vphantom {{\left[ {\sum\limits_{j = 1}^{n - 1} {{w^2}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)\left( {n - j} \right)\hat \rho _{ml}^2\left( j \right) - \sum\limits_{j = 1}^{n - 1} {{w^2}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)} } } \right]} {{{\left[ {2\sum\limits_{j = 1}^{n - 2} {{w^4}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)} } \right]}^{1/2}}}}} \right.
+ \kern-\nulldelimiterspace} {{{\left[ {2\sum\limits_{j = 1}^{n - 2} {{w^4}\left( {{j \mathord{\left/
+ {\vphantom {j p}} \right.
+ \kern-\nulldelimiterspace} p}} \right)} } \right]}^{1/2}}}}
+\end{equation}
+where ${{\hat \rho }_{ml}}\left( j \right)$ is the sample cross-correlation 
+between $\hat X_t^m$ and $\hat X_{t - \left| j \right|}^l$, and $w\left(.\right)$ 
+is a weighting function of lag order j, and as suggested by the authors implemented 
+as the Bartlett kernel. As in the $\hat W\left( p \right)$ statistic, the asymptotic 
+distribution of $M\left( {m,l} \right)$ is $N\left(0,1\right)$ and upper critical 
+values should be considered. As an experiment, Table \ref{table:garchstd} considers 
+the cost of fitting a GARCH-Normal model when the true model is GARCH-Student, 
+using the \verb@HLTest@ on simulated data using the \verb@ugarchsim@ function. 
+The results are clear: At low levels of the shape parameter $\nu$, representing 
+a very high excess kurtosis, the model is overwhelmingly rejected by the test, 
+and as that parameter increases to the point where the Student approximates the 
+Normal, the rejections begin to reverse. Also of interest, but not surprising, 
+the strength of the rejection is somewhat weaker for smaller datasets ($N=500,1000$). 
+For example, in the case of using only $500$ data points and a shape parameter 
+of 4.1 (representing an excess kurtosis of 60!), 5\% of the time, in this 
+simulation, the test failed to reject the GARCH-Normal. 
+{\tiny
+\ctable[ pos = h, cap     = {GARCH-Student: Misspecification Exercise.},
+%
+caption = {GARCH-Student: Misspecification Exercise.},
+%
+label   = {table:garchstd},
+center
+]
+{rrrrrrrrrrrrrrr}
+{
+\tnote[]{\tiny {\bf Note:}
+The table presents the average test statistic of \cite{Hong2005} and number of 
+rejections at the 95\% confidence level for fitting a GARCH(1,1)-Normal model to 
+a GARCH(1,1)-Student model for different values of the shape parameter $\nu$, 
+and sample size ($N$). For each sample of size $N$, 250 simulated series were 
+created from a GARCH student model with parameters 
+$(\mu, \omega, \alpha, \beta) = (5.2334e-04, 4.3655e-06, 5.898e-02, 9.2348e-01)$, and
+$\nu$ in the range of $[4.1,30]$, and fitted using a GARCH(1,1)-Normal model. 
+The standardized residuals of the fitted model where then transformed via the 
+normal distribution function into $U(0,1)$ series and evaluated using the test 
+of \cite{Hong2005}.
+\LL
+}
+}{
+\FL
+\begin{tabular}{rrrrrrrrrrrrrrr}
+\addlinespace
+      & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[4.1]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[4.5]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[5]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[5.5]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[6]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[6.5]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[7]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[7.5]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[8]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[10]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[15]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[20]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[25]$}\unboldmath{}} & \multicolumn{1}{c}{\boldmath{}\textbf{$\nu[30]$}\unboldmath{}} \\
+\midrule
+\boldmath{}\textbf{$N_{500}$}\unboldmath{} &       &       &       &       &       &       &       &       &       &       &       &       &       &  \\
+$\hat {stat}$ & \multicolumn{1}{c}{10.10} & \multicolumn{1}{c}{6.70} & \multicolumn{1}{c}{5.08} & \multicolumn{1}{c}{4.07} & \multicolumn{1}{c}{2.64} & \multicolumn{1}{c}{2.22} & \multicolumn{1}{c}{1.47} & \multicolumn{1}{c}{1.46} & \multicolumn{1}{c}{1.05} & \multicolumn{1}{c}{0.19} & \multicolumn{1}{c}{-0.34} & \multicolumn{1}{c}{-0.36} & \multicolumn{1}{c}{-0.54} & \multicolumn{1}{c}{-0.71} \\
+$\% reject$ & \multicolumn{1}{c}{\textit{95}} & \multicolumn{1}{c}{\textit{89}} & \multicolumn{1}{c}{\textit{82}} & \multicolumn{1}{c}{\textit{76}} & \multicolumn{1}{c}{\textit{59}} & \multicolumn{1}{c}{\textit{54}} & \multicolumn{1}{c}{\textit{42}} & \multicolumn{1}{c}{\textit{41}} & \multicolumn{1}{c}{\textit{34}} & \multicolumn{1}{c}{\textit{22}} & \multicolumn{1}{c}{\textit{12}} & \multicolumn{1}{c}{\textit{13}} & \multicolumn{1}{c}{\textit{6}} & \multicolumn{1}{c}{\textit{8}} \\
+\boldmath{}\textbf{$N_{1000}$}\unboldmath{} &       &       &       &       &       &       &       &       &       &       &       &       &       &  \\
+$\hat {stat}$ & \multicolumn{1}{c}{18.54} & \multicolumn{1}{c}{13.46} & \multicolumn{1}{c}{9.46} & \multicolumn{1}{c}{7.64} & \multicolumn{1}{c}{6.16} & \multicolumn{1}{c}{5.14} & \multicolumn{1}{c}{4.17} & \multicolumn{1}{c}{2.95} & \multicolumn{1}{c}{3.03} & \multicolumn{1}{c}{1.31} & \multicolumn{1}{c}{0.28} & \multicolumn{1}{c}{-0.15} & \multicolumn{1}{c}{-0.48} & \multicolumn{1}{c}{-0.47} \\
+$\% reject$ & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{98}} & \multicolumn{1}{c}{\textit{97}} & \multicolumn{1}{c}{\textit{90}} & \multicolumn{1}{c}{\textit{86}} & \multicolumn{1}{c}{\textit{79}} & \multicolumn{1}{c}{\textit{64}} & \multicolumn{1}{c}{\textit{69}} & \multicolumn{1}{c}{\textit{39}} & \multicolumn{1}{c}{\textit{24}} & \multicolumn{1}{c}{\textit{11}} & \multicolumn{1}{c}{\textit{7}} & \multicolumn{1}{c}{\textit{12}} \\
+\boldmath{}\textbf{$N_{2000}$}\unboldmath{} &       &       &       &       &       &       &       &       &       &       &       &       &       &  \\
+$\hat {stat}$ & \multicolumn{1}{c}{32.99} & \multicolumn{1}{c}{26.46} & \multicolumn{1}{c}{19.41} & \multicolumn{1}{c}{15.53} & \multicolumn{1}{c}{12.41} & \multicolumn{1}{c}{10.35} & \multicolumn{1}{c}{7.76} & \multicolumn{1}{c}{6.79} & \multicolumn{1}{c}{5.79} & \multicolumn{1}{c}{3.20} & \multicolumn{1}{c}{0.87} & \multicolumn{1}{c}{0.09} & \multicolumn{1}{c}{0.03} & \multicolumn{1}{c}{-0.21} \\
+$\% reject$ & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{99}} & \multicolumn{1}{c}{\textit{95}} & \multicolumn{1}{c}{\textit{94}} & \multicolumn{1}{c}{\textit{92}} & \multicolumn{1}{c}{\textit{71}} & \multicolumn{1}{c}{\textit{32}} & \multicolumn{1}{c}{\textit{22}} & \multicolumn{1}{c}{\textit{22}} & \multicolumn{1}{c}{\textit{16}} \\
+\boldmath{}\textbf{$N_{3000}$}\unboldmath{} &       &       &       &       &       &       &       &       &       &       &       &       &       &  \\
+$\hat {stat}$ & \multicolumn{1}{c}{47.87} & \multicolumn{1}{c}{37.03} & \multicolumn{1}{c}{27.38} & \multicolumn{1}{c}{21.67} & \multicolumn{1}{c}{17.85} & \multicolumn{1}{c}{14.22} & \multicolumn{1}{c}{11.46} & \multicolumn{1}{c}{9.73} & \multicolumn{1}{c}{7.99} & \multicolumn{1}{c}{5.12} & \multicolumn{1}{c}{1.60} & \multicolumn{1}{c}{0.35} & \multicolumn{1}{c}{0.10} & \multicolumn{1}{c}{-0.09} \\
+$\% reject$ & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{99}} & \multicolumn{1}{c}{\textit{96}} & \multicolumn{1}{c}{\textit{85}} & \multicolumn{1}{c}{\textit{46}} & \multicolumn{1}{c}{\textit{27}} & \multicolumn{1}{c}{\textit{22}} & \multicolumn{1}{c}{\textit{15}} \\
+\end{tabular}
+\LL}}
+
+
+\subsection{Directional Accuracy Tests}
+High and significant Directional Accuracy (\emph{DA}) could imply either an 
+ability to predict the sign of the mean forecast or could merely be the result 
+of volatility dependence in the absence of mean predictability as argued by 
+\cite{Christoffersen2006}. In either case, the function \verb@DACTest@ provides 2 
+tests for determining the significance of sign predictability and mean predictability. 
+The Directional Accuracy (\emph{DA}) Test of \cite{Pesaran1992} and the Excess 
+Profitability (\emph{EP}) Test of \cite{Anatolyev2005}, both of which are 
+Hausmann  type tests. The EP test statistic is formally defined as:
+\begin{equation}
+EP = \frac{{{A_T} - {B_T}}}{{\sqrt {{{\hat V}_{EP}}} }}
+\end{equation}
+with,
+\begin{equation}
+\begin{gathered}
+  {A_T} = \frac{1}
+{T}\sum\limits_t {{r_t}}  \hfill \\
+  {B_T} = \left( {\frac{1}
+{T}\sum\limits_t {\operatorname{sgn} \left( {{{\hat y}_t}} \right)} } \right)\left( {\frac{1}
+{T}\sum\limits_t {{y_t}} } \right) \hfill \\
+\end{gathered}
+\end{equation}
+with $\hat y$ being the forecast of $y$ and $r_{t}=\operatorname{sgn}(\hat y_t)(y_t)$. 
+According to the authors of the test, the estimated variance of $EP$, $\hat V_{EP}$ 
+may be estimated as:
+\begin{equation}
+{{\hat V}_{EP}} = \frac{4}{{{T^2}}}{{\hat p}_{\hat y}}\left( {1 - {{\hat p}_{\hat y}}} \right)\sum\limits_{} {{{\left( {{y_t} - \bar y} \right)}^2}}
+\end{equation}
+where ${\hat p_{\hat y}} = \frac{1}{2}\left( {1 + \frac{1}{T}\sum\limits_t {\operatorname{sgn} \left( {{{\hat y}_t}} \right)} } \right)$. The EP statistic is asymptotically distributed as $N(0,1)$.\\
+For the DA test the interested reader can consult the relevant literature for more details.
+\subsection{VaR and Expected Shortfall Tests}
+The unconditional coverage, or proportion of failures, test of \cite{Kupiec1995} 
+allows to test whether the observed frequency of VaR exceedances is consistent with 
+the expected exceedances, given the chosen quantile and a confidence level. Under 
+the Null hypothesis of a correctly specified model, the number of exceedances \(X\) 
+follows a binomial distribution. A probability below a given significance level 
+leads to a rejection of the Null hypothesis. The test is usually conducted as a 
+likelihood ratio test, with the statistic taking the form,
+\begin{equation}
+L{R_{uc}} =  - 2\ln \left( {\frac{{{{\left( {1 - p} \right)}^{N - X}}{p^X}}}{{{{\left( {1 - \frac{X}{N}} \right)}^{N - X}}{{\left( {\frac{X}{N}} \right)}^X}}}} \right)
+\end{equation}
+where $p$ is the probability of an exceedance for the chosen confidence level 
+and $N$ is the sample size. Under the Null the test statistic is asymptotically 
+distributed as a $\chi^2$ with 1 degree of freedom. The test does not consider 
+any potential violation of the assumption of the independence of the number of 
+exceedances. The conditional coverage test of \cite{Christoffersen2001} corrects 
+this by jointly testing the frequency as well as the independence of exceedances, 
+assuming that the VaR violation is modelled with a first order Markov chain. The 
+test is a likelihood ratio, asymptotically distributed as $\chi^2$ with 2 degrees 
+of freedom, where the Null is  that the conditional and unconditional coverage are 
+equal to \( \alpha \). The test is implemented under the name \verb@VaRTest@.\\
+In a further paper, \cite{Christoffersen2004} considers the duration between VaR 
+violations as a stronger test of the adequacy of a risk model. The duration of time 
+between VaR violations (no-hits) should ideally be independent and not cluster. 
+Under the Null hypothesis of a correctly specified risk model, the no-hit duration 
+should have no memory. Since the only continuous distribution which is memory free 
+is the exponential, the test can conducted on any distribution which embeds the 
+exponential as a restricted case, and a likelihood ratio test then conducted to 
+see whether the restriction holds. Following \cite{Christoffersen2004}, the Weibull 
+distribution is used with parameter $b=1$ representing the case of the exponential. 
+The test is implemented under the name \verb@VaRDurTest@.\\ 
+Because VaR tests deal with the occurrences of hits, they are by definition
+rather crude measures to compare how well one model has done versus another, 
+particularly with short data sets. The expected shortfall test of \cite{McNeil2000} 
+measures the mean of the shortfall violations which should be zero under the Null of a 
+correctly specified risk model. The test is implemented in the function \verb@ESTest@ 
+which also provides for the option of bootstrapping the distribution of the p-value, 
+hence avoiding any strong assumptions about the underlying distribution of the excess 
+shortfall residuals.\\ 
+Finally, it is understood that these tests are applied to out-of-sample forecasts 
+and NOT insample, for which no correction to the tests have been made to account 
+for parameter uncertainty.
+
+\section{Miscellaneous Functions}\label{section:misc}
+There are a number of plain R functions exported in the package the most important
+of which are the \verb@WeekDayDummy@ (creates a dummy, day of the week variable
+given a set of dates), \verb@ForwardDates@ (to generate A POSIXct vector of future
+dates).
+
+\section{Future Development}\label{section:fut}
+Time permitting, some more more exotic GARCH models including component GARCH, 
+and Threshold (TAR) type models for the conditional mean.............
+
+\section{FAQs and Guidelines}\label{section:faqs}
+This section provides for answers to some Frequently Asked Questions (Q) as well
+as Guidelines (G) for the use of the \verb@rugarch@ package.\\
+\\
+\textbf{Q: Does the package support parallel computation?}\\
+\\
+Yes. Most functions for which parallel functionality was deemed beneficial
+include the additional options of 'parallel' and 'parallel.control'. For Unix
+based systems the multicore package of \cite{Urbanek2009} provides
+for a very efficient parallel apply on multiple cores. For Windows and all
+systems, the snowfall package of \cite{Knaus2010} allows for socket based parallel
+apply which does not include shared memory of objects and can therefore be very
+expensive. This is definitely not as efficient as multicore, but the only option
+currently on windows systems. Some extra thought is required when using the
+snowfall parallel functionality as there is a trade-off to consider between the
+number of cores committed via socket, the overhead for setting up each new
+socket and the number of parallel iterations. As an example consider the
+following:
+\begin{Schunk}
+\begin{Sinput}
+> library(rugarch)
+\end{Sinput}
+\begin{Soutput}
+rugarch (version 1.0) initialized.
+\end{Soutput}
+\begin{Sinput}
+> data(dji30ret)
+> spec = ugarchspec()
+> mspec = multispec(replicate(spec, n = 30))
+> print(system.time(multifit(multispec = mspec, data = dji30ret[,
++     1:30], parallel = TRUE, parallel.control = list(pkg = "snowfall",
++     cores = 20))))
+\end{Sinput}
+\begin{Soutput}
+   user  system elapsed
+   1.08    1.88   24.00
+\end{Soutput}
+\begin{Sinput}
+> print(system.time(multifit(multispec = mspec, data = dji30ret[,
++     1:30], parallel = TRUE, parallel.control = list(pkg = "snowfall",
++     cores = 5))))
+\end{Sinput}
+\begin{Soutput}
+   user  system elapsed
+   0.34    0.23   15.78
+\end{Soutput}
+\begin{Sinput}
+> print(system.time(multifit(multispec = mspec, data = dji30ret[,
++     1:30], solver.control = list(trace = 0), parallel = FALSE,
++     parallel.control = list(pkg = "snowfall", cores = 10))))
+\end{Sinput}
+\begin{Soutput}
+   user  system elapsed
+  49.15    0.00   49.15
+\end{Soutput}
+\end{Schunk}
+It is clear that the overhead for using 20 cores is too high for the size of
+this problem, whereas using 5 cores does lead to a doubling of performance
+versus the non-parallel version. Also note that prior to using the snowfall
+package, this should be manually loaded by the user, since strange behavior has
+been observed when the package tries to load the snowfall itself.\\
+\\
+\textbf{Q: My model does not converge, what can I do?}\\
+\\
+There are several avenues to consider here. The package offers 4 different
+solvers, namely 'solnp', 'gosolnp', 'nlminb' and 'L-BGFS-U' (from optim).
+Each solver has its own merits, and control parameters which may, and should be
+passed, via the solver.control list in the fitting routines, depending on your
+particular data. For problems where neither 'solnp' nor 'nlminb' seem to work,
+try the 'gosolnp' solver which does a search of the parameter space based on a
+truncated normal distribution for the parameters and then initializes multiple
+restarts of the 'solnp' solver based on the best identified candidates. The
+numbers of randomly generated parameters (n.sim) and solver restarts (n.restarts)
+can be passed via the solver.control list. Additionally, in the fit.control list
+of the fitting routines, the option to perform scaling of the data prior to
+fitting usually helps, although it is not available under some setups. Finally,
+consider the amount of data you are using for modelling GARCH processes,
+which leads to another FAQ below.\\
+\\
+\textbf{Q: How much data should I use to model GARCH processes with confidence?}\\
+The distribution of the parameters varies by model, and is left to the reader to
+consult relevant literature on this. However, using 100 data points to try and
+fit a model is unlikely to be a sound approach as you are unlikely to get very
+efficient parameter estimates. The \verb@rugarch@ package does provide a method
+(\verb@ugarchdistribution@) for simulating from a pre-specified model, data of
+different sizes, fitting the model to the data, and inferring the distribution
+of the parameters as well as the RMSE rate of change as the data length
+increases. This is a very computationally expensive way to examine the
+distribution of the parameters (but the only way in the non-Bayesian world), and
+as such should be used with care and in the presence of ample computing power.\\
+\\
+\textbf{Q: Where can one find more examples?}\\
+\\
+The package has a folder called 'rugarch.tests' which contains many tests
+which I use for debugging and checking. The files in the folder should be
+'sourced' by the user, and the 'runtests.R' file contains some wrapper functions
+which describe what each test does, and optionally runs chosen tests. The
+output will be a combination of text files (.txt) and figures (either .eps or
+.png) in an output directory which the user can define in the arguments to the
+wrapper function 'rugarch.runtests'. It is quite instructive to read and
+understand what each test is doing prior to running it...\\
+\\
+\textbf{Q: What to do if I find an error or have questions related to the package?}\\
+\\
+Please use the R-SIG-Finance mailing list to post your questions. If you do mail
+me directly, do consider carefully your email, debug information you submit, and
+correct email etiquette (i.e. do not send me a 1 MB .csv file of your data and at
+no time send me an Excel file).
