@@ -374,6 +374,9 @@
 		hEst = mvar
 	}
 	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
+	if(modelinc[15]>0) vexdata = as.double(as.vector(vexdata)) else vexdata = double(1)
+	
 	ans = try( .C("gjrgarchfilterC", model = as.integer(modelinc), pars = as.double(ipars[,1]), 
 					idx = as.integer(idx[,1]-1), hEst = as.double(hEst), 
 					x = as.double(data), res = as.double(res), nres = double(T), e = double(T), mexdata = mexdata, 

@@ -87,7 +87,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	# variance model:
 	vmodel = list()
 		
-	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH")
+	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH", "fiGARCH")
 	if(is.null(variance.model$model)){
 		modeldesc$vmodel = "sGARCH"
 	} else{
@@ -120,6 +120,13 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	
 	if( modeldesc$vmodel == "gjrGARCH" ) modelinc[10] = modelinc[8]
 	if( modeldesc$vmodel == "eGARCH" ) modelinc[10] = modelinc[8]
+	if( modeldesc$vmodel == "fiGARCH" ){
+		# fractional parameter (FIGARCH): \delta
+		# Hyperbolic Alpha Parameters (HYGARCH): \lambda
+		modelinc[13] = 1
+		# modelinc[14] = 1
+	}
+	
 	if( modeldesc$vmodel == "apARCH" ){
 		modelinc[10] = modelinc[8]
 		modelinc[13] = 1

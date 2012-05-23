@@ -70,6 +70,45 @@ arfimaspec = function( mean.model = list(armaOrder = c(1,1), include.mean = TRUE
 
 setMethod(f = "arfimaspec", definition = .xarfimaspec)
 
+##############################################################################
+# custom arfima for non consecutive arma orders
+.zarfimaspec = function( arOrder = c(1,1), maOrder = c(1,1), include.mean = TRUE, 
+		arfima = FALSE, external.regressors = NULL, distribution.model = "norm", 
+		start.pars = list(), fixed.pars = list(), ...){
+	
+	fx = list()
+	if(sum(arOrder)>0){
+		arm = max(which(arOrder==1))
+		arOrder = arOrder[1:arm]
+	} else{
+		arm = 0
+	}
+	if(sum(maOrder)>0){
+		mam = max(which(maOrder==1)) 
+		maOrder = maOrder[1:mam]
+	} else{
+		mam = 0
+	}
+	if(any(arOrder==0)){
+		idx = which(arOrder==0)
+		for(i in 1:length(idx)){
+			eval(parse(text=paste("fx$ar", idx[i],"=0",sep="")))
+		}
+	}
+	if(any(maOrder==0)){
+		idx = which(maOrder==0)
+		for(i in 1:length(idx)){
+			eval(parse(text=paste("fx$ma", idx[i],"=0",sep="")))
+		}
+	}
+	fx = c(fx, fixed.pars)
+	spec = arfimaspec(mean.model = list(armaOrder = c(arm, mam),
+					include.mean = include.mean, arfima = arfima, 
+					external.regressors = external.regressors), 
+					distribution.model = distribution.model, 
+					start.pars = start.pars, fixed.pars = fx)
+	return(spec)
+}
 
 .getarfimaspec = function(object)
 {
@@ -243,8 +282,8 @@ setMethod("show",
 			cat(paste("\n*----------------------------------*", sep = ""))
 			cat(paste("\n*          ARFIMA Model Fit        *", sep = ""))
 			cat(paste("\n*----------------------------------*", sep = ""))
-			cat("\nMean Model\t\t\t: ARFIMA(", modelinc[2],",",ifelse(modelinc[4]>0, "d", 0),",",modelinc[3],")\n", sep = "")
-			cat("Distribution\t\t:", model$modeldesc$distribution,"\n")
+			cat("\nMean Model\t: ARFIMA(", modelinc[2],",",ifelse(modelinc[4]>0, "d", 0),",",modelinc[3],")\n", sep = "")
+			cat("Distribution\t:", model$modeldesc$distribution,"\n")
 			if(object@fit$convergence == 0){
 				cat("\nOptimal Parameters")
 				cat(paste("\n------------------------------------\n",sep=""))
@@ -316,8 +355,8 @@ setMethod("show",
 			cat(paste("\n*-------------------------------------*", sep = ""))
 			cat(paste("\n*          ARFIMA Model Filter        *", sep = ""))
 			cat(paste("\n*-------------------------------------*", sep = ""))
-			cat("\nMean Model\t\t\t: ARFIMA(", modelinc[2],",",ifelse(modelinc[4]>0, "d", 0),",",modelinc[3],")\n", sep = "")
-			cat("Distribution\t\t:", model$modeldesc$distribution,"\n")
+			cat("\nMean Model\t: ARFIMA(", modelinc[2],",",ifelse(modelinc[4]>0, "d", 0),",",modelinc[3],")\n", sep = "")
+			cat("Distribution\t:", model$modeldesc$distribution,"\n")
 			cat("\nFilter Parameters")
 			cat(paste("\n---------------------------------------\n",sep=""))
 			print(matrix(coef(object), ncol=1, dimnames = list(names(coef(object)), "")), digits = 5)

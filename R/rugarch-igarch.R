@@ -25,7 +25,8 @@
 	tic = Sys.time()
 	if(is.null(solver.control$trace)) trace = 0 else trace = solver.control$trace
 	
-	if(is.null(fit.control$stationarity)) fit.control$stationarity = TRUE
+	# set starionarity to FALSE
+	fit.control$stationarity = FALSE
 	if(is.null(fit.control$fixed.se)) fit.control$fixed.se = FALSE
 	if(is.null(fit.control$scale)) fit.control$scale = FALSE
 	# if we have external regressors in variance turn off scaling
@@ -375,6 +376,9 @@
 		ipars[idx["omega",1],1] = mvar * (1 - persist) - mv
 		hEst = mvar
 	}
+	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
+	if(modelinc[15]>0) vexdata = as.double(as.vector(vexdata)) else vexdata = double(1)
 	
 	ans = try( .C("sgarchfilterC", model = as.integer(modelinc), pars = as.double(ipars[,1]), 
 					idx = as.integer(idx[,1]-1), hEst = as.double(hEst), 

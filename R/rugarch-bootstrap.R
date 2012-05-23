@@ -105,7 +105,7 @@
 		
 	if(ns > 0) {
 		spec = getspec(fit)
-		spec@model$fixed.pars = as.list(coef(fit))
+		setfixed(spec) <- as.list(coef(fit))
 		realized.x = fit@model$modeldata$data[(N+1):(N+ns)]
 		filtered.s = tail(sigma(ugarchfilter(data = fit@model$modeldata$data, spec = spec)), fit@model$n.start)
 	} else{
@@ -356,8 +356,8 @@
 	
 	# help the optimization with good starting parameters
 	spex = spec
-	spex@model$fixed.pars = NULL
-	spex@model$start.pars = spec@model$fixed.pars
+	setfixed(spex) <- list(NA)
+	setstart(spex) <- spec@model$fixed.pars
 	# get the distribution of the parameters (by fitting to the new path data)
 	#-------------------------------------------------------------------------
 	cat("\nfitting stage...")
@@ -559,7 +559,7 @@
 	#empz[1:m,] = matrix(rep(tail(fit@fit$z, m), n.bootpred), nrow = m)
 	
 	# we start all forecasts from the last value of sigma based on the original series
-	spec@model$fixed.pars = as.list(coef(fit))
+	setfixed(spec) <- as.list(coef(fit))
 	st = .sigmat(spec, xdata[1:N], m)
 	
 	if(ns > 0){

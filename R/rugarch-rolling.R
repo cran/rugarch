@@ -55,6 +55,7 @@
 	fitdata = vector(mode="list",length = nf)
 	mexdata = vector(mode="list",length = nf)
 	vexdata = vector(mode="list",length = nf)
+	fmexdata = fvexdata = vector(mode="list",length = nf)
 	fitlist = vector(mode="list",length = nf)
 	outdata = vector(mode="list",length = nf)
 	coefv = vector(mode="list", length = nf)
@@ -71,13 +72,18 @@
 			outdata[[i]] = xdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
 			if( modelinc[6]>0 ){
 				mexdata[[i]] = model$modeldata$mexdata[1:(fitindx.start[i]+refit.every), , drop = FALSE]
+				fmexdata[[i]] = model$modeldata$mexdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
 			} else{
 				mexdata[[i]] = NULL
+				fmexdata[[i]] = NULL
 			}
 			if( modelinc[15]>0 ){
 				vexdata[[i]] = model$modeldata$vexdata[1:(fitindx.start[i]+refit.every), , drop = FALSE]
+				fvexdata[[i]] = model$modeldata$vexdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
+				
 			} else{
 				vexdata[[i]] = NULL
+				fvexdata[[i]] = NULL
 			}
 			NL[[i]] = 1:(fitindx.start[i]+refit.every)
 		} else{
@@ -85,13 +91,19 @@
 			outdata[[i]] = xdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
 			if( modelinc[6]>0 ){
 				mexdata[[i]] = model$modeldata$mexdata[(i*refit.every):(fitindx.start[i]+refit.every), , drop = FALSE]
+				fmexdata[[i]] = model$modeldata$mexdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
+				
 			} else{
 				mexdata[[i]] = NULL
+				fmexdata[[i]] = NULL
 			}
 			if( modelinc[15]>0 ){
 				vexdata[[i]] = model$modeldata$vexdata[(i*refit.every):(fitindx.start[i]+refit.every), , drop = FALSE]
+				fvexdata[[i]] = model$modeldata$vexdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
+				
 			} else{
 				vexdata[[i]] = NULL
+				fvexdata[[i]] = NULL
 			}
 			NL[[i]] = (i*refit.every):(fitindx.start[i]+refit.every)
 		}
@@ -179,18 +191,23 @@
 	filter.series = unlist(outdata)
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
-			forecastlist = multicore::mclapply(fitlist, FUN = function(x) ugarchforecast(x, 
-							n.ahead = n.ahead, n.roll = refit.every-1), mc.cores = parallel.control$cores)
+			nx = length(fitlist)
+			forecastlist = multicore::mclapply(1:nx, FUN = function(x) ugarchforecast(fitlist[[i]], 
+							n.ahead = n.ahead, n.roll = refit.every-1,
+							external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])), 
+				mc.cores = parallel.control$cores)
 		} else{
 			nx = length(fitlist)
 			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("fitlist", "n.ahead", "refit.every", local = TRUE)
+			sfExport("fitlist", "n.ahead", "fmexdata", "fvexdata", "refit.every", local = TRUE)
 			forecastlist = sfLapply(as.list(1:nx), fun = function(i) rugarch::ugarchforecast(fitlist[[i]], 
-								n.ahead = n.ahead, n.roll = refit.every-1))
+								n.ahead = n.ahead, n.roll = refit.every-1, 
+								external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])))
 			sfStop()
 		}
 	} else{
-		forecastlist = lapply(fitlist, FUN = function(x) ugarchforecast(x, n.ahead = n.ahead, n.roll = refit.every-1))
+		forecastlist = lapply(fitlist, FUN = function(x) ugarchforecast(x, n.ahead = n.ahead, n.roll = refit.every-1,
+							external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])))
 	}
 
 	eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))

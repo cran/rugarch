@@ -357,6 +357,9 @@
 		ipars[idx["omega",1],1] = (hEst^ipars[idx["delta", 1], 1]) * (1 - persist) - mv
 	}
 	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
+	if(modelinc[15]>0) vexdata = as.double(as.vector(vexdata)) else vexdata = double(1)
+	
 	ans = try( .C("aparchfilterC", model = as.integer(modelinc), pars = as.double(ipars[,1]), 
 					idx = as.integer(idx[,1]-1), hEst = as.double(hEst), 
 					x = as.double(data), res = as.double(res), e = double(T), mexdata = mexdata, 

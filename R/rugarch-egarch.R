@@ -368,6 +368,10 @@
 		ipars[idx["omega",1],1] = mvar * (1 - persist) - mv
 		hEst = mvar
 	}
+	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
+	if(modelinc[15]>0) vexdata = as.double(as.vector(vexdata)) else vexdata = double(1)
+	
 	ans = try( .C("egarchfilterC", model = as.integer(modelinc), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), hEst = as.double(hEst), 
 					meanz = as.double(kappa), x = as.double(data), res = as.double(res), e = double(T), mexdata = mexdata, vexdata = vexdata, zrf = as.double(zrf),
 					constm = double(T), condm = double(T), m = as.integer(m), T = as.integer(T),

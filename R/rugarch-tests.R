@@ -86,6 +86,7 @@
 	#pnames = rownames(object@fit$ipars[object@fit$ipars[,"Estimate"]==1,])
 	grad = object@fit$scores
 	pnames = colnames(grad)
+	if(is.null(pnames)) pnames = rownames(object@fit$ipars[object@fit$ipars[,"Estimate"]==1,,drop=FALSE])
 	# special case when fixed parameters exist but the fixed.se was used in fit.control options
 	#if( length(pnames) != dim(grad)[2] && dim(grad)[2] == length(object@fit$ipars[object@fit$ipars[,"Include"]==1,]) ){
 	#	pnames = rownames(object@fit$ipars[object@fit$ipars[,"Include"]==1,])
@@ -443,9 +444,8 @@ VaRDurTest = function(alpha, actual, VaR, conf.level = 0.95){
 	VaR.ind = ifelse(actual < VaR, 1, 0)
 	N = sum(VaR.ind)
 	TN = length(VaR.ind)
-	D = rep(0, N)
-	C = rep(0, N)
 	D = diff(which(VaR.ind==1))
+	C = rep(0, length(D))
 	# left-censored
 	if(VaR.ind[1]==0){
 		C = c(1, C)

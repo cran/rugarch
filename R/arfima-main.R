@@ -41,7 +41,7 @@
 	if(as.numeric(out.sample)<0) stop("\narfimafit-->error: out.sample must be positive\n")
 	n.start = round(out.sample,0)
 	n = length(xdata$data)
-	if((n-n.start)<100) stop("\narfimafit-->error: function requires at least 100 data\n points to run\n")
+	#if((n-n.start)<100) stop("\narfimafit-->error: function requires at least 100 data\n points to run\n")
 	data = xdata$data[1:(n-n.start)]
 	dates = xdata$pos[1:(n-n.start)]
 	origdata = xdata$data
@@ -117,7 +117,7 @@
 			ipars = get("ipars", garchenv)
 			estidx = get("estidx", garchenv)
 			ipars[estidx, 1] = pars		
-			if(modelinc[2] > 0 && modelinc[4] == 0) arx = pars[idx["ar",1]:idx["ar",2]]
+			if(modelinc[2] > 0 && modelinc[4] == 0) arx = ipars[idx["ar",1]:idx["ar",2],1]
 			min(Mod(polyroot(c(1, -arx))))
 		}
 		ILB = 1.01
@@ -236,7 +236,7 @@
 	# unconditional sigma value
 	assign("ipars", ipars, envir = garchenv)
 	if(fit.control$stationarity == 1 && modelinc[4] == 0 && modelinc[2] > 0){
-		arx = pars[idx["ar",1]:idx["ar",2]]
+		arx = ipars[idx["ar",1]:idx["ar",2],1]
 		kappa = min(Mod(polyroot(c(1, -arx))))
 		if(!is.na(kappa) && (kappa < 1 | kappa > 100) ) return(llh = get(".llh", garchenv) + 0.1*(abs(get(".llh", garchenv))))
 	}
@@ -335,6 +335,8 @@
 		res = rep(0, T)
 		zrf = 0
 	}
+	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
 	
 	ans = try( .C("arfimafitC", model = as.integer(modelinc), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
 					x = as.double(data), res = as.double(res), mexdata = mexdata, zrf = as.double(zrf),
@@ -1109,7 +1111,7 @@
 		}
 		spec = fitORspec
 		xmodel = spec@model
-		spec@model$fixed.pars = NULL
+		setfixed(spec) <- list(NA)
 		spec@model$pars[,4] = spec@model$pars[,2]
 		spec@model$pars[,2] = 0
 		fixpars = fitORspec@model$fixed.pars
@@ -1213,4 +1215,287 @@
 	dist$momdata = c(.kurtosis(tmp[,1]), .skewness(tmp[,1]))
 	dist$convergence = fit@fit$convergence
 	return(dist)
+}
+
+# autoarfima tests for best penalized insample fit based on information criteria
+autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
+		method = c("partial", "full"), arfima = FALSE, include.mean = NULL, 
+		distribution.model = "norm",
+		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
+		external.regressors = NULL, solver = "solnp", solver.control=list(), 
+		fit.control=list(), return.all = FALSE){
+	m = tolower(method)
+	ans = switch(m, 
+			partial = .autoarfima1(Data = data, ar.max = ar.max, ma.max = ma.max, 
+					criterion = criterion[1], arfima = arfima, include.mean = include.mean, 
+					distribution.model = distribution.model,
+					parallel = parallel, parallel.control = parallel.control, 
+					external.regressors = external.regressors, solver = solver, 
+					solver.control=solver.control, fit.control=fit.control, 
+					return.all = return.all),
+			full = .autoarfima2(Data = data, ar.max = ar.max, ma.max = ma.max, 
+					criterion = criterion[1], arfima = arfima, include.mean = include.mean, 
+					distribution.model = distribution.model,
+					parallel = parallel, parallel.control = parallel.control, 
+					external.regressors = external.regressors, solver = solver, 
+					solver.control=solver.control, fit.control=fit.control, 
+					return.all = return.all))
+	return(ans)
+}
+
+
+.autoarfima1 = function(Data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
+		arfima = FALSE, include.mean = NULL, distribution.model = "norm", 
+		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
+		external.regressors = NULL, solver = "solnp", solver.control=list(), fit.control=list(), return.all = FALSE){
+	# combinations
+	ar = 0:ar.max
+	ma = 0:ma.max
+	if(is.null(include.mean)) im = c(0,1) else im = as.integer(include.mean)
+	if(arfima) arf = c(0, 1) else arf = 0
+	d = expand.grid(ar=ar, ma=ma, im = im, arf = arf)
+	# eliminate the zero row
+	check = apply(d, 1, "sum")
+	if(any(check == 0)){
+		idx=which(check==0)
+		d = d[-idx,]
+	}
+	n = dim(d)[1]
+	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
+	fitlist = vector(mode = "list", length = n)
+	if( parallel ){
+		if( parallel.control$pkg == "multicore" ){
+			if(!exists("mclapply")){
+				require('multicore')
+			}
+			fitlist = multicore::mclapply(1:n, FUN = function(i){
+						spec = arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
+										include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
+								external.regressors = external.regressors, 
+								distribution.model = distribution.model)
+						fit = try(arfimafit(spec = spec, data = Data, 
+								solver = solver, solver.control = solver.control, 
+								fit.control = fit.control), silent = TRUE)
+						if(!is(fit, "try-error") && fit$convergence!=0 && solver == "solnp"){
+							fit = try(arfimafit(spec = spec, data = Data, 
+											solver = "nlminb", solver.control = list(trace=0), 
+											fit.control = fit.control), silent = TRUE)
+						}
+						return(fit)}, mc.cores = parallel.control$cores)
+		} else{
+			if(!exists("sfLapply")){
+				require('snowfall')
+			}
+			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			sfExport("d", "Data", "n", "solver", "solver.control", "fit.control",local = TRUE)
+			fitlist = sfLapply(as.list(1:n), fun = function(i){
+						spec = rugarch::arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
+										include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
+								external.regressors = external.regressors, 
+								distribution.model = distribution.model)
+						fit = try(rugarch::arfimafit(spec = spec, data = Data, 
+								solver = solver, solver.control = solver.control, 
+								fit.control = fit.control), silent = TRUE)
+						if(!is(fit, "try-error") && fit$convergence!=0 && solver == "solnp"){
+							fit = try(arfimafit(spec = spec, data = Data, 
+											solver = "nlminb", solver.control = list(trace=0), 
+											fit.control = fit.control), silent = TRUE)
+						}
+						return(fit)})
+			sfStop()
+		}
+	} else{
+		for(i in 1:n){
+			spec = arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
+							include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
+					external.regressors = external.regressors, 
+					distribution.model = distribution.model)
+			fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
+					solver = solver, solver.control = solver.control, 
+					fit.control = fit.control), silent = TRUE)
+			if(!is(fitlist[[i]], "try-error") && fitlist[[i]]$convergence!=0 && solver == "solnp"){
+				fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
+								solver = "nlminb", solver.control = list(trace=0), 
+								fit.control = fit.control), silent = TRUE)
+			}
+		}
+	}
+	rankmat = matrix(NA, ncol = 6, nrow = n)
+	colnames(rankmat) = c("AR", "MA", "Mean", "ARFIMA", criterion[1], "converged")
+	rankmat[,1:4] = as.matrix(d[1:4])
+	for(i in 1:n){
+		if(inherits(fitlist[[i]], 'try-error') || fitlist[[i]]@fit$convergence!=0){
+			rankmat[i,6] = FALSE
+		} else{
+			rankmat[i,5] = infocriteria(fitlist[[i]])[IC]
+			rankmat[i,6] = TRUE
+		}
+	}
+	rk = rankmat[order(rankmat[,5]),]
+	rownames(rk) = 1:dim(rk)[1]
+	i = which(rankmat[,5] == min(rankmat[,5], na.rm = TRUE))
+	if(return.all){
+		ans = list(fit = fitlist, rank.matrix = rankmat)
+	} else{
+		ans = list(fit = fitlist[[i]], rank.matrix = rk)	
+	}
+	return(ans)
+}
+
+
+
+
+.autoarfima2 = function(Data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
+		arfima = FALSE, include.mean = NULL, distribution.model = "norm", 
+		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
+		external.regressors = NULL, solver = "solnp", solver.control=list(), fit.control=list(),
+		return.all = FALSE)
+{
+	# combinations
+	arnames = paste("ar", 1:ar.max, sep = "")
+	manames = paste("ma", 1:ma.max, sep = "")
+	.str = NULL
+	if(ar.max>0){
+		for(i in 1:ar.max){
+			.str = c(.str, paste(arnames[i],"=c(0,1),",sep=""))
+		}
+	}
+	if(ma.max>0){
+		for(i in 1:ma.max){
+			.str = c(.str, paste(manames[i],"=c(0,1),",sep=""))
+		}
+	}
+	if(is.null(include.mean)){
+		.str = c(.str, "im = c(0,1)")
+	} else{
+		.str = c(.str, "im = as.integer(include.mean)")
+	}
+	if(is.null(arfima)){
+		.str = c(.str, ",arf = c(0,1)")
+	} else{
+		.str = c(.str, ",arf = as.integer(arfima)")
+	}
+	str = c("d = expand.grid(", paste(.str), ')')
+	xstr = paste(str, sep="", collapse="")
+	eval(parse(text=xstr))
+	# eliminate the zero row
+	check = apply(d, 1, "sum")
+	if(any(check == 0)){
+		idx=which(check==0)
+		d = d[-idx,]
+	}
+	sumar = apply(d[,1:ar.max,], 1, "sum")
+	summa = apply(d[,(ar.max+1):(ma.max+ar.max),], 1, "sum")
+	n = dim(d)[1]
+	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
+	fitlist = vector(mode = "list", length = n)
+	if( parallel ){
+		if( parallel.control$pkg == "multicore" ){
+			if(!exists("mclapply")){
+				require('multicore')
+			}
+			fitlist = multicore::mclapply(1:n, FUN = function(i){
+						if(ar.max>0){
+							arr = d[i,1:ar.max]
+							if(ma.max>0){
+								mar = d[i,(ar.max+1):(ma.max+ar.max)]
+							} else{
+								mar = 0
+							}
+						} else{
+							arr = 0
+							if(ma.max>0){
+								mar = d[i,1:ma.max]
+							} else{
+								mar = 0
+							}
+						}
+						spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
+								include.mean = d[i,'im'], arfima = d[i,'arf'], 
+								external.regressors = external.regressors, 
+								distribution.model = distribution.model)
+						fit = try(arfimafit(spec = spec, data = Data, 
+										solver = solver, solver.control = solver.control, 
+										fit.control = fit.control), silent = TRUE)
+						return(fit)}, mc.cores = parallel.control$cores)
+		} else{
+			if(!exists("sfLapply")){
+				require('snowfall')
+			}
+			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			sfExport("d", "Data", "n", "solver", "external.regressors",  "distribution.model",
+					"ar.max", "ma.max", "solver.control", "fit.control",local = TRUE)
+			fitlist = sfLapply(as.list(1:n), fun = function(i){
+						if(ar.max>0){
+							arr = d[i,1:ar.max]
+							if(ma.max>0){
+								mar = d[i,(ar.max+1):(ma.max+ar.max)]
+							} else{
+								mar = 0
+							}
+						} else{
+							arr = 0
+							if(ma.max>0){
+								mar = d[i,1:ma.max]
+							} else{
+								mar = 0
+							}
+						}
+						spec = rugarch:::.zarfimaspec( arOrder = arr, maOrder = mar, 
+								include.mean = d[i,'im'], arfima = d[i,'arf'], 
+								external.regressors = external.regressors, 
+								distribution.model = distribution.model)
+						fit = try(rugarch::arfimafit(spec = spec, data = Data, 
+										solver = solver, solver.control = solver.control, 
+										fit.control = fit.control), silent = TRUE)
+						return(fit)})
+			sfStop()
+		}
+	} else{
+		for(i in 1:n){
+			if(ar.max>0){
+				arr = d[i,1:ar.max]
+				if(ma.max>0){
+					mar = d[i,(ar.max+1):(ma.max+ar.max)]
+				} else{
+					mar = 0
+				}
+			} else{
+				arr = 0
+				if(ma.max>0){
+					mar = d[i,1:ma.max]
+				} else{
+					mar = 0
+				}
+			}
+			spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
+					include.mean = d[i,'im'], arfima = d[i,'arf'], 
+					external.regressors = external.regressors, 
+					distribution.model = distribution.model)
+			fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
+							solver = solver, solver.control = solver.control, 
+							fit.control = fit.control), silent = TRUE)
+		}
+	}
+	m = dim(d)[2]
+	rankmat = matrix(NA, ncol = m+2, nrow = n)
+	colnames(rankmat) = c(colnames(d), criterion[1], "converged")
+	rankmat[,1:m] = as.matrix(d)
+	for(i in 1:n){
+		if(inherits(fitlist[[i]], 'try-error') || fitlist[[i]]@fit$convergence!=0){
+			rankmat[i,m+2] = 0
+		} else{
+			rankmat[i,m+1] = infocriteria(fitlist[[i]])[IC]
+			rankmat[i,m+2] = 1
+		}
+	}
+	rk = rankmat[order(rankmat[,m+1]),]
+	rownames(rk) = 1:dim(rk)[1]
+	i = which(rankmat[,m+1] == min(rankmat[,m+1], na.rm = TRUE))
+	if(return.all){
+		ans = list(fit = fitlist, rank.matrix = rankmat)
+	} else{
+	 	ans = list(fit = fitlist[[i]], rank.matrix = rk)	
+	}
+	return(ans)
 }

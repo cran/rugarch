@@ -1,3 +1,15 @@
+2012-05-23  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-9.
+	* Added autoarfima function to select best arfima model based on information 
+	criterion using optionally complete enumeration of the combination space for 
+	the max AR and MA orders chosen.
+	* Fix to some .C calls to eliminate Null being passed (affected only filter 
+	method).
+	* Fix avoid error in uncertainty functions for arfima and garch (ugarchdistribution 
+	and arfimadistribution) when using spec rather than fit.
+	* Bounds for AR and MA increased to [-4,4] for models with orders higher than 1.
+	* Fix in ugarchroll to include external.regressors in forecast
+
 2012-02-03  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-8.
 	* Turned off stationarity check during calculation of numerical derivatives

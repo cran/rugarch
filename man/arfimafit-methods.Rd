@@ -18,7 +18,8 @@ data.frame, zoo, xts, timeSeries, ts or irts object.}
 \item{spec}{ An ARFIMA spec object of class \code{\linkS4class{ARFIMAspec}}.}
 \item{out.sample}{ A positive integer indicating the number of periods before 
 the last to keep for out of sample forecasting (see details).}
-\item{solver}{One of either \dQuote{nlminb}, \dQuote{solnp} or \dQuote{gosolnp}.}
+\item{solver}{One of either \dQuote{nlminb}, \dQuote{solnp}, \dQuote{gosolnp}
+or \dQuote{nloptr}.}
 \item{solver.control}{Control arguments list passed to optimizer.}
 \item{fit.control}{Control arguments passed to the fitting routine. The 
 fixed.se argument controls whether standard errors should be calculated for 

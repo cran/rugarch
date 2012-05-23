@@ -51,7 +51,6 @@
 			swindow[[i]]$path.df = as.data.frame(sim, which = "series")
 			swindow[[i]]$seed = sim@seed
 		}
-		
 		fixpars = as.list(coef(fitORspec))
 		truecoef = fitORspec@fit$robust.matcoef
 		spec = getspec(fitORspec)
@@ -69,7 +68,7 @@
 			
 		}
 		spec = fitORspec
-		spec@model$fixed.pars = NULL
+		setfixed(spec)<-list(NA)
 		fixpars = fitORspec@model$fixed.pars
 		truecoef = as.matrix(cbind(unlist(fitORspec@model$fixed.pars),rep(0,length(fixpars)),
 						rep(10, length(fixpars)),rep(0,length(fixpars))))
@@ -114,7 +113,7 @@
 			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x) .fitandextract(spec, x, out.sample = 0, 
 								solver = solver, fit.control = fit.control, solver.control = solver.control))
 		}
-	}
+	}	
 	reslist = vector(mode = "list", length = nwindows)
 	for(j in 1:nwindows){
 		reslist[[j]]$simcoef = 	matrix(NA, ncol = length(fixpars), nrow = m.sim)

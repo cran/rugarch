@@ -379,6 +379,9 @@
 		ipars[idx["omega",1],1] = (hEst^ipars[idx["lambda", 1], 1]) * (1 - persist) - mv
 	}
 	
+	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
+	if(modelinc[15]>0) vexdata = as.double(as.vector(vexdata)) else vexdata = double(1)
+	
 	ans = try( .C("fgarchfilterC", model = as.integer(modelinc), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
 					hEst = as.double(hEst), kdelta = as.double(kdelta), x = as.double(data), res = as.double(res), e =  as.double(res^2), 
 					mexdata = mexdata, vexdata = vexdata, zrf = as.double(zrf), constm = double(T), condm = double(T), 
