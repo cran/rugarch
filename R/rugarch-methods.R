@@ -153,7 +153,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	modeldata$vexdata = variance.model$external.regressors
 	if( !is.null(variance.model$external.regressors) ) modelinc[15] = dim( variance.model$external.regressors )[2]
 	
-	if(is.null(variance.model$variance.targeting)) modelinc[7] = 1 else modelinc[7] = as.integer( 1-variance.model$variance.targeting )
+	if(is.null(variance.model$variance.targeting)) modelinc[7] = 1 else modelinc[7] = as.integer( 1 - as.logical(variance.model$variance.targeting) )
 	
 	# mean model:
 	if(is.null(mean.model$armaOrder)){
@@ -1243,7 +1243,7 @@ setMethod("show",
 			cat(paste("\n*------------------------------------*", sep = ""))
 			cat(paste("\nModel: ", vmodel, sep = ""))
 			if(vmodel == "fGARCH"){
-				cat(paste("fGARCH Sub-Model: ", model$modeldesc$vsubmodel, "\n", sep = ""))
+				cat(paste("\nfGARCH Sub-Model: ", model$modeldesc$vsubmodel, "\n", sep = ""))
 			}
 			n.ahead = object@forecast$n.ahead
 			cat(paste("\nHorizon: ", n.ahead, sep = ""))
@@ -1268,7 +1268,7 @@ setMethod("show",
 			cat(paste("\n*------------------------------------*", sep = ""))
 			cat(paste("\nModel: ", vmodel, sep = ""))
 			if(vmodel == "fGARCH"){
-				cat(paste("fGARCH Sub-Model: ", model$modeldesc$vsubmodel, "\n", sep = ""))
+				cat(paste("\nfGARCH Sub-Model: ", model$modeldesc$vsubmodel, "\n", sep = ""))
 			}
 			sim = object@path
 			sigma = sim$sigmaSim
@@ -1310,7 +1310,7 @@ setMethod("show",
 			cat(paste("\n*------------------------------------*", sep = ""))
 			cat(paste("\nModel : ", vmodel, sep = ""))
 			if(vmodel == "fGARCH"){
-				cat(paste("\nSubModel : ", vsubmodel, sep = ""))
+				cat(paste("\nfGARCH SubModel : ", vsubmodel, sep = ""))
 			}
 			cat(paste("\nNo. Paths (m.sim) : ", object@dist$details$m.sim, sep = ""))
 			cat(paste("\nLength of Paths (n.sim) : ", object@dist$details$n.sim, sep = ""))
@@ -1350,7 +1350,7 @@ setMethod("show",
 			cat(paste("\n*-----------------------------------*", sep = ""))
 			cat(paste("\nModel : ", vmodel, sep = ""))
 			if(vmodel == "fGARCH"){
-				cat(paste("\nSubModel : ", vsubmodel, sep = ""))
+				cat(paste("\nfGARCH SubModel : ", vsubmodel, sep = ""))
 			}
 			cat(paste("\nn.ahead : ", object@model$n.ahead, sep = ""))
 			cat(paste("\nBootstrap method: ",object@model$type))
@@ -1383,10 +1383,12 @@ setMethod("show",
 			cat("\nForecast Horizon:", object@roll$n.ahead)
 			cat(paste("\nGARCH Model\t\t: ", vmodel, "(",modelinc[8],",",modelinc[9],")\n", sep = ""))
 			if(vmodel == "fGARCH"){
-				cat(paste("fGARCH Sub-Model\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
+				cat(paste("\nfGARCH SubModel\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
 			}
 			cat("Distribution\t:", model$modeldesc$distribution,"\n")
 			mp = sum(model$modelinc[1:18])
+			# case of variance targeting
+			if(model$modelinc[7]==0) mp = mp+1
 			if(N>4){
 				cmat = matrix(NA, ncol = 4, nrow = mp)
 				colnames(cmat) = c(paste("refit-", 1:2, sep = ""), paste("refit", (N-1):N, sep = ""))
@@ -1436,7 +1438,7 @@ setMethod("show",
 				cat(paste("\n--------------------------",sep=""))
 				cat(paste("\nModel : ", vmodel,sep=""))
 				if(vmodel == "fGARCH" ){
-					cat(paste(" Sub-Model : ", object@fit[[1]]@model$modeldesc$vsubmodel, "\n", sep = ""))
+					cat(paste("\nfGARCH SubModel : ", object@fit[[1]]@model$modeldesc$vsubmodel, "\n", sep = ""))
 				}
 				if(object@fit[[1]]@model$modelinc[15]>0){
 					cat("\nExogenous Regressors in variance equation: ", object@fit[[1]]@model$modelinc[15], "\n")
@@ -2796,6 +2798,7 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 
 .unconditional1 = function(object)
 {
+	# special case check for eGARCH with variance targeting
 	pars = object@fit$ipars[,1]
 	idx = object@model$pidx
 	distribution = object@model$modeldesc$distribution
@@ -3052,7 +3055,7 @@ setMethod("uncvariance", signature(object = "missing", pars = "numeric",
 	#	skew=0
 	#}
 	#kappa = egarchKappa(ghlambda, shape, skew, distribution)
-	uvol = exp( (umeanvex+omega )/(1-sum(beta)) )
+	uvol = exp( (umeanvex + omega )/(1-sum(beta)) )
 }
 
 .uncaparch1 = function(pars, idx, distribution="norm", vexdata = NULL){

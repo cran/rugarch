@@ -20,7 +20,7 @@
 .rollfdensity = function(spec,  data, n.ahead = 1, forecast.length = 500, 
 		refit.every = 25, refit.window = c("recursive", "moving"), parallel = FALSE, 
 		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), 
-		solver = "solnp", fit.control = list(), solver.control = list() ,
+		solver = "solnp", fit.control = list(), solver.control = list(),
 		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
 {
 	if( parallel ){
@@ -100,7 +100,6 @@
 			if( modelinc[15]>0 ){
 				vexdata[[i]] = model$modeldata$vexdata[(i*refit.every):(fitindx.start[i]+refit.every), , drop = FALSE]
 				fvexdata[[i]] = model$modeldata$vexdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
-				
 			} else{
 				vexdata[[i]] = NULL
 				fvexdata[[i]] = NULL
@@ -192,22 +191,25 @@
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
 			nx = length(fitlist)
-			forecastlist = multicore::mclapply(1:nx, FUN = function(x) ugarchforecast(fitlist[[i]], 
+			forecastlist = multicore::mclapply(1:nx, FUN = function(i) ugarchforecast(fitlist[[i]], 
 							n.ahead = n.ahead, n.roll = refit.every-1,
-							external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])), 
+							external.forecasts = list(mregfor = if(modelinc[6]>0) fmexdata[[i]] else NULL, 
+									vregfor = if(modelinc[15]>0) fvexdata[[i]] else NULL)), 
 				mc.cores = parallel.control$cores)
 		} else{
 			nx = length(fitlist)
 			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("fitlist", "n.ahead", "fmexdata", "fvexdata", "refit.every", local = TRUE)
+			sfExport("fitlist", "n.ahead", "fmexdata", "fvexdata", "modelinc", "refit.every", local = TRUE)
 			forecastlist = sfLapply(as.list(1:nx), fun = function(i) rugarch::ugarchforecast(fitlist[[i]], 
 								n.ahead = n.ahead, n.roll = refit.every-1, 
-								external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])))
+								external.forecasts = list(mregfor = if(modelinc[6]>0) fmexdata[[i]] else NULL, 
+										vregfor = if(modelinc[15]>0) fvexdata[[i]] else NULL)))
 			sfStop()
 		}
 	} else{
 		forecastlist = lapply(fitlist, FUN = function(x) ugarchforecast(x, n.ahead = n.ahead, n.roll = refit.every-1,
-							external.forecasts = list(mregfor = fmexdata[[i]], vregfor = fvexdata[[i]])))
+							external.forecasts = list(mregfor = if(modelinc[6]>0) fmexdata[[i]] else NULL, 
+									vregfor = if(modelinc[15]>0) fvexdata[[i]] else NULL)))
 	}
 
 	eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
@@ -243,7 +245,7 @@
 		fdensity = vector(mode = "list", length = 1)
 		f01density = vector(mode = "list", length = 1)
 		fdensity[[1]] = data.frame(fdate = fdates, fmu=smatrix[,1], fsigma=smatrix[,2], fdlambda = fmatrix[,3], fskew=smatrix[,3], fshape=smatrix[,4])
-		f01density[[1]] = data.frame(f01date=fdates, f01mu=fmatrix[,1], f01sigma=fmatrix[,2], f01ghlambda = fmatrix[,3], f01skew=fmatrix[,3], f01shape=fmatrix[,4])
+		f01density[[1]] = data.frame(f01date=fdates, f01mu=fmatrix[,1], f01sigma=fmatrix[,2], f01ghlambda = fmatrix[,3], f01skew=fmatrix[,4], f01shape=fmatrix[,5])
 		if(calculate.VaR){
 			VaR.list = vector(mode="list", length = 1)
 			cat("\n...calculating VaR...\n")

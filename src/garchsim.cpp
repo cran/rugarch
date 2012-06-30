@@ -249,7 +249,8 @@ SEXP mfgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP kdelta, SEXP h, SEXP z,
     return R_NilValue;
 }
 
-SEXP megarchsim(SEXP model, SEXP pars, SEXP idx, SEXP meanz, SEXP h, SEXP z, SEXP res, SEXP vxs, SEXP N)
+SEXP megarchsim(SEXP model, SEXP pars, SEXP idx, SEXP meanz, SEXP h, SEXP z,
+		SEXP res, SEXP vxs, SEXP N)
 {
 	try {
 		Rcpp::NumericMatrix xh(h);
@@ -276,7 +277,7 @@ SEXP megarchsim(SEXP model, SEXP pars, SEXP idx, SEXP meanz, SEXP h, SEXP z, SEX
 			Qh.row(i) = Qh.row(i) + Qvxs.row(i);
 			for( j=0; j<xmodel[7]; j++ )
 			{
-				Qh.row(i) = Qh.row(i) + xpars[xidx[7]+j]*Qz.row(i-(j+1)) + xpars[xidx[9]+j]*arma::abs(Qz.row(i-(j+1)) - qmeanz[0]);
+				Qh.row(i) = Qh.row(i) + xpars[xidx[7]+j]*Qz.row(i-(j+1)) + xpars[xidx[9]+j]*(arma::abs(Qz.row(i-(j+1))) - qmeanz[0]);
 			}
 			for( j=0; j<xmodel[8]; j++ )
 			{

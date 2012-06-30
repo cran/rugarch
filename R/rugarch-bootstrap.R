@@ -155,11 +155,11 @@
 			}
 			nx = dim(path.df)[2]
 			sfInit(parallel=TRUE, cpus = parallel.control$cores)
-			sfExport("path.df", "spec", "solver", "out.sample", "solver.control", local = TRUE)
+			sfExport("path.df", "spec", "solver", "out.sample", "solver.control", "fit.control", local = TRUE)
 			fitlist = sfLapply(as.list(1:nx), fun = function(i)
 						rugarch::ugarchfit(spec = spec, data = path.df[, i, drop = FALSE], out.sample = 0,
 								solver = solver, fit.control = fit.control, solver.control = solver.control))
-			sfStop()
+			#sfStop()
 		}
 	} else{
 		for(i in 1:n.bootfit){
@@ -204,17 +204,17 @@
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
 			st = multicore::mclapply(as.list(1:n.bootfit), FUN = function(x) .sigmat(spec = speclist[[i]], origdata = data[1:N], m), mc.cores = parallel.control$cores)
-			st = unlist(st)
+			st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
 		} else{
 			nx = length(speclist)
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("speclist", "data", "m", "N", local = TRUE)
 			st = sfLapply(as.list(1:n.bootfit), fun = function(i) rugarch:::.sigmat(spec = speclist[[i]], origdata =  data[1:N], m))
-			sfStop()
-			st = unlist(st)
+			#sfStop()
+			st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
 		}
 	} else{
-		st = sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata =  data[1:N], m))
+		st = matrix(sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata =  data[1:N], m)), ncol = n.bootfit)
 	}
 	forcseries = NULL
 	forcsigma  = NULL
@@ -224,17 +224,17 @@
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
 		tmp = multicore::mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-							m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 							mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor), 
 				mc.cores = parallel.control$cores)
 		} else{
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("fitlist", "n.ahead", "n.bootpred", "n.bootfit", "st", "xdat", "sseed", "empzlist",
 					"external.forecasts", local = TRUE)
-			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-								m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor))
@@ -244,7 +244,7 @@
 		tmp = vector(mode = "list", length = n.bootfit)
 		for(i in 1:n.bootfit){
 			tmp[[i]] = .quicksimulate(fit = fitlist[[i]], n.sim = n.ahead, 
-					m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+					m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 					n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 					custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 					mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
@@ -385,11 +385,11 @@
 			}
 			nx = dim(path.df)[2]
 			sfInit(parallel=TRUE, cpus = parallel.control$cores)
-			sfExport("path.df", "spex", "solver", "out.sample", "solver.control", local = TRUE)
+			sfExport("path.df", "spex", "solver", "out.sample", "solver.control", "fit.control", local = TRUE)
 			fitlist = sfLapply(as.list(1:nx), fun = function(i)
 						rugarch::ugarchfit(spec = spex, data = path.df[,i,drop = FALSE], out.sample = 0,
 								solver = solver, fit.control = fit.control, solver.control = solver.control))
-			sfStop()
+			#sfStop()
 		}
 	} else{
 		for(i in 1:n.bootfit){
@@ -435,17 +435,17 @@
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){
 			st = multicore::mclapply(speclist, FUN=function(x) .sigmat(spec = x, origdata = xdata[1:N], m), mc.cores = parallel.control$cores)
-			st = unlist(st)
+			st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
 		} else{
 			nx = length(speclist)
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("speclist", "xdata", "m", "N", local = TRUE)
 			st = sfLapply(as.list(1:nx), fun = function(i) rugarch:::.sigmat(spec = speclist[[i]], origdata = xdata[1:N], m))
 			sfStop()
-			st = unlist(st)
+			st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
 		}
 	} else{
-		st = sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata = xdata[1:N], m))
+		st = matrix(sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata =  xdata[1:N], m)), ncol = n.bootfit)		
 	}
 
 	forcseries = NULL
@@ -459,17 +459,17 @@
 	if( parallel ){
 		if( parallel.control$pkg == "multicore" ){			
 			tmp = multicore::mclapply(as.list(1:n.bootfit), FUN = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-								m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor), 
 					mc.cores = parallel.control$cores)
 		} else{
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("fitlist", "n.ahead", "n.bootpred", "n.bootfit", "st", "xdat", "sseed", "empzlist",
 					"external.forecasts", local = TRUE)
-			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) .quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-								m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor))
@@ -479,7 +479,7 @@
 		tmp = vector(mode = "list", length = n.bootfit)
 		for(i in 1:n.bootfit){
 			tmp[[i]] = .quicksimulate(fit = fitlist[[i]], n.sim = n.ahead, 
-					m.sim = n.bootpred, presigma = st[i], prereturns = xdat,  
+					m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 					n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 					custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
 					mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)

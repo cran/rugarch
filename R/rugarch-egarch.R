@@ -237,13 +237,16 @@
 	} else{
 		mv = 0
 	}
+	
 	if(modelinc[7]>0){
 		hEst = mvar
 	} else{
-		ipars[idx["omega",1],1] = mvar * (1 - persist) - mv
+		# using log(mvar) does not work...need to constrain for very persistant processes
+		ipars[idx["omega",1],1] = log(mvar)*max(1-persist, 0.001) - mv
 		hEst = mvar
 	}
 	if(is.na(hEst) | !is.finite(hEst) | is.nan(hEst)) hEst = var(data)
+	
 	assign("ipars", ipars, envir = garchenv)
 
 	
@@ -450,11 +453,11 @@
 		} else{
 			mu = rep(0, N+i+n.ahead-1)
 		}
-		if(modelinc[7]>0){
+		#if(modelinc[7]>0){
 			omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
-		} else {
-			omega = rep(0, N+i+n.ahead-1)
-		}
+		#} else {
+		#	omega = rep(0, N+i+n.ahead-1)
+		#}
 		# no look-ahead
 		h = c(sigmafilter[1:(N+i-1)], rep(0, n.ahead))
 		epsx = c(resfilter[1:(N+i-1)], rep(0, n.ahead))
@@ -592,11 +595,11 @@
 		} else{
 			mu = rep(0, N+i+n.ahead-1)
 		}
-		if(modelinc[7]>0){
+		#if(modelinc[7]>0){
 			omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
-		} else {
-			omega = rep(0, N+i+n.ahead-1)
-		}
+		#} else {
+		#	omega = rep(0, N+i+n.ahead-1)
+		#}
 		# no look-ahead
 		h = c(sigmafilter[1:(N+i-1)], rep(0, n.ahead))
 		epsx = c(resfilter[1:(N+i-1)], rep(0, n.ahead))
@@ -867,8 +870,8 @@
 	if(is.na(presigma[1])){
 		if(startMethod[1] == "unconditional"){
 			hEst = uncvariance(fit)^0.5
-			presigma = as.numeric(rep(hEst, m))}
-		else{
+			presigma = as.numeric(rep(hEst, m))
+		} else{
 			presigma  = tail(sigma, m)
 		}
 	}

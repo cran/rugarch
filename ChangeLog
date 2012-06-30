@@ -1,3 +1,11 @@
+2012-06-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-10.
+	* Fix in ugarchboot (full method) for higher GARCH and ARMA orders.
+	* Numerous fixes to methods involving variance targeting.
+	* Fix to egarchsim when n.sim<100 and m.sim>100 (c++ code -- brackets in wrong
+	place!)
+	* Fix to ugarchroll using multicore, and correct f01density slot.
+
 2012-05-23  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-9.
 	* Added autoarfima function to select best arfima model based on information 

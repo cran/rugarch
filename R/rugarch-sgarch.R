@@ -154,6 +154,7 @@
 		}
 		assign("ipars", ipars, envir = tempenvir)
 		convergence = sol$convergence
+		if(convergence != 0) warning("\nugarchfit-->warning: solver failer to converge.")
 	} else{
 		hess = NULL
 		timer = Sys.time()-tic
@@ -477,11 +478,11 @@
 		} else{
 			mu = rep(0, N+i+n.ahead-1)
 		}
-		if(modelinc[7]>0){
+		#if(modelinc[7]>0){
 			omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
-		} else {
-			omega = rep(0, N+i+n.ahead-1)
-		}
+		#} else {
+		#	omega = rep(0, N+i+n.ahead-1)
+		#}
 		# no look-ahead
 		h = c(sigmafilter[1:(N+i-1)], rep(0, n.ahead))
 		epsx = c(resfilter[1:(N+i-1)], rep(0, n.ahead))
@@ -619,11 +620,11 @@
 		} else{
 			mu = rep(0, N+i+n.ahead-1)
 		}
-		if(modelinc[7]>0){
+		#if(modelinc[7]>0){
 			omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
-		} else {
-			omega = rep(0, N+i+n.ahead-1)
-		}
+		#} else {
+		#	omega = rep(0, N+i+n.ahead-1)
+		#}
 		# no look-ahead
 		h = c(sigmafilter[1:(N+i-1)], rep(0, n.ahead))
 		epsx = c(resfilter[1:(N+i-1)], rep(0, n.ahead))
