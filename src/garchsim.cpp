@@ -53,7 +53,7 @@ SEXP marmaxsim(SEXP model, SEXP pars, SEXP idx, SEXP mu, SEXP x, SEXP res, SEXP 
 		} catch( std::exception &ex ) {
 			forward_exception_to_r( ex );
 	    } catch(...) {
-			::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+			::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
 	    }
 	    return R_NilValue;
 }
@@ -100,7 +100,7 @@ SEXP msgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP h, SEXP z, SEXP res,
 	} catch( std::exception &ex ) {
 		forward_exception_to_r( ex );
     } catch(...) {
-		::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
     }
     return R_NilValue;
 }
@@ -152,7 +152,7 @@ SEXP mgjrgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP h, SEXP z, SEXP res, SEX
 	} catch( std::exception &ex ) {
 		forward_exception_to_r( ex );
     } catch(...) {
-		::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
     }
     return R_NilValue;
 }
@@ -196,7 +196,7 @@ SEXP maparchsim(SEXP model, SEXP pars, SEXP idx, SEXP h, SEXP z, SEXP res, SEXP 
 	} catch( std::exception &ex ) {
 		forward_exception_to_r( ex );
     } catch(...) {
-		::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
     }
     return R_NilValue;
 }
@@ -244,7 +244,7 @@ SEXP mfgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP kdelta, SEXP h, SEXP z,
 	} catch( std::exception &ex ) {
 		forward_exception_to_r( ex );
     } catch(...) {
-		::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
     }
     return R_NilValue;
 }
@@ -290,7 +290,56 @@ SEXP megarchsim(SEXP model, SEXP pars, SEXP idx, SEXP meanz, SEXP h, SEXP z,
 	} catch( std::exception &ex ) {
 		forward_exception_to_r( ex );
     } catch(...) {
-		::Rf_error( "rgarch-->ugarchsim c++ exception (unknown reason)" );
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
+    }
+    return R_NilValue;
+}
+
+SEXP mcsgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP h, SEXP q, SEXP z, SEXP res,
+		SEXP e, SEXP vxs, SEXP N)
+{
+	try {
+		Rcpp::NumericMatrix xh(h);
+		Rcpp::NumericMatrix xq(q);
+		Rcpp::NumericMatrix xz(z);
+		Rcpp::NumericMatrix xres(res);
+		Rcpp::NumericMatrix xe(e);
+		Rcpp::NumericMatrix xvxs(vxs);
+
+		int *xidx = INTEGER(idx);
+		double *xpars = REAL(pars);
+		int *xmodel = INTEGER(model);
+		int *xN = INTEGER(N);
+		int m = (int) xN[0];
+		int nr = xh.nrow(), nc = xh.ncol(), i, j;
+
+		arma::mat Qh(xh.begin(), nr, nc, false);
+		arma::mat Qq(xq.begin(), nr, nc, false);
+		arma::mat Qz(xz.begin(), nr, nc, false);
+		arma::mat Qres(xres.begin(), nr, nc, false);
+		arma::mat Qe(xe.begin(), nr, nc, false);
+		arma::mat Qvxs(xvxs.begin(), nr, nc, false);
+
+		for( i=m; i<nr; i++ )
+		{
+			Qq.row(i) = xpars[xidx[6]] + Qvxs.row(i) + xpars[xidx[10]]*Qq.row(i-1) + xpars[xidx[11]]*(Qe.row(i-1) - Qh.row(i-1));
+			Qh.row(i) = Qh.row(i) + Qq.row(i);
+			for( j=0; j<xmodel[7]; j++ )
+			{
+				Qh.row(i) = Qh.row(i) + xpars[xidx[7]+j]*(Qe.row(i-(j+1)) - Qq.row(i-(j+1)));
+			}
+			for( j=0; j<xmodel[8]; j++ )
+			{
+				Qh.row(i) = Qh.row(i) + xpars[xidx[8]+j]*(Qh.row(i-(j+1)) - Qq.row(i-(j+1)));
+			}
+			Qres.row(i) = arma::pow( Qh.row(i), 0.5 ) % Qz.row(i);
+			Qe.row(i) = Qres.row(i) % Qres.row(i);
+		}
+		return Rcpp::List::create(Rcpp::Named("h") = Qh, Rcpp::Named("res") = Qres, Rcpp::Named("q") = Qq);
+	} catch( std::exception &ex ) {
+		forward_exception_to_r( ex );
+    } catch(...) {
+		::Rf_error( "rugarch-->ugarchsim c++ exception (unknown reason)" );
     }
     return R_NilValue;
 }

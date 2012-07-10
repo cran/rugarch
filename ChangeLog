@@ -1,3 +1,11 @@
+2012-07-09  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-11.
+	* Added the Component GARCH model of Lee and Engle (1999)
+	with a complete set of methods (still needs extensive testing).
+	* ugarchroll now only allows n.ahead=1 (alternative was too complicated).
+	* Change to ugarchboot to allow simulated external regressors input seperately 
+	from the forecast of the external regressors.
+	
 2012-06-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-10.
 	* Fix in ugarchboot (full method) for higher GARCH and ARMA orders.

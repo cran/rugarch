@@ -22,7 +22,7 @@ A univariate GARCH spec object specifiying the desired model for testing.}
 \item{data}{
 A univariate dataset.}
 \item{n.ahead}{
-The number of periods to forecast.}
+The number of periods to forecast (only n.ahead=1 supported).}
 \item{forecast.length}{
 The length of the total forecast for which out of sample data 
 from the dataset will be excluded for testing.}
@@ -75,7 +75,10 @@ determines the number of rolls to perform. For example for n.ahead of 1 and
 refit.every of 25, the forecast is rolled every day using the filtered (actual) 
 data of the previous period while for n.ahead of 1 and refit.every of 1 we will 
 get 1 n.ahead forecasts for every day after which the model is refitted and 
-reforecast for a total of 500 refits (when length.forecast is 500)!\cr
+reforecast for a total of 500 refits (when length.forecast is 500)! Note that
+the function only supports n.ahead=1 at present. For more complicated and flexible 
+setups, users should make use of the ugarchfit and ugarchforecast functions
+to wrap their own rolling functions.\cr
 The function has 2 main methods for viewing the data, a standard plot method and
 a new report methods (see class \code{\linkS4class{uGARCHroll}} for details on 
 how to use these methods).
@@ -102,7 +105,7 @@ sp500.bktest = ugarchroll(spec, data = sp500ret, n.ahead = 1,
 forecast.length = 100, refit.every = 25, refit.window = "recursive", 
 solver = "solnp", fit.control = list(), solver.control = ctrl, 
 calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.025, 0.05))
-report(sp500.bktest, type="VaR", n.ahead = 1, VaR.alpha = 0.01, 
+report(sp500.bktest, type="VaR", VaR.alpha = 0.01, 
 conf.level = 0.95) 
 report(sp500.bktest, type="fpm")
 }}

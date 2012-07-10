@@ -79,10 +79,10 @@ and equivalent to the Hurst Exponent $H$ - 0.5, and $\mu_t$ defined as,
 \begin{equation}\label{arfimax2}
 {\mu _t} = \mu  + \sum\limits_{i = 1}^{m - n} {{\delta _i}} {x_{i,t}} + \sum\limits_{i = m - n + 1}^m {\delta _i}{x_{i,t}}{\sigma _t} + \xi \sigma _t^k,
 \end{equation}
-where we allow for \verb@m@ external regressors $x$ of which $n$ (last $n$ of $m$) 
+where we allow for \verb@m@ external regressors $x$ of which $n$ (last $n$ of $m$)
 may optionally be multiplied by the conditional standard deviation $\sigma_t$,
-and ARCH-in-mean on either the conditional standard deviation, $k=1$ or conditional 
-variance $k=2$. These options can all be passed via the arguments in the \verb@mean.model@ 
+and ARCH-in-mean on either the conditional standard deviation, $k=1$ or conditional
+variance $k=2$. These options can all be passed via the arguments in the \verb@mean.model@
 list in the \verb@ugarchspec@ function,
 \begin{itemize}
 \item armaOrder 	   (default = (1,1). The order of the ARMA model.)
@@ -385,6 +385,57 @@ are:
 \item the external regressor parameters are 'vxreg1', 'vxreg2', ...,
 \end{itemize}
 
+
+\subsubsection{The Component sGARCH model ('csGARCH')}\label{section:csgarch}
+The model of \cite{Lee1999} decomposes the conditional variance into a
+permanent and transitory component so as to investigate the long- and short-run
+movements of volatility affecting securities. Letting $q_t$ represent the permanent
+component of the conditional variance, the component model can then be written
+as:
+\begin{equation}
+\begin{gathered}
+  \sigma _t^2 = {q_t} + \sum\limits_{j = 1}^q {{\alpha _j}\left( {\varepsilon _{t - j}^2 - {q_{t - j}}} \right) + } \sum\limits_{j = 1}^p {{\beta _j}\left( {\sigma _{t - j}^2 - {q_{t - j}}} \right)}  \hfill \\
+  {q_t} = \omega  + \rho {q_{t - 1}} + \phi \left( {\varepsilon _{t - 1}^2 - \sigma _{t - 1}^2} \right) \hfill \\
+\end{gathered}
+\end{equation}
+where effectively the intercept of the GARCH model is now time-varying
+following first order autoregressive type dynamics. The difference between
+the conditional variance and its trend, $\sigma_{t - j}^2 - q_{t-j}$ is the
+transitory component of the conditional variance. The conditions for the
+non-negativity of the conditional variance are given in \cite{Lee1999} and
+imposed during estimation by the stationarity option in the fit.control list
+of the \verb@ugarchfit@ method, and related to the stationarity conditions
+that the sum of the ($\alpha$,$\beta$) coefficients be less than 1 and that $\rho<1$
+(effectively the persistence of the transitory and permanent components).\\
+The multistep, $n>1$ ahead forecast of the conditional variance proceeds as follows:
+\begin{equation}
+\begin{gathered}
+  {E_{t - 1}}\left( {\sigma _{t + n}^2} \right) = {E_{t - 1}}\left( {{q_{t + n}}} \right) + \sum\limits_{j = 1}^q {{\alpha _j}\left( {\varepsilon _{t + n - j}^2 - {q_{t + n - j}}} \right) + } \sum\limits_{j = 1}^p {{\beta _j}\left( {\sigma _{t + n - j}^2 - {q_{t + n - j}}} \right)}  \hfill \\
+  {E_{t - 1}}\left( {\sigma _{t + n}^2} \right) = {E_{t - 1}}\left( {{q_{t + n}}} \right) + \sum\limits_{j = 1}^q {{\alpha _j}{E_{t - 1}}\left[ {\varepsilon _{t + n - j}^2 - {q_{t + n - j}}} \right] + } \sum\limits_{j = 1}^p {{\beta _j}{E_{t - 1}}\left[ {\sigma _{t + n - j}^2 - {q_{t + n - j}}} \right]}  \hfill \\
+\end{gathered}
+\end{equation}
+However, ${E_{t - 1}}\left[ {\varepsilon _{t + n - j}^2} \right] = {E_{t - 1}}\left[ {\sigma _{t + n - j}^2} \right]$, therefore:
+\begin{equation}
+\begin{gathered}
+  {E_{t - 1}}\left( {\sigma _{t + n}^2} \right) = {E_{t - 1}}\left( {{q_{t + n}}} \right) + \sum\limits_{j = 1}^q {{\alpha _j}{E_{t - 1}}\left[ {\sigma _{t + n - j}^2 - {q_{t + n - j}}} \right] + } \sum\limits_{j = 1}^p {{\beta _j}{E_{t - 1}}\left[ {\sigma _{t + n - j}^2 - {q_{t + n - j}}} \right]}  \hfill \\
+  {E_{t - 1}}\left( {\sigma _{t + n}^2} \right) = {E_{t - 1}}\left( {{q_{t + n}}} \right) + {\left[ {\sum\limits_{j = 1}^{\max (p,q)} {\left( {{\alpha _j} + {\beta _j}} \right)} } \right]^n}\left( {\sigma _t^2 - {q_t}} \right) \hfill \\
+\end{gathered}
+\end{equation}
+The permanent component forecast can be represented as:
+\begin{align}
+  {E_{t - 1}}\left[ {{q_{t + n}}} \right] & = \omega  + \rho {E_{t - 1}}\left[ {{q_{t + n - 1}}} \right] + \phi {E_{t - 1}}\left[ {\varepsilon _{t + n - j}^2 - \sigma _{t + n - j}^2} \right] \hfill \\
+   & = \omega  + \rho {E_{t - 1}}\left[ {{q_{t + n - 1}}} \right]\hfill \\
+   & = \omega  + \rho \left[ {\omega  + \rho {E_{t - 1}}\left[ {{q_{t + n - 2}}} \right]} \right] \hfill \\
+   & = \dots \hfill \\
+   & = \left( {1 + p + \dots + {\rho ^{n - 1}}} \right)\omega  + {\rho ^n}{q_t} \hfill \\
+   & = \frac{{1 - {\rho ^n}}}{{1 - \rho }}\omega  + {\rho ^n}{q_t} \hfill \\
+\end{align}
+As $n \to \infty$ the unconditional variance is:
+\begin{equation}
+{E_{t - 1}}\left[ {\sigma _{t + n}^2} \right] = {E_{t - 1}}\left[ {{q_{t + n}}} \right] = \frac{\omega }{{1 - \rho }}
+\end{equation}
+In the \verb@rugarch@ package, the parameters $\rho$ and $\phi$ are
+represented by $\eta_{11}$('eta11') and $\eta_{21}$('eta21') respectively.
 \subsection{Conditional Distributions}\label{section:distributions}
 The \verb@rugarch@ package supports a range of univariate distributions
 including the Normal ('norm'), Generalized Error ('ged'), Student ('std')
@@ -718,7 +769,7 @@ The reparametrized Johnson SU distribution, discussed in \cite{Rigby2005}, is a
 four parameter distribution denoted by $JSU\left(\mu,\sigma,\nu,\tau\right)$,
 with mean $\mu$ and standard deviation $\sigma$ for all values of the skew and
 shape parameters $\nu$ and $\tau$ respectively. The implementation is taken
-from the GAMLSS package of \cite{Stasinopoulos2009} and the reader is referred 
+from the GAMLSS package of \cite{Stasinopoulos2009} and the reader is referred
 there for further details.
 
 \section{Fitting}\label{section:fitting}
@@ -1149,12 +1200,14 @@ one will be assigned by the program. In any case, the returned object, of class
 The \verb@ugarchroll@ method allows to perform a rolling estimation and
 forecasting of a model/dataset combination, optionally returning the VaR at
 specified levels. More importantly, it returns the distributional forecast
-parameters necessary to calculate any required measure on the forecasted density.
-The following example illustrates the use of the method where use is also made
-of the parallel option and run on 10 cores. Figure \ref{fig:roll} is generated
-by calling the plot function on the returned \verb@uGARCHroll@ object.
-Additional methods, and more importantly extractor functions can be found in the
-documentation.
+parameters necessary to calculate any required measure on the forecasted
+density. The following example illustrates the use of the method where use is
+also made of the parallel option and run on 10 cores. Figure \ref{fig:roll}
+is generated by calling the plot function on the returned \verb@uGARCHroll@
+object. Additional methods, and more importantly extractor functions can be
+found in the documentation. \textbf{Note that only n.ahead=1 is allowed at
+present (more complicated rolling forecasts can be created by the user with
+the ugarchfit and ugarchforecast functions).}
 \begin{Schunk}
 \begin{Sinput}
 > data(sp500ret)
@@ -1314,15 +1367,15 @@ The usual extractor, inference and summary methods are replicated for all the
 ARFIMA classes and the user should consult the documentation for further details.
 
 \section{Mispecification and Other Tests}
-Apart from the usual tests presented in the summary to the fit object, a number 
-of other interesting and useful tests are uniquely implemented in the rugarch 
+Apart from the usual tests presented in the summary to the fit object, a number
+of other interesting and useful tests are uniquely implemented in the rugarch
 package, and described in this section.
 \subsection{The GMM Orthogonality Test}
-The GMM type moment (orthogonality) tests of \cite{Hansen1982} have been applied 
+The GMM type moment (orthogonality) tests of \cite{Hansen1982} have been applied
 to test the adequacy of model in a variety of setups. Under a correctly
-specified model, certain population moment conditions should be satisfied and 
+specified model, certain population moment conditions should be satisfied and
 hold in the sample using the standardized residuals. The moment conditions can
-be tested both individually using a t-test or jointly using a Wald test. Formally, 
+be tested both individually using a t-test or jointly using a Wald test. Formally,
 the following moment conditions are tested:
 \begin{equation}\label{eq:gmm}
 \begin{array}{*{20}{c}}
@@ -1333,36 +1386,36 @@ the following moment conditions are tested:
 {{Q_2}}&{E\left[ {\left( {z_t^2 - 1} \right)\left( {z_{t - j}^2 - 1} \right)} \right]}&{ = 0}\\
 \end{array}
 \end{equation}
-where $j=1\dots,p$ is the lag and usually $p$ is set to 4. The last condition 
+where $j=1\dots,p$ is the lag and usually $p$ is set to 4. The last condition
 tests the conditional variance using $p$ lags and may be
-tested jointly using a Wald test distributed $\chi^2$ with $p$ d.o.f. It is also 
-possible to test all the conditions jointly using a Wald test distributed $\chi^2$ 
+tested jointly using a Wald test distributed $\chi^2$ with $p$ d.o.f. It is also
+possible to test all the conditions jointly using a Wald test distributed $\chi^2$
 with $4+p$ d.o.f. The test is implemented under the name: \verb@GMMTest@.
 \subsection{Parametric and Non-Parametric Density Tests}
-A novel method to analyze how well a conditional density fits the underlying data 
-is through the probability integral transformation (\emph{PIT}) discussed in 
+A novel method to analyze how well a conditional density fits the underlying data
+is through the probability integral transformation (\emph{PIT}) discussed in
 \cite{Rosenblatt1952} and defined as:
 \begin{equation}
 {x_t} = \int\limits_{ - \infty }^{{y_t}} {\hat f\left( u \right)du = \hat F\left( {{y_t}} \right)}
 \end{equation}
-which transforms the data $y_t$, using the estimated distribution $\hat F$ into 
+which transforms the data $y_t$, using the estimated distribution $\hat F$ into
 i.i.d. $U(0,1)$ under the correctly specified model. Based on this transformation,
-\cite{Tay1998} provide for a visual assessment test, while \cite{Berkowitz2001} 
-provides a more formal test, implemented in the package under the name \verb@BerkowitzTest@. 
-Because of the difficulty in testing a $U(0,1)$ sequence, the PIT data is 
-transformed into $N(0,1)$ by Berkowitz using the normal quantile function, and 
-tested using a Lagrange Multiplier (\emph{LM}) test for any residual 
+\cite{Tay1998} provide for a visual assessment test, while \cite{Berkowitz2001}
+provides a more formal test, implemented in the package under the name \verb@BerkowitzTest@.
+Because of the difficulty in testing a $U(0,1)$ sequence, the PIT data is
+transformed into $N(0,1)$ by Berkowitz using the normal quantile function, and
+tested using a Lagrange Multiplier (\emph{LM}) test for any residual
 autocorrelation given a specified number of lags. In addition, a tail
-test based on the censored Normal is also provided, under the Null that the 
-standardized tail data has mean zero and unit variance. More recently, 
-\cite{Hong2005} introduced a nonparametric portmanteau test, building on the work 
-of \cite{Ait-Sahalia1996}, which tests the joint hypothesis of i.i.d \emph{AND} $U(0,1)$ 
-for the sequence $x_t$. As noted by the authors, testing $x_t$ using a standard 
-goodness-of-fit test (such as the Kolmogorov-Smirnov) would only check the $U(0,1)$ 
-assumption under i.i.d. and not the joint assumption of $U(0,1)$ and i.i.d. Their 
-approach is to compare a kernel estimator $\hat g_j\left(x_1,x_2\right)$ for the 
-joint density $g_j\left(x_1,x_2\right)$ of the pair  $\left\{ {x_t,x_{t-j}} \right\}$ 
-(where $j$ is the lag order) with unity, the product of two $U(0,1)$ densities. 
+test based on the censored Normal is also provided, under the Null that the
+standardized tail data has mean zero and unit variance. More recently,
+\cite{Hong2005} introduced a nonparametric portmanteau test, building on the work
+of \cite{Ait-Sahalia1996}, which tests the joint hypothesis of i.i.d \emph{AND} $U(0,1)$
+for the sequence $x_t$. As noted by the authors, testing $x_t$ using a standard
+goodness-of-fit test (such as the Kolmogorov-Smirnov) would only check the $U(0,1)$
+assumption under i.i.d. and not the joint assumption of $U(0,1)$ and i.i.d. Their
+approach is to compare a kernel estimator $\hat g_j\left(x_1,x_2\right)$ for the
+joint density $g_j\left(x_1,x_2\right)$ of the pair  $\left\{ {x_t,x_{t-j}} \right\}$
+(where $j$ is the lag order) with unity, the product of two $U(0,1)$ densities.
 Given a sample size $n$ and lag order $j>0$, their joint density estimator is:
 \begin{equation}\label{eq:HL1}
 {{\hat g}_j}\left( {{x_1},{x_2}} \right) \equiv {\left( {n - j} \right)^{ - 1}}\sum\limits_{t = j + 1}^n {{K_h}\left( {{x_1},{{\hat X}_t}} \right){K_h}\left( {{x_2},{{\hat X}_{t - j}}} \right)}
@@ -1409,14 +1462,14 @@ where,
 \begin{equation}\label{eq:HL7}
 {k_b}\left( . \right) \equiv {{k\left( . \right)} \mathord{\left/{\vphantom {{k\left( . \right)} {\int_{ - 1}^b {k\left( v \right)dv} }}} \right.\kern-\nulldelimiterspace} {\int_{ - 1}^b {k\left( v \right)dv} }}.
 \end{equation}
-Under the correct model specification, the authors show that 
-$\hat W\left( p \right)\rightarrow N\left(0,1\right)$ in distribution. Because 
-negative values of the test statistic only occur under the Null Hypothesis of a 
-correctly specified model, the authors indicate that only upper tail critical values 
-need be considered. The test is quite robust to model misspecification as parameter 
-uncertainty has no impact on the asymptotic distribution of the test statistic as 
-long as the parameters are $\sqrt n$ consistent. Finally, in order to explore possible 
-causes of misspecification when the statistic rejects a model, the authors develop 
+Under the correct model specification, the authors show that
+$\hat W\left( p \right)\rightarrow N\left(0,1\right)$ in distribution. Because
+negative values of the test statistic only occur under the Null Hypothesis of a
+correctly specified model, the authors indicate that only upper tail critical values
+need be considered. The test is quite robust to model misspecification as parameter
+uncertainty has no impact on the asymptotic distribution of the test statistic as
+long as the parameters are $\sqrt n$ consistent. Finally, in order to explore possible
+causes of misspecification when the statistic rejects a model, the authors develop
 the following test statistic:
 \begin{equation}\label{eq:HL8}
 M\left( {m,l} \right) \equiv {{\left[ {\sum\limits_{j = 1}^{n - 1} {{w^2}\left( {{j \mathord{\left/
@@ -1435,22 +1488,22 @@ M\left( {m,l} \right) \equiv {{\left[ {\sum\limits_{j = 1}^{n - 1} {{w^2}\left( 
  {\vphantom {j p}} \right.
  \kern-\nulldelimiterspace} p}} \right)} } \right]}^{1/2}}}}
 \end{equation}
-where ${{\hat \rho }_{ml}}\left( j \right)$ is the sample cross-correlation 
-between $\hat X_t^m$ and $\hat X_{t - \left| j \right|}^l$, and $w\left(.\right)$ 
-is a weighting function of lag order j, and as suggested by the authors implemented 
-as the Bartlett kernel. As in the $\hat W\left( p \right)$ statistic, the asymptotic 
-distribution of $M\left( {m,l} \right)$ is $N\left(0,1\right)$ and upper critical 
-values should be considered. As an experiment, Table \ref{table:garchstd} considers 
-the cost of fitting a GARCH-Normal model when the true model is GARCH-Student, 
-using the \verb@HLTest@ on simulated data using the \verb@ugarchsim@ function. 
-The results are clear: At low levels of the shape parameter $\nu$, representing 
-a very high excess kurtosis, the model is overwhelmingly rejected by the test, 
-and as that parameter increases to the point where the Student approximates the 
-Normal, the rejections begin to reverse. Also of interest, but not surprising, 
-the strength of the rejection is somewhat weaker for smaller datasets ($N=500,1000$). 
-For example, in the case of using only $500$ data points and a shape parameter 
-of 4.1 (representing an excess kurtosis of 60!), 5\% of the time, in this 
-simulation, the test failed to reject the GARCH-Normal. 
+where ${{\hat \rho }_{ml}}\left( j \right)$ is the sample cross-correlation
+between $\hat X_t^m$ and $\hat X_{t - \left| j \right|}^l$, and $w\left(.\right)$
+is a weighting function of lag order j, and as suggested by the authors implemented
+as the Bartlett kernel. As in the $\hat W\left( p \right)$ statistic, the asymptotic
+distribution of $M\left( {m,l} \right)$ is $N\left(0,1\right)$ and upper critical
+values should be considered. As an experiment, Table \ref{table:garchstd} considers
+the cost of fitting a GARCH-Normal model when the true model is GARCH-Student,
+using the \verb@HLTest@ on simulated data using the \verb@ugarchsim@ function.
+The results are clear: At low levels of the shape parameter $\nu$, representing
+a very high excess kurtosis, the model is overwhelmingly rejected by the test,
+and as that parameter increases to the point where the Student approximates the
+Normal, the rejections begin to reverse. Also of interest, but not surprising,
+the strength of the rejection is somewhat weaker for smaller datasets ($N=500,1000$).
+For example, in the case of using only $500$ data points and a shape parameter
+of 4.1 (representing an excess kurtosis of 60!), 5\% of the time, in this
+simulation, the test failed to reject the GARCH-Normal.
 {\tiny
 \ctable[ pos = h, cap     = {GARCH-Student: Misspecification Exercise.},
 %
@@ -1462,15 +1515,15 @@ center
 {rrrrrrrrrrrrrrr}
 {
 \tnote[]{\tiny {\bf Note:}
-The table presents the average test statistic of \cite{Hong2005} and number of 
-rejections at the 95\% confidence level for fitting a GARCH(1,1)-Normal model to 
-a GARCH(1,1)-Student model for different values of the shape parameter $\nu$, 
-and sample size ($N$). For each sample of size $N$, 250 simulated series were 
-created from a GARCH student model with parameters 
+The table presents the average test statistic of \cite{Hong2005} and number of
+rejections at the 95\% confidence level for fitting a GARCH(1,1)-Normal model to
+a GARCH(1,1)-Student model for different values of the shape parameter $\nu$,
+and sample size ($N$). For each sample of size $N$, 250 simulated series were
+created from a GARCH student model with parameters
 $(\mu, \omega, \alpha, \beta) = (5.2334e-04, 4.3655e-06, 5.898e-02, 9.2348e-01)$, and
-$\nu$ in the range of $[4.1,30]$, and fitted using a GARCH(1,1)-Normal model. 
-The standardized residuals of the fitted model where then transformed via the 
-normal distribution function into $U(0,1)$ series and evaluated using the test 
+$\nu$ in the range of $[4.1,30]$, and fitted using a GARCH(1,1)-Normal model.
+The standardized residuals of the fitted model where then transformed via the
+normal distribution function into $U(0,1)$ series and evaluated using the test
 of \cite{Hong2005}.
 \LL
 }
@@ -1497,13 +1550,13 @@ $\% reject$ & \multicolumn{1}{c}{\textit{100}} & \multicolumn{1}{c}{\textit{100}
 
 
 \subsection{Directional Accuracy Tests}
-High and significant Directional Accuracy (\emph{DA}) could imply either an 
-ability to predict the sign of the mean forecast or could merely be the result 
-of volatility dependence in the absence of mean predictability as argued by 
-\cite{Christoffersen2006}. In either case, the function \verb@DACTest@ provides 2 
-tests for determining the significance of sign predictability and mean predictability. 
-The Directional Accuracy (\emph{DA}) Test of \cite{Pesaran1992} and the Excess 
-Profitability (\emph{EP}) Test of \cite{Anatolyev2005}, both of which are 
+High and significant Directional Accuracy (\emph{DA}) could imply either an
+ability to predict the sign of the mean forecast or could merely be the result
+of volatility dependence in the absence of mean predictability as argued by
+\cite{Christoffersen2006}. In either case, the function \verb@DACTest@ provides 2
+tests for determining the significance of sign predictability and mean predictability.
+The Directional Accuracy (\emph{DA}) Test of \cite{Pesaran1992} and the Excess
+Profitability (\emph{EP}) Test of \cite{Anatolyev2005}, both of which are
 Hausmann  type tests. The EP test statistic is formally defined as:
 \begin{equation}
 EP = \frac{{{A_T} - {B_T}}}{{\sqrt {{{\hat V}_{EP}}} }}
@@ -1518,8 +1571,8 @@ with,
 {T}\sum\limits_t {{y_t}} } \right) \hfill \\
 \end{gathered}
 \end{equation}
-with $\hat y$ being the forecast of $y$ and $r_{t}=\operatorname{sgn}(\hat y_t)(y_t)$. 
-According to the authors of the test, the estimated variance of $EP$, $\hat V_{EP}$ 
+with $\hat y$ being the forecast of $y$ and $r_{t}=\operatorname{sgn}(\hat y_t)(y_t)$.
+According to the authors of the test, the estimated variance of $EP$, $\hat V_{EP}$
 may be estimated as:
 \begin{equation}
 {{\hat V}_{EP}} = \frac{4}{{{T^2}}}{{\hat p}_{\hat y}}\left( {1 - {{\hat p}_{\hat y}}} \right)\sum\limits_{} {{{\left( {{y_t} - \bar y} \right)}^2}}
@@ -1527,46 +1580,46 @@ may be estimated as:
 where ${\hat p_{\hat y}} = \frac{1}{2}\left( {1 + \frac{1}{T}\sum\limits_t {\operatorname{sgn} \left( {{{\hat y}_t}} \right)} } \right)$. The EP statistic is asymptotically distributed as $N(0,1)$.\\
 For the DA test the interested reader can consult the relevant literature for more details.
 \subsection{VaR and Expected Shortfall Tests}
-The unconditional coverage, or proportion of failures, test of \cite{Kupiec1995} 
-allows to test whether the observed frequency of VaR exceedances is consistent with 
-the expected exceedances, given the chosen quantile and a confidence level. Under 
-the Null hypothesis of a correctly specified model, the number of exceedances \(X\) 
-follows a binomial distribution. A probability below a given significance level 
-leads to a rejection of the Null hypothesis. The test is usually conducted as a 
+The unconditional coverage, or proportion of failures, test of \cite{Kupiec1995}
+allows to test whether the observed frequency of VaR exceedances is consistent with
+the expected exceedances, given the chosen quantile and a confidence level. Under
+the Null hypothesis of a correctly specified model, the number of exceedances \(X\)
+follows a binomial distribution. A probability below a given significance level
+leads to a rejection of the Null hypothesis. The test is usually conducted as a
 likelihood ratio test, with the statistic taking the form,
 \begin{equation}
 L{R_{uc}} =  - 2\ln \left( {\frac{{{{\left( {1 - p} \right)}^{N - X}}{p^X}}}{{{{\left( {1 - \frac{X}{N}} \right)}^{N - X}}{{\left( {\frac{X}{N}} \right)}^X}}}} \right)
 \end{equation}
-where $p$ is the probability of an exceedance for the chosen confidence level 
-and $N$ is the sample size. Under the Null the test statistic is asymptotically 
-distributed as a $\chi^2$ with 1 degree of freedom. The test does not consider 
-any potential violation of the assumption of the independence of the number of 
-exceedances. The conditional coverage test of \cite{Christoffersen2001} corrects 
-this by jointly testing the frequency as well as the independence of exceedances, 
-assuming that the VaR violation is modelled with a first order Markov chain. The 
-test is a likelihood ratio, asymptotically distributed as $\chi^2$ with 2 degrees 
-of freedom, where the Null is  that the conditional and unconditional coverage are 
+where $p$ is the probability of an exceedance for the chosen confidence level
+and $N$ is the sample size. Under the Null the test statistic is asymptotically
+distributed as a $\chi^2$ with 1 degree of freedom. The test does not consider
+any potential violation of the assumption of the independence of the number of
+exceedances. The conditional coverage test of \cite{Christoffersen2001} corrects
+this by jointly testing the frequency as well as the independence of exceedances,
+assuming that the VaR violation is modelled with a first order Markov chain. The
+test is a likelihood ratio, asymptotically distributed as $\chi^2$ with 2 degrees
+of freedom, where the Null is  that the conditional and unconditional coverage are
 equal to \( \alpha \). The test is implemented under the name \verb@VaRTest@.\\
-In a further paper, \cite{Christoffersen2004} considers the duration between VaR 
-violations as a stronger test of the adequacy of a risk model. The duration of time 
-between VaR violations (no-hits) should ideally be independent and not cluster. 
-Under the Null hypothesis of a correctly specified risk model, the no-hit duration 
-should have no memory. Since the only continuous distribution which is memory free 
-is the exponential, the test can conducted on any distribution which embeds the 
-exponential as a restricted case, and a likelihood ratio test then conducted to 
-see whether the restriction holds. Following \cite{Christoffersen2004}, the Weibull 
-distribution is used with parameter $b=1$ representing the case of the exponential. 
-The test is implemented under the name \verb@VaRDurTest@.\\ 
+In a further paper, \cite{Christoffersen2004} considers the duration between VaR
+violations as a stronger test of the adequacy of a risk model. The duration of time
+between VaR violations (no-hits) should ideally be independent and not cluster.
+Under the Null hypothesis of a correctly specified risk model, the no-hit duration
+should have no memory. Since the only continuous distribution which is memory free
+is the exponential, the test can conducted on any distribution which embeds the
+exponential as a restricted case, and a likelihood ratio test then conducted to
+see whether the restriction holds. Following \cite{Christoffersen2004}, the Weibull
+distribution is used with parameter $b=1$ representing the case of the exponential.
+The test is implemented under the name \verb@VaRDurTest@.\\
 Because VaR tests deal with the occurrences of hits, they are by definition
-rather crude measures to compare how well one model has done versus another, 
-particularly with short data sets. The expected shortfall test of \cite{McNeil2000} 
-measures the mean of the shortfall violations which should be zero under the Null of a 
-correctly specified risk model. The test is implemented in the function \verb@ESTest@ 
-which also provides for the option of bootstrapping the distribution of the p-value, 
-hence avoiding any strong assumptions about the underlying distribution of the excess 
-shortfall residuals.\\ 
-Finally, it is understood that these tests are applied to out-of-sample forecasts 
-and NOT insample, for which no correction to the tests have been made to account 
+rather crude measures to compare how well one model has done versus another,
+particularly with short data sets. The expected shortfall test of \cite{McNeil2000}
+measures the mean of the shortfall violations which should be zero under the Null of a
+correctly specified risk model. The test is implemented in the function \verb@ESTest@
+which also provides for the option of bootstrapping the distribution of the p-value,
+hence avoiding any strong assumptions about the underlying distribution of the excess
+shortfall residuals.\\
+Finally, it is understood that these tests are applied to out-of-sample forecasts
+and NOT insample, for which no correction to the tests have been made to account
 for parameter uncertainty.
 
 \section{Miscellaneous Functions}\label{section:misc}
@@ -1576,7 +1629,7 @@ given a set of dates), \verb@ForwardDates@ (to generate A POSIXct vector of futu
 dates).
 
 \section{Future Development}\label{section:fut}
-Time permitting, some more more exotic GARCH models including component GARCH, 
+Time permitting, some more more exotic GARCH models including component GARCH,
 and Threshold (TAR) type models for the conditional mean.............
 
 \section{FAQs and Guidelines}\label{section:faqs}

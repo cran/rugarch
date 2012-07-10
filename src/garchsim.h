@@ -26,4 +26,5 @@ RcppExport SEXP mgjrgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SE
 RcppExport SEXP maparchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
 RcppExport SEXP mfgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
 RcppExport SEXP megarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP, SEXP , SEXP );
+RcppExport SEXP mcsgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
 #endif

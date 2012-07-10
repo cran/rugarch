@@ -194,6 +194,7 @@ TinY = 1.0e-8
 		fit$var = abs(temp$h)
 		fit$sigma = sqrt(abs(temp$h))
 	}
+	if(garchmodel == "csGARCH") fit$q = temp$q
 	fit$z = temp$z
 	fit$LLH = -temp$llh
 	fit$log.likelihoods = temp$LHT
@@ -326,15 +327,14 @@ TinY = 1.0e-8
 		if(!is.null(mregfor) && mmex != mxn)
 		{
 			cat("\nugarchforecast-->error: Column dimension of external mean forecast matrix is wrong.")
-			cat(paste("\nModel has ", mxn, " external regressors but forecast matrix has", mmex, sep = ""))
+			cat(paste("\nModel has ", mxn, " external regressors but forecast matrix has ", mmex, sep = ""))
 			stop("\n...exiting\n")
 		}
 		
 		if(!is.null(mregfor) && nmex < treq)
 		{
-			cat(paste("\nugarchforecast-->error: You requested ", treq ," actual forecasts (including 
-the rolling periods) but external mean forecasts provided have only",
-nmex, " rows",sep=""))
+			cat(paste("\nugarchforecast-->error: You requested ", treq ," actual forecasts 
+(including the rolling periods) but external mean forecasts provided have only ", nmex, " rows",sep=""))
 			cat(paste("\nA minimum of ", treq," rows are required", sep=""))
 			stop("\n...exiting")
 		}
@@ -365,7 +365,7 @@ nmex, " rows",sep=""))
 		if(!is.null(vregfor) && nvex < treq)
 		{
 			cat(paste("\nugarchforecast-->error: You requested ", treq ," actual forecasts (including 
-									the rolling periods) but external variance forecasts provided have only",
+									the rolling periods) but external variance forecasts provided have only ",
 							nvex, " rows",sep=""))
 			cat(paste("\nA minimum of ", treq," rows are required", sep=""))
 			stop("\n...exiting")

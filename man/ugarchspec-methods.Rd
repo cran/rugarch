@@ -19,7 +19,7 @@ distribution.model = "norm", start.pars = list(), fixed.pars = list(), ...)
 List containing the variance model specification:\cr
 \code{model} Valid models (currently implemented) are \dQuote{sGARCH}, 
 \dQuote{fGARCH}, \dQuote{eGARCH}, \dQuote{gjrGARCH}, \dQuote{apARCH} and
-\dQuote{iGARCH}.\cr
+\dQuote{iGARCH} and \dQuote{csGARCH}.\cr
 \code{garchOrder} The ARCH (q) and GARCH (p) orders.\cr
 \code{submodel} If the model is \dQuote{fGARCH}, valid submodels are 
 \dQuote{GARCH}, \dQuote{TGARCH}, \dQuote{AVGARCH}, \dQuote{NGARCH}, 
@@ -94,7 +94,8 @@ In order to understand which parameters can be entered in the start.pars and
 fixed.pars optional arguments, the list below exposes the names used for the
 parameters across the various models:(note that when a parameter is followed by 
 a number, this represents the order of the model. Just increment the number 
-for higher orders):\cr
+for higher orders, with the exception of the component sGARCH permanent 
+component parameters which are fixed to have a lag-1 autoregressive structure.):\cr
 \emph{\bold{Mean Model}}:\cr
    \tabular{rll}{
      \tab constant	\tab \code{mu}\cr
@@ -132,6 +133,14 @@ for higher orders):\cr
      \tab assymetry term2 (shift)	\tab \code{eta21}\cr
      \tab power term1(shock)	\tab \code{delta}\cr
      \tab power term2(variance)\tab \code{lambda}\cr
+   }
+\emph{\bold{Variance Model (csGARCH)}}:\cr
+  \tabular{rll}{
+     \tab permanent component autoregressive term (rho)	\tab \code{eta11}\cr
+     \tab permanent component shock term (phi)	\tab \code{eta21}\cr
+     \tab permanent component intercept	(omega)\tab \code{omega}\cr
+     \tab transitory component ARCH term	\tab \code{alpha1}\cr
+     \tab transitory component GARCH term \tab \code{beta1}\cr
    }
 }
 \author{Alexios Ghalanos}

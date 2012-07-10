@@ -378,6 +378,7 @@
 	truecf = unlist(x@truecoef[,1])
 	Names = names(truecf)
 	md = as.data.frame(x, window = window)
+	md = na.omit(md)
 	ar = ma = NULL
 	if(any(substr(Names, 1, 2)=="ar"))
 	{
@@ -396,8 +397,8 @@
 	
 	for(i in 1:armap){
 		for(j in 1:armaq){
-			xlim = c(min(md[,ar[j]]), max(md[,ar[j]]))
-			ylim = c(min(md[,ma[j]]), max(md[,ma[j]]))
+			xlim = c(min(md[,ar[j]], na.rm = TRUE), max(md[,ar[j]], na.rm = TRUE))
+			ylim = c(min(md[,ma[j]], na.rm = TRUE), max(md[,ma[j]], na.rm = TRUE))
 			plot(md[,ar[j]], md[,ma[j]], ylab = paste("ar",i,sep=""), xlab = paste("ma",j,sep=""), xlim = xlim,
 					ylim = ylim)
 			f1 = .kde2d(md[,ar[j]], md[,ma[j]])
@@ -427,6 +428,7 @@
 	truecf = unlist(x@truecoef[,1])
 	Names = names(truecf)
 	md = as.data.frame(x, window = window)
+	md = na.omit(md)
 	ar = ma = NULL
 	nar = nma = NULL
 	if(any(substr(Names, 1, 2)=="ar"))
@@ -480,6 +482,7 @@
 	truecf = unlist(x@truecoef[,1])
 	Names = names(truecf)
 	md = as.data.frame(x, window = window)
+	md = na.omit(md)
 	distribution = model$modeldesc$distribution
 		
 	if(vmodel == "iGARCH"){
@@ -488,17 +491,18 @@
 	if(modelinc[8] == 0 | modelinc[9] == 0 && (vmodel == "sGARCH")){
 		warning("\nNo plots for variance equation...\n")
 	}
-	total = modelinc[8]*modelinc[10] + modelinc[8]*modelinc[11] + modelinc[8]*modelinc[12] +
+	if(vmodel == "csGARCH") ind = 0 else ind = 1
+	total = modelinc[8]*modelinc[10] + modelinc[8]*modelinc[11]*ind + modelinc[8]*modelinc[12]*ind +
 			modelinc[8]*modelinc[9] + modelinc[13]*modelinc[14] + modelinc[16]*modelinc[17] + 
-			modelinc[16]*modelinc[10] + modelinc[16]*modelinc[11] + modelinc[16]*modelinc[12]
+			modelinc[16]*modelinc[10] + modelinc[16]*modelinc[11]*ind + modelinc[16]*modelinc[12]*ind
 	
-	dv = .divisortable(2*total)
+	dv = .divisortable(2+total)
 	par(mfrow=c(dv[1], dv[2]))
 	
 	coefarma = md[,idx["ar",1]:idx["ma",2]]
 	N = dim(coefarma)[1]
 	colnames(coefarma) = colnames(md)[idx["ar",1]:idx["ma",2]]
-	rootlist = apply(coefarma, 1, FUN=function(x) .armaroots(x))
+	rootlist = apply(coefarma, 1, FUN=function(x) rugarch:::.armaroots(x))
 	colx = topo.colors(N, alpha = 0.7)
 	.arma2dplot(x, window = window)
 	.plotarmaroots(x = rootlist[[1]], col="steelblue")
@@ -525,7 +529,7 @@
 				mtext(paste("GARCH model :", vmodel), side = 4, adj = 0, padj=0, col = "gray", 
 						cex = 0.5)
 			}
-			if(modelinc[11]>0){
+			if(modelinc[11]>0 && ind>0){
 				tmp = c(idx["alpha",1]+i-1, idx["eta1",1]+i-1)
 				plot(md[,tmp], xlab = paste("alpha",i,sep=""), ylab = paste("eta1-",i,sep=""))
 				f1 = .kde2d(md[,tmp[1]], md[,tmp[2]])
@@ -538,7 +542,7 @@
 				mtext(paste("fGARCH submodel: ", vsubmodel,sep=""), side = 4, adj = 0, 
 							padj = 1.5, col = "gray", cex = 0.5)
 			}
-			if(modelinc[12]>0){
+			if(modelinc[12]>0 && ind>0){
 				tmp = c(idx["alpha",1]+i-1, idx["eta2",1]+i-1)
 				plot(md[,tmp], xlab = paste("alpha",i,sep=""), ylab = paste("eta2-",i,sep=""))
 				f1 = .kde2d(md[,tmp[1]], md[,tmp[2]])
@@ -613,7 +617,7 @@
 					cex = 0.5)
 		}
 	}
-	if(modelinc[16]>0 && modelinc[11]>0){
+	if(modelinc[16]>0 && modelinc[11]>0 && ind>0){
 		for(i in 1:modelinc[11]){
 			plot(md[,idx["skew",1]], md[,idx["eta1",1]+i-1], xlab = "skew", ylab = paste("eta1-",i,sep=""))
 			f1 = .kde2d(md[,idx["skew",1]], md[,idx["eta1",1]+i-1])
@@ -627,7 +631,7 @@
 					padj = 1.5, col = "gray", cex = 0.5)
 		}
 	}
-	if(modelinc[16]>0 && modelinc[12]>0){
+	if(modelinc[16]>0 && modelinc[12]>0 && ind>0){
 		for(i in 1:modelinc[12]){
 			plot(md[,idx["skew",1]], md[,idx["eta2",1]+i-1], xlab = "skew", ylab = paste("eta2-",i,sep=""))
 			f1 = .kde2d(md[,idx["skew",1]], md[,idx["eta2",1]+i-1])
@@ -656,6 +660,7 @@
 	truecf = unlist(x@truecoef[,1])
 	Names = names(truecf)
 	md = as.data.frame(x, window = window)
+	md = na.omit(md)
 	
 	if(modelinc[16]==0 | modelinc[17]==0 | (modelinc[16]==0 && (modelinc[10]==0 | modelinc[11]==0 | modelinc[12]==0))){
 		warning("\nNo plots for distribution...\n")

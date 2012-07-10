@@ -30,8 +30,8 @@ hosted on r-forge).
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.0-10\cr
-Date: \tab 2012-06-30\cr
+Version: \tab 1.0-11\cr
+Date: \tab 2012-07-09\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo, numDeriv, chron, Rsolnp\cr }
@@ -100,7 +100,7 @@ comments.
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2012},
- note 	      = {R package version 1.0-10.},}}
+ note 	      = {R package version 1.0-11.},}}
 \emph{}
 }
 \section{License}{

@@ -132,6 +132,30 @@ void fgarchfilter(int *model, double *pars, int *idx, double kdelta, double *z, 
 	h[i] = pow( h[i], 1/pars[idx[13]] );
 }
 
+void csgarchfilter(int *model, double *pars, int *idx, double *e, double *vexdata, int T, int i, double *h, double *q)
+{
+	int j, ind;
+	q[i] = pars[idx[6]] + pars[idx[10]]*q[i-1] + pars[idx[11]]*(e[i-1] - h[i-1]);
+	// External Regressors are added to the Permanent Component
+	if( model[14]>0 )
+	{
+		for( j=0; j<model[14]; j++ )
+		{
+			ind = i + ( T * j );
+			q[i] = q[i] + pars[idx[14]+j]*vexdata[i];
+		}
+	}
+	h[i] = h[i] + q[i];
+	for( j=0; j<model[7]; j++ )
+	{
+		h[i] = h[i] + pars[idx[7]+j]*(e[i-(j+1)] - q[i-(j+1)]);
+	}
+	for( j=0; j<model[8]; j++ )
+	{
+		h[i] = h[i] + pars[idx[8]+j]*(h[i-(j+1)] - q[i-(j+1)]);
+	}
+}
+
 
 void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 		double *mexdata, double *zrf, double *constm, double *condm, double h,

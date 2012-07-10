@@ -13,7 +13,8 @@ details and references).
 ugarchboot(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, 
 n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
 solver.control = list(), fit.control = list(), 
-external.forecasts = list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
+external.forecasts = list(mregfor = NULL, vregfor = NULL), 
+mexsimdata = NULL, vexsimdata = NULL, parallel = FALSE, 
 parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 }
 \arguments{
@@ -53,6 +54,16 @@ method).}
 \item{external.forecasts}{
 A list with forecasts for the external regressors in the mean and/or variance 
 equations if specified.}
+\item{mexsimdata}{
+List of matrices (size of list n.bootpred, with each matrix having n.ahead rows) of 
+simulated external regressor-in-mean data. If the fit object contains 
+external regressors in the mean equation, this must be provided else will be
+assumed zero.}
+\item{vexsimdata}{
+List of matrices (size of list n.bootpred, with each matrix having n.ahead rows) of 
+simulated external regressor-in-variance data. If the fit object contains 
+external regressors in the mean equation, this must be provided else will be
+assumed zero.}
 \item{parallel}{
 Whether to make use of parallel processing on multicore systems.}
 \item{parallel.control}{
@@ -78,7 +89,11 @@ consuming which is why the parallel option (as in the \code{\link{ugarchdistribu
 is available and recommended). The \dQuote{partial} method, only considers
 distribution uncertainty and while faster, will not generate prediction 
 intervals for the sigma 1-ahead forecast for which only the parameter 
-uncertainty is relevant in GARCH type models.
+uncertainty is relevant in GARCH type models.\cr
+If using external regressors, the routine requires both the forecast (of length
+n.ahead as in the \code{\link{ugarchforecast}} routine) and a list
+of simulated forecasts as in the \code{\link{ugarchsim}} routine (else with be 
+assumed zero).
 }
 \references{
 Pascual, L., Romo, J. and Ruiz, E. 2004, Bootstrap predictive inference for 

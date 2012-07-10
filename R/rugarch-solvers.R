@@ -348,6 +348,25 @@
 }
 
 
+# Constraints from Section 3.1 of Engle and Lee Paper
+.csgarchcon = function(pars, data, returnType, garchenv){
+	ipars = get("ipars", garchenv)
+	estidx = get("estidx", garchenv)
+	idx = get("model", garchenv)$pidx
+	modelinc = get("model", garchenv)$modelinc
+	ipars[estidx, 1] = pars
+	eta1 = ipars["eta11",1]
+	eta2 = ipars["eta21",1]
+	if(modelinc[9]>0) beta = sum(ipars[idx["beta",1]:idx["beta",2],1]) else beta = 0
+	if(modelinc[8]>0) alpha = sum(ipars[idx["alpha",1]:idx["alpha",2],1]) else alpha = 0
+	# \rho - alpha - beta > 0
+	c1 = eta1 - alpha - beta
+	# beta - \phi > 0
+	c2 = beta - eta2
+	return(c(c1, c2))
+	#return( 1-  ( (alpha + beta)*(1-eta1) + eta1 ) )
+}
+
 
 
 

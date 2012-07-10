@@ -255,7 +255,6 @@ void arfimafitC(int *model, double *pars, int *idx, double *x, double *res, doub
 	*llh=lk;
 }
 
-
 void arfimaxfilterC(int *model, double *pars, int *idx, double *x, double *res, double *mexdata,
 		double *zrf, double *constm, double *condm, double *h, int *m, int *T)
 {
@@ -268,3 +267,46 @@ void arfimaxfilterC(int *model, double *pars, int *idx, double *x, double *res, 
 	}
 }
 
+void csgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x, double *res,
+		double *e, double *mexdata, double *vexdata, double *zrf, double *constm, double *condm,
+		int *m, int *T, double *h, double *q, double *z, double *llh, double *LHT)
+{
+	int i;
+	double lk=0;
+	double hm = 0;
+	for(i=0; i<*m; i++)
+	{
+		h[i] = *hEst;
+		// Set to the long run intercept \omega/(1-\rho)
+		q[i] = pars[idx[6]]/(1.0-pars[idx[10]]);
+		h[i] = h[i] + q[i];
+		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
+		e[i] = res[i] * res[i];
+		//z[i] = res[i]/sqrt(fabs(h[i]));
+		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		lk = lk - LHT[i];
+	}
+	for (i=*m; i<*T; i++)
+	{
+		csgarchfilter(model, pars, idx, e, vexdata, *T, i, h, q);
+		hm = sqrt(fabs(h[i]));
+		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, hm, *m, i, *T);
+		e[i] = res[i] * res[i];
+		z[i] = res[i]/sqrt(fabs(h[i]));
+		LHT[i] = log(garchdistribution(z[i], hm, pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		lk = lk - LHT[i];
+	}
+	*llh=lk;
+}
+
+void csgarchsimC(int *model, double *pars, int *idx, double *h, double *q, double *z, double *res, double *e,
+		double *vexdata, int *T, int *m)
+{
+	int i;
+	for (i=*m; i<*T; i++)
+	{
+		csgarchfilter(model, pars, idx, e, vexdata, *T, i, h, q);
+		res[i]=pow(h[i], 0.5)*z[i];
+		e[i] = res[i]*res[i];
+	}
+}

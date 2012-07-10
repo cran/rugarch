@@ -87,7 +87,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	# variance model:
 	vmodel = list()
 		
-	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH", "fiGARCH")
+	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH", "csGARCH")
 	if(is.null(variance.model$model)){
 		modeldesc$vmodel = "sGARCH"
 	} else{
@@ -147,6 +147,10 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			modelinc[12] = modelinc[11] = modelinc[8]
 			modelinc[14] = 1
 		}
+	}
+	if( modeldesc$vmodel == "csGARCH" ){
+		modelinc[12] = modelinc[11] = 1
+		vmodel$variance.targeting = FALSE
 	}
 	if( modeldesc$vmodel == "iGARCH" && modelinc[9] == 0 ) 	stop("\nugarchspec-->error: the iGARCH model requires the GARCH beta parameter.\n", call. = FALSE)
 	
@@ -748,6 +752,8 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					apARCH = .aparchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
 							solver.control = solver.control, fit.control = fit.control, ...),
 					fGARCH = .fgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
+							solver.control = solver.control, fit.control = fit.control, ...),
+					csGARCH = .csgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
 							solver.control = solver.control, fit.control = fit.control, ...)) )
 }
 
@@ -759,7 +765,8 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					eGARCH = .egarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
 					gjrGARCH = .gjrgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
 					apARCH = .aparchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					fGARCH = .fgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...)) )
+					fGARCH = .fgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
+					csGARCH = .csgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...)) )
 }
 
 .ugarchforecast1 = function(fitORspec, data = NULL, n.ahead = 10, n.roll = 0, out.sample = 0, 
@@ -777,6 +784,8 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					apARCH = .aparchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...),
 					fGARCH = .fgarchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
+							out.sample = out.sample, external.forecasts = external.forecasts, ...),
+					csGARCH = .csgarchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...)) )
 }
 
@@ -795,6 +804,8 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					apARCH = .aparchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...),
 					fGARCH = .fgarchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
+							out.sample = out.sample, external.forecasts = external.forecasts, ...),
+					csGARCH = .csgarchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...)) )
 }
 
@@ -826,7 +837,11 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					fGARCH = .fgarchsim(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 							startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
 							preresiduals = preresiduals, rseed = rseed,  custom.dist = custom.dist, 
-							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...) ) )
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...),
+					csGARCH = .csgarchsim(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
+							startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
+							preresiduals = preresiduals, rseed = rseed,  custom.dist = custom.dist, 
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...)) )
 }
 
 .ugarchpath = function(spec, n.sim = 1000, n.start = 0, m.sim = 1, presigma = NA, prereturns = NA, preresiduals = NA, 
@@ -856,7 +871,11 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 					fGARCH = .fgarchpath(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 							presigma = presigma, prereturns = prereturns, preresiduals = preresiduals, 
 							rseed = rseed,  custom.dist = custom.dist, mexsimdata = mexsimdata, 
-							vexsimdata = vexsimdata, ...) ) )
+							vexsimdata = vexsimdata, ...),
+					csGARCH = .csgarchpath(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
+							presigma = presigma, prereturns = prereturns, preresiduals = preresiduals, 
+							rseed = rseed,  custom.dist = custom.dist, mexsimdata = mexsimdata, 
+							vexsimdata = vexsimdata, ...)) )
 }
 
 
@@ -961,7 +980,8 @@ setMethod("ugarchdistribution", signature(fitORspec = "uGARCHspec"), .ugarchdist
 ugarchboot = function(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, 
 		n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
 		solver.control = list(), fit.control = list(), external.forecasts =  list(mregfor = NULL, 
-				vregfor = NULL), parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+				vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, 
+		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 	setMethod("ugarchboot")
 }
@@ -1921,6 +1941,8 @@ setMethod("as.data.frame", signature(x = "uGARCHboot"), .ugarchbootdf)
 		prepad = FALSE)
 {
 	n = x@roll$n.ahead
+	if(n.ahead>1) warning("\nOnly n.ahead=1 is supported")
+	n.ahead = 1
 	if(n.ahead>n)
 		stop("n.ahead chosen exceeds roll object specification", call. = FALSE)
 	if(which == "sigma"){
@@ -2366,7 +2388,7 @@ halflife = function(object, pars, distribution = "norm", model = "sGARCH",
 {
 	ps = persistence(object)
 	hlf = log(0.5)/log(ps)
-	names(hlf) = "Half-Life"
+	#names(hlf) = "Half-Life"
 	return(hlf)
 }
 
@@ -2375,7 +2397,7 @@ halflife = function(object, pars, distribution = "norm", model = "sGARCH",
 {
 	ps = persistence(pars = pars, distribution = distribution, model = model, submodel = submodel)
 	hlf = log(0.5)/log(ps)
-	names(hlf) = "Half-Life"
+	#names(hlf) = "Half-Life"
 	return(hlf)
 }
 setMethod("halflife",signature(object = "uGARCHfilter", pars = "missing", 
@@ -2405,7 +2427,7 @@ persistence = function(object, pars, distribution = "norm", model = "sGARCH",
 .filterpersistence = function(object)
 {
 	ans = object@filter$persistence
-	names(ans) = "persistence"
+	#names(ans) = "persistence"
 	return(ans)
 }
 setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing", 
@@ -2427,8 +2449,9 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			gjrGARCH = .persistgjrgarch1(pars, idx, distribution),
 			apARCH = .persistaparch1(pars, idx, distribution),
 			fGARCH = .persistfgarch1(pars, idx, distribution, vsubmodel),
+			csGARCH = .persistcsgarch1(pars, idx, distribution),
 			iGARCH = 1)
-	names(ans) = "persistence"
+	#names(ans) = "persistence"
 	return(ans)
 }
 
@@ -2463,8 +2486,9 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			gjrGARCH = .persistgjrgarch1(pars, idx, distribution),
 			apARCH = .persistaparch1(pars, idx, distribution),
 			fGARCH = .persistfgarch1(pars, idx, distribution, vsubmodel),
+			csGARCH = .persistcsgarch1(pars, idx, distribution),
 			iGARCH = 1)
-	names(ans) = "persistence"
+	#names(ans) = "persistence"
 	return(ans)
 }
 
@@ -2478,8 +2502,9 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			gjrGARCH = .persistgjrgarch2(pars, distribution),
 			apARCH = .persistaparch2(pars, distribution),
 			fGARCH = .persistfgarch2(pars, distribution, submodel),
+			csGARCH = .persistcsgarch2(pars, distribution),
 			iGARCH = 1)
-	names(ans) = "persistence"
+	#names(ans) = "persistence"
 	return(ans)
 }
 
@@ -2515,6 +2540,41 @@ setMethod("persistence",signature(object = "missing", pars = "numeric",
 	}
 	ps = sum(alpha) + sum(beta)	
 	return(ps)
+}
+
+
+.persistcsgarch1 = function(pars, idx, distribution = "norm"){
+	ps1 = sum(pars[idx["alpha",1]:idx["alpha",2]]) + sum(pars[idx["beta",1]:idx["beta",2]])
+	ps2 = pars[idx["eta1",1]]
+	names(ps1) = "Transitory"
+	names(ps2) = "Permanent"
+	return(c(ps1, ps2))
+}
+
+.persistcsgarch2 = function(pars, idx, distribution = "norm"){	
+	Names = names(pars)
+	if(any(substr(Names, 1, 5)=="alpha")){
+		i = which(substr(Names, 1, 5)=="alpha")
+		alpha = pars[i]
+	} else{
+		alpha = 0
+	}	
+	if(any(substr(Names, 1, 4)=="beta")){
+		i = which(substr(Names, 1, 4)=="beta")
+		beta = pars[i]
+	} else{
+		beta = 0
+	}
+	ps1 = sum(alpha) + sum(beta)
+	if(any(substr(Names, 1, 5)=="eta11")){
+		i = which(substr(Names, 1, 5)=="eta11")
+		ps2 = pars[i]
+	} else{
+		ps2 = 0
+	}
+	names(ps1) = "Transitory"
+	names(ps2) = "Permanent"
+	return(c(ps1, ps2))
 }
 
 .persistgjrgarch1 = function(pars, idx, distribution = "norm"){	
@@ -2812,9 +2872,10 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			gjrGARCH = .uncgjrgarch1(pars, idx, distribution, vexdata),
 			apARCH = .uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = .uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
+			csGARCH = .unccsgarch1(pars, idx, distribution, vexdata),
 			iGARCH = Inf)
-	names(ans) = "unconditional"
-	return(ans)
+	#names(ans) = "unconditional"
+	return(unname(ans))
 }
 
 .unconditional2 = function(object)
@@ -2851,9 +2912,10 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			gjrGARCH = 	.uncgjrgarch1(pars, idx, distribution, vexdata),
 			apARCH = 	.uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = 	.uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
+			csGARCH = 	.unccsgarch1(pars, idx, distribution, vexdata),
 			iGARCH = 	Inf)
-	names(ans) = "unconditional"
-	return(ans)
+	#names(ans) = "unconditional"
+	return(unname(ans))
 }
 
 .unconditional3 = function(object)
@@ -2871,9 +2933,10 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			gjrGARCH = 	.uncgjrgarch1(pars, idx, distribution, vexdata),
 			apARCH = 	.uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = 	.uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
+			csGARCH = 	.unccsgarch1(pars, idx, distribution, vexdata),
 			iGARCH = 	Inf)
-	names(ans) = "unconditional"
-	return(ans)
+	#names(ans) = "unconditional"
+	return(unname(ans))
 }
 
 .unconditional4 = function(pars, distribution = "norm", model = "sGARCH", 
@@ -2885,9 +2948,10 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			gjrGARCH = 	.uncgjrgarch2(pars, distribution, vexdata),
 			apARCH = 	.uncaparch2(pars, distribution, vexdata),
 			fGARCH = 	.uncfgarch2(pars, distribution, submodel, vexdata),
+			csGARCH = 	.unccsgarch2(pars, distribution, vexdata),
 			iGARCH = 	Inf)
-	names(ans) = "unconditional"
-	return(ans)
+	#names(ans) = "unconditional"
+	return(unname(ans))
 }
 
 
@@ -3154,6 +3218,53 @@ setMethod("uncvariance", signature(object = "missing", pars = "numeric",
 	return(uvol)
 }
 
+
+
+
+.unccsgarch1 = function(pars, idx, distribution = "norm", vexdata = NULL){
+	if(!is.null(vexdata)){
+		vxreg = pars[idx["vxreg",1]:idx["vxreg",2]]
+		meanvex = apply(vexdata, 2, "mean")
+		umeanvex = sum(vxreg*meanvex)
+	} else{
+		umeanvex = 0
+	}
+	omega = pars[idx["omega",1]:idx["omega",2]]
+	ps = pars[idx["eta1",1]]
+	uvol = (umeanvex+omega)/(1-ps)
+	return(uvol)
+}
+
+.unccsgarch2 = function(pars, distribution = "norm", vexdata = NULL){
+	Names = names(pars)
+	if(!is.null(vexdata)){
+		if(any(substr(Names, 1, 5) == "vxreg")){
+			i = which(substr(Names, 1, 5) == "vxreg")
+			vxreg = pars[i]
+		} else{
+			vxreg = 0
+		}
+		meanvex = apply(vexdata, 2, "mean")
+		umeanvex = sum(vxreg*meanvex)
+	} else{
+		umeanvex = 0
+	}
+	if(any(substr(Names, 1, 5) == "omega")){
+		i = which(substr(Names, 1, 5) == "omega")
+		omega = pars[i]
+	} else{
+		omega = 0
+	}
+	if(any(substr(Names, 1, 5) == "eta11")){
+		i = which(substr(Names, 1, 5) == "eta11")
+		rho = pars[i]
+	} else{
+		rho = 1
+	}
+	uvol = (umeanvex+omega)/(1-rho)
+	return(uvol)
+}
+
 # Unconditional Mean
 uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000, rseed = NA)
 {
@@ -3209,11 +3320,11 @@ uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000
 		}
 		if(modelinc[1]>0) mu = pars[idx["mu",1]] else mu=0
 		umean = (mu + umeangim + umeanmex)
-		return(umean)
+		return(unname(umean))
 	 } else{
 		 sim = ugarchsim(object, n.sim = n.sim, n.start = 1000, startMethod = "sample", rseed = rseed)
 		 umean = mean(sim@simulation$seriesSim[,1])
-		 return(umean)
+		return(unname(umean))
 	 }
 }
 
@@ -3276,11 +3387,11 @@ uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000
 		}
 		if(modelinc[1]>0) mu = pars[idx["mu",1]] else mu=0
 		umean = (mu + umeangim + umeanmex)
-		return(umean)
+		return(unname(umean))
 	}  else{
 		sim = ugarchpath(object, n.sim = n.sim, n.start = 1000, rseed = rseed)
 		umean = mean(sim@path$seriesSim[,1])
-		return(umean)
+		return(unname(umean))
 	}
 }
 setMethod("uncmean", signature(object = "uGARCHfit"),    definition = .unconditionalmean1)
@@ -3423,7 +3534,7 @@ fpm = function( object, summary = TRUE, ...)
 			dt = rownames(forecast)
 			actual = Data[match(dt, as.character(Dates))]
 			DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-			tmp = c(mean( (forecast - actual)^2 ), mean(abs(forecast - actual)), mean(DAC), length(forecast[,1]))
+			tmp = c(colMeans( (forecast - actual)^2 ), colMeans(abs(forecast - actual)), mean(DAC), length(forecast[,1]))
 			ans[, i] = tmp
 			dtx[i] = paste(dt[1], " - ", dt[length(dt)], sep = "")
 		}

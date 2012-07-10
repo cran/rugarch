@@ -502,7 +502,10 @@ VaRDurTest = function(alpha, actual, VaR, conf.level = 0.95){
 }
 
 #####################################################################################
-GMMTest = function(z, lags = 1, skew=0, kurt=0, conf.level = 0.95){
+# CHANGELOG (15-08-2012): Changed kurt argument in GMMTest to default of 3 (Normal) 
+# ...was badly set at 0. 
+
+GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 	if(length(skew)>1) sk = skew[-c(1:lags)] else sk = skew
 	if(length(kurt)>1) ku = kurt[-c(1:lags)] else ku = kurt
 	z = matrix(z, ncol = 1)

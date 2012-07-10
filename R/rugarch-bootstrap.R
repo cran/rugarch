@@ -29,7 +29,7 @@
 
 .ugarchbootfit = function(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, n.bootfit = 100, 
 		n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", solver.control = list(), fit.control = list(), 
-		external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
+		external.forecasts =  list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, parallel = FALSE, 
 		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 
@@ -38,35 +38,40 @@
 			partial = .ub1p1(fitORspec, data = data, n.ahead = n.ahead, n.bootfit = n.bootfit, 
 						n.bootpred = n.bootpred, rseed = rseed, solver.control = solver.control, 
 						fit.control = fit.control, external.forecasts =  external.forecasts, 
+						mexsimdata = mexsimdata, vexsimdata = vexsimdata,
 						parallel = parallel, parallel.control = parallel.control),
 			full = .ub1f1(fitORspec, data = data, n.ahead = n.ahead, n.bootfit = n.bootfit, 
 					n.bootpred = n.bootpred, rseed = rseed, solver = solver, solver.control = solver.control, 
 					fit.control = fit.control, external.forecasts =  external.forecasts, 
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata,
 					parallel = parallel, parallel.control = parallel.control))
 	return(ans)
 }
 
 .ugarchbootspec = function(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, n.bootfit = 100, 
 		n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", solver.control = list(), fit.control = list(), 
-		external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+		external.forecasts =  list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, 
+		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 	method = tolower(method)
 	ans = switch(method,
 			partial = .ub1p2(fitORspec, data = data, n.ahead = n.ahead, n.bootfit = n.bootfit, 
 					n.bootpred = n.bootpred, out.sample = out.sample, rseed = rseed, solver.control = solver.control, 
 					fit.control = fit.control, external.forecasts =  external.forecasts, 
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata,
 					parallel = parallel, parallel.control = parallel.control),
 			full = .ub1f2(fitORspec, data = data, n.ahead = n.ahead, n.bootfit = n.bootfit, 
 					n.bootpred = n.bootpred, out.sample = out.sample, rseed = rseed, solver = solver, 
 					solver.control = solver.control, fit.control = fit.control, external.forecasts =  external.forecasts, 
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata,
 					parallel = parallel, parallel.control = parallel.control))
 	return(ans)
 }
 
 # method from a fit object
 .ub1f1 = function(fitORspec, data = NULL, n.ahead = 10, n.bootfit = 100, n.bootpred = 500, rseed = NA, solver = "solnp",
-		solver.control = list(), fit.control = list(), external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
+		solver.control = list(), fit.control = list(), external.forecasts =  list(mregfor = NULL, vregfor = NULL), 
+		mexsimdata = NULL, vexsimdata = NULL, parallel = FALSE, 
 		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 	
@@ -119,7 +124,7 @@
 	paths = ugarchsim(fit, n.sim = N, m.sim = n.bootfit, presigma = tail(fit@fit$sigma, m), 
 			prereturns = tail(model$modeldata$data[1:N], m), preresiduals = tail(residuals(fit), m), 
 			startMethod = "sample", custom.dist = list(name = "sample", distfit = as.matrix(empz)),
-			rseed = sseed1, mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
+			rseed = sseed1, mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 	fitlist = vector(mode="list", length = n.bootfit)
 	path.df = as.data.frame(paths, which = "series")
 	spec = getspec(fit)
@@ -227,17 +232,17 @@
 							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-							mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor), 
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata), 
 				mc.cores = parallel.control$cores)
 		} else{
 			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("fitlist", "n.ahead", "n.bootpred", "n.bootfit", "st", "xdat", "sseed", "empzlist",
-					"external.forecasts", local = TRUE)
+					"mexsimdata", "vexsimdata", local = TRUE)
 			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor))
+								mexsimdata = mexsimdata, vexsimdata = vexsimdata))
 			sfStop()
 		}
 	} else{
@@ -247,7 +252,7 @@
 					m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 					n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 					custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-					mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 			# reduce memory
 			empzlist[[i]] = 0
 			gc(verbose = FALSE)
@@ -274,7 +279,7 @@
 
 	# now we have the bootstrapped distribution of n.ahead forecast values
 	# original forecast
-	forc = ugarchforecast(fitORspec = fit, n.ahead = n.ahead, n.roll = 0, external.forecasts = external.forecasts) 	
+	forc = ugarchforecast(fitORspec = fit, n.ahead = n.ahead, n.roll = 0, external.forecasts = external.forecasts)
 	model$truecoef = coef(fit)
 	model$modeldata$realized.x = realized.x
 	model$modeldata$filtered.s = filtered.s
@@ -298,7 +303,7 @@
 # method from a spec object
 .ub1f2 = function(fitORspec, data = NULL, n.ahead = 10, n.bootfit = 100, 
 		n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", solver.control = list(), fit.control = list(), 
-		external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
+		external.forecasts =  list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, parallel = FALSE, 
 		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 
@@ -348,7 +353,7 @@
 	paths = ugarchpath(spec, n.sim = N, m.sim = n.bootfit, presigma = tail(flt@filter$sigma, m), 
 			prereturns = tail(xdata[1:N], m), preresiduals = tail(residuals(flt), m), rseed = sseed1,
 			n.start = 0, custom.dist = list(name = "sample", distfit = as.matrix(empz)), 
-			mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
+			mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 	fitlist = vector(mode="list", length = n.bootfit)
 	path.df = as.data.frame(paths, which = "series")
 	rownames(path.df) = as.character(flt@model$modeldata$dates[1:N])
@@ -462,17 +467,17 @@
 								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor), 
+								mexsimdata = mexsimdata, vexsimdata = vexsimdata), 
 					mc.cores = parallel.control$cores)
 		} else{
 			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("fitlist", "n.ahead", "n.bootpred", "n.bootfit", "st", "xdat", "sseed", "empzlist",
-					"external.forecasts", local = TRUE)
+					"mexsimdata", "vexsimdata", local = TRUE)
 			tmp = sfLapply(as.list(1:n.bootfit), fun = function(i) rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 								m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 								n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 								custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-								mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor))
+								mexsimdata = mexsimdata, vexsimdata = vexsimdata))
 			sfStop()
 		}
 	} else{
@@ -482,7 +487,7 @@
 					m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
 					n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 					custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-					mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 			empzlist[[i]] = 0
 			gc(verbose = FALSE)
 		}
@@ -527,8 +532,8 @@
 # Partial method (very fast but does not take into account the parameter uncertainty)
 .ub1p1 = function(fitORspec, data = NULL, n.ahead = 10, n.bootfit = 100, 
 		n.bootpred = 500, rseed = NA, solver.control = list(), fit.control = list(),
-		external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+		external.forecasts =  list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, 
+		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 	fit = fitORspec
 	model = fit@model
@@ -576,14 +581,14 @@
 	sim = ugarchsim(fit, n.sim = n.ahead, m.sim = n.bootpred, 
 				presigma = st, prereturns = tail(xdata[1:N], m), preresiduals = tail(residuals(fit), m),
 				rseed = sseed, n.start = 0, startMethod = "sample", custom.dist = list(name = "sample", distfit = empz),
-				mexsimdata = external.forecasts$mregfor, vexsimdata = external.forecasts$vregfor)
+				mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 	# we transpose to get n.boot x n.ahead
 	forcseries = t(sim@simulation$seriesSim)
 	forcsigma =  t(sim@simulation$sigmaSim)
 	
 	# now we have the bootstrapped distribution of n.ahead forecast values
 	# original forecast
-	forc = ugarchforecast(fitORspec = fit, n.ahead = n.ahead, n.roll = 0, external.forecasts = external.forecasts) 
+	forc = ugarchforecast(fitORspec = fit, n.ahead = n.ahead, n.roll = 0, external.forecasts = external.forecasts)
 	coefdist = as.data.frame(coef(fit))
 	model$truecoef = coef(fit)
 	model$modeldata$realized.x = realized.x
@@ -604,8 +609,8 @@
 # using spec method
 .ub1p2 = function(fitORspec, data = NULL, n.ahead = 10, n.bootfit = 100, 
 		n.bootpred = 500, out.sample = 0, rseed = NA, solver.control = list(), fit.control = list(), 
-		external.forecasts =  list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+		external.forecasts =  list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, 
+		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
 {
 	spec = fitORspec
 	if(is.null(data))
@@ -654,8 +659,7 @@
 	sim = ugarchpath(spec, n.sim = n.ahead, m.sim = n.bootpred, presigma = tail(sigma, m),
 				prereturns = tail(xdata[1:N], m), preresiduals = tail(flt@filter$residuals, m),
 				rseed = sseed, n.start = 0, custom.dist = list(name = "sample", 
-						distfit = as.matrix(empz)), mexsimdata = external.forecasts$mregfor, 
-				vexsimdata = external.forecasts$vregfor)
+						distfit = as.matrix(empz)), mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 	# we transpose to get n.boot x n.ahead
 	forcseries = t(sim@path$seriesSim)
 	forcsigma =  t(sim@path$sigmaSim)

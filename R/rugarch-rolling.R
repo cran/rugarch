@@ -23,6 +23,7 @@
 		solver = "solnp", fit.control = list(), solver.control = list(),
 		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
 {
+	if(n.ahead>1) stop("\nugarchroll:--> n.ahead>1 not supported...try again.")
 	if( parallel ){
 		os = .Platform$OS.type
 		if(is.null(parallel.control$pkg)){
@@ -47,7 +48,7 @@
 	T = length(data)
 	startT = T-forecast.length
 	# forecast window index
-	fwindex = t( .embed((T - forecast.length - n.ahead + 2):T, refit.every, by = refit.every, TRUE ) )
+	fwindex = t( .embed((T - forecast.length + 1):T, refit.every, by = refit.every, TRUE ) )
 	#forecast.length = dim(fwindex)[1] * dim(fwindex)[2]
 	fitindx.start = c(fwindex[1,]-1)
 	fwindex.end = fwindex[refit.every,]
@@ -155,7 +156,7 @@
 						}
 						return(ans)
 					})
-			sfStop()
+			#sfStop()
 		}
 	} else{
 		for(i in 1:nf){
@@ -198,7 +199,7 @@
 				mc.cores = parallel.control$cores)
 		} else{
 			nx = length(fitlist)
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
+			#sfInit(parallel = TRUE, cpus = parallel.control$cores)
 			sfExport("fitlist", "n.ahead", "fmexdata", "fvexdata", "modelinc", "refit.every", local = TRUE)
 			forecastlist = sfLapply(as.list(1:nx), fun = function(i) rugarch::ugarchforecast(fitlist[[i]], 
 								n.ahead = n.ahead, n.roll = refit.every-1, 
@@ -214,163 +215,75 @@
 
 	eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
 	for(i in 1:nf){
-		filter.sigma[eindex[,i]] = forecastlist[[i]]@model$modeldata$sigma[(fitindx.start[i]
-							+1):(fitindx.start[i]+refit.every)]
+		filter.sigma[eindex[,i]] = tail(forecastlist[[i]]@model$modeldata$sigma, refit.every)
 	}
-	# collect forecasts [mu sigma (skew shape)]
-	# 2 cases : n.ahead = 1 we use a matrix, else
-	# n.ahead > 1 we use a list object
-	if(n.ahead == 1){
-		fser = as.numeric(sapply(forecastlist,FUN=function(x) sapply(x@forecast$forecasts, FUN=function(x) x[,2])))
-		fsig = as.numeric(sapply(forecastlist,FUN=function(x) sapply(x@forecast$forecasts, FUN=function(x) x[,1])))
-		fdates = dates[as.numeric(fwindex)]
-		rdat = data[(fitindx.start[1]+1):(fitindx.start[1] + forecast.length + 1 - 1)]
-		eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
-		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
-		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
-		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
-		if(distribution == "ghst") ghlambda.f = sapply(fitlist,FUN=function(x) -coef(x)["shape"]/2)
-		fmatrix = matrix(NA, ncol = 5, nrow = forecast.length)
-		colnames(fmatrix) = c("muf", "sigmaf", "ghlambdaf", "skewf", "shapef")
-		fmatrix[,1] = fser
-		fmatrix[,2] = fsig
-		for(i in 1:dim(eindex)[2]){
-			fmatrix[eindex[,i], 3] = rep(if(modelinc[18]>0 || distribution == "ghst") ghlambda.f[i] else 0, refit.every)
-			fmatrix[eindex[,i], 4] = rep(if(modelinc[16]>0) skew.f[i] else 0, refit.every)
-			fmatrix[eindex[,i], 5] = rep(if(modelinc[17]>0) shape.f[i] else 0, refit.every)
+	fser = as.numeric(sapply(forecastlist,FUN=function(x) sapply(x@forecast$forecasts, FUN=function(x) x[,2])))
+	fsig = as.numeric(sapply(forecastlist,FUN=function(x) sapply(x@forecast$forecasts, FUN=function(x) x[,1])))
+	fdates = dates[as.numeric(fwindex)]
+	rdat = data[(fitindx.start[1]+1):(fitindx.start[1] + forecast.length)]
+	#eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
+	if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
+	if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
+	if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
+	if(distribution == "ghst") ghlambda.f = sapply(fitlist,FUN=function(x) -coef(x)["shape"]/2)
+	fmatrix = matrix(NA, ncol = 5, nrow = forecast.length)
+	colnames(fmatrix) = c("muf", "sigmaf", "ghlambdaf", "skewf", "shapef")
+	fmatrix[,1] = fser
+	fmatrix[,2] = fsig
+	for(i in 1:dim(eindex)[2]){
+		fmatrix[eindex[,i], 3] = rep(if(modelinc[18]>0 || distribution == "ghst") ghlambda.f[i] else 0, refit.every)
+		fmatrix[eindex[,i], 4] = rep(if(modelinc[16]>0) skew.f[i] else 0, refit.every)
+		fmatrix[eindex[,i], 5] = rep(if(modelinc[17]>0) shape.f[i] else 0, refit.every)
+	}
+	#re - scale the fmatrix to returns-based density
+	smatrix = .scaledist(dist = distribution, fmatrix[,1], fmatrix[,2], fmatrix[,3], fmatrix[,4], fmatrix[,5])
+	#fdates = dates[as.numeric(fwindex)]
+	fdensity = vector(mode = "list", length = 1)
+	f01density = vector(mode = "list", length = 1)
+	fdensity[[1]] = data.frame(fdate = fdates, fmu=smatrix[,1], fsigma=smatrix[,2], fdlambda = fmatrix[,3], fskew=smatrix[,3], fshape=smatrix[,4])
+	f01density[[1]] = data.frame(f01date=fdates, f01mu=fmatrix[,1], f01sigma=fmatrix[,2], f01ghlambda = fmatrix[,3], f01skew=fmatrix[,4], f01shape=fmatrix[,5])
+	if(calculate.VaR){
+		VaR.list = vector(mode="list", length = 1)
+		cat("\n...calculating VaR...\n")
+		if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
+		n.v = dim(fdensity[[1]])[1]
+		m.v = length(VaR.alpha)
+		VaR.matrix = matrix(NA, ncol = m.v + 1, nrow = n.v)
+		for(i in 1:m.v){
+			VaR.matrix[,i] = .qdensity(rep(VaR.alpha[i], n.v) , mu = smatrix[,1], sigma = smatrix[,2], lambda = fmatrix[,3], 
+					skew = smatrix[,3], shape = smatrix[,4], distribution = distribution)
 		}
-		#re - scale the fmatrix to returns-based density
-		smatrix = .scaledist(dist = distribution, fmatrix[,1], fmatrix[,2], fmatrix[,3], fmatrix[,4], fmatrix[,5])
-		#fdates = dates[as.numeric(fwindex)]
-		fdensity = vector(mode = "list", length = 1)
-		f01density = vector(mode = "list", length = 1)
-		fdensity[[1]] = data.frame(fdate = fdates, fmu=smatrix[,1], fsigma=smatrix[,2], fdlambda = fmatrix[,3], fskew=smatrix[,3], fshape=smatrix[,4])
-		f01density[[1]] = data.frame(f01date=fdates, f01mu=fmatrix[,1], f01sigma=fmatrix[,2], f01ghlambda = fmatrix[,3], f01skew=fmatrix[,4], f01shape=fmatrix[,5])
-		if(calculate.VaR){
-			VaR.list = vector(mode="list", length = 1)
-			cat("\n...calculating VaR...\n")
-			if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
-			n.v = dim(fdensity[[1]])[1]
-			m.v = length(VaR.alpha)
-			VaR.matrix = matrix(NA, ncol = m.v + 1, nrow = n.v)
-			for(i in 1:m.v){
-				VaR.matrix[,i] = .qdensity(rep(VaR.alpha[i], n.v) , mu = smatrix[,1], sigma = smatrix[,2], lambda = fmatrix[,3], 
-						skew = smatrix[,3], shape = smatrix[,4], distribution = distribution)
-			}
-			VaR.matrix[,m.v+1] = unlist(outdata)
-			colnames(VaR.matrix) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "actual")
-			rownames(VaR.matrix) = as.character(fdates)
-			VaR.list[[1]] = VaR.matrix
-			cat("\nDone!\n")
-		} else{
-			VaR.matrix = NULL
-			VaR.alpha = NULL
-		}
-		rolllist = list()
-		rolllist$n.refit = nf
-		rolllist$refit.every = refit.every
-		rolllist$fdensity = fdensity
-		rolllist$f01density = f01density
-		rolllist$coefs = coefv
-		rolllist$coefmat = coefmat
-		rolllist$LLH = LLH
-		rolllist$VaR.out = VaR.list
-		rolllist$n.ahead = n.ahead
-		rolllist$forecast.length = forecast.length
-		rolllist$VaR.alpha =VaR.alpha
-		model$modeldata$filterseries = filter.series
-		model$modeldata$filtersigma = filter.sigma
-		model$modeldata$data = data
-		model$modeldata$dates = dates
-		model$modeldata$dates.format = xdata$dformat
-		model$modeldata$datanames = datanames
-		ans = new("uGARCHroll",
-				roll = rolllist,
-				forecast = forecastlist,
-				model = model)
+		VaR.matrix[,m.v+1] = unlist(outdata)
+		colnames(VaR.matrix) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "actual")
+		rownames(VaR.matrix) = as.character(fdates)
+		VaR.list[[1]] = VaR.matrix
+		cat("\nDone!\n")
 	} else{
-		eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
-		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
-		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
-		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
-		if(distribution == "ghst") ghlambda.f = sapply(fitlist,FUN=function(x) -coef(x)["shape"]/2)
-		
-		# split the array into 1:n-day ahead forecasts
-		flist = vector(mode="list", length = n.ahead)
-		f01density = vector(mode="list", length = n.ahead)
-		fdensity = vector(mode="list", length = n.ahead)
-		for(i in 1:n.ahead){
-			fsig  = unlist(lapply(forecastlist, FUN=function(x) sapply(x@forecast$forecast, FUN=function(x) x[i,1])))
-			fser =  unlist(lapply(forecastlist, FUN=function(x) sapply(x@forecast$forecast, FUN=function(x) x[i,2])))
-			rdat = data[(fitindx.start[1]+i):(fitindx.start[1] + forecast.length + i - 1)]
-			fdates = as.character(dates[(fitindx.start[1]+i):(fitindx.start[1] + forecast.length + i - 1)])
-			flist[[i]] = fdensity[[i]] = f01density[[i]] = matrix(NA, ncol = 5, nrow = forecast.length)	
-			f01density[[i]][,1] = fser
-			f01density[[i]][,2] = fsig
-			for(j in 1:dim(eindex)[2]){
-				f01density[[i]][eindex[,j],3] = rep(if(modelinc[18]>0) ghlambda.f[j] else 0, refit.every)
-				f01density[[i]][eindex[,j],4] = rep(if(modelinc[16]>0) skew.f[j] else 0, refit.every)
-				f01density[[i]][eindex[,j],5] = rep(if(modelinc[17]>0) shape.f[j] else 0, refit.every)
-			}
-			fdensity[[i]] = .scaledist(dist = distribution, f01density[[i]][,1], f01density[[i]][,2], f01density[[i]][,3], f01density[[i]][,4], f01density[[i]][,5])
-			fdensity[[i]] = as.data.frame(fdensity[[i]])
-			f01density[[i]] = as.data.frame(f01density[[i]])
-			
-			fdensity[[i]] = cbind(fdates, fdensity[[i]])
-			
-			f01density[[i]] = cbind(fdates, f01density[[i]])
-			
-			colnames(fdensity[[i]])  = c("fdate", "fmu", "fsigma", "fskew", "fshape")
-			colnames(f01density[[i]]) = c("f01date", "f01mu", "f01sigma", "f01ghlambda", "f01skew", "f01shape")
-		}
-		if(calculate.VaR){
-			# should consider implementing mclapply here as well
-			cat("\n...calculating VaR...\n")
-			if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
-			n.v = forecast.length
-			m.v = length(VaR.alpha)
-			VaR.list = vector(mode="list", length = n.ahead)
-			for(j in 1:n.ahead){
-				VaR.list[[j]] = matrix(NA, ncol = m.v+1, nrow = n.v)
-				for(i in 1:m.v){
-					VaR.list[[j]][,i] = .qdensity(rep(VaR.alpha[i], n.v) , mu = fdensity[[j]][,2],
-							sigma = fdensity[[j]][,3], lambda = f01density[[i]][,3], skew = fdensity[[j]][,4], 
-							shape = fdensity[[j]][,5],distribution = distribution)
-				}
-				VaR.list[[j]][,m.v+1] = data[(fitindx.start[1]+j):(fitindx.start[1] + forecast.length + j - 1)]
-				colnames(VaR.list[[j]]) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "actual")
-				rownames(VaR.list[[j]]) = as.character(dates[(fitindx.start[1]+j):(fitindx.start[1] + forecast.length + j - 1)])
-			}
-			cat("\nDone!\n")
-		} else{
-			VaR.list = NULL
-			VaR.alpha = NULL
-		}
-		rolllist = list()
-		rolllist$n.refit = nf
-		rolllist$refit.every = refit.every
-		rolllist$garchmodel = model
-		rolllist$fdensity = fdensity
-		rolllist$f01density = f01density
-		rolllist$coefs = coefv
-		rolllist$coefmat = coefmat
-		rolllist$LLH = LLH
-		rolllist$VaR.out = VaR.list
-		rolllist$n.ahead = n.ahead
-		rolllist$forecast.length = forecast.length
-		rolllist$VaR.alpha =VaR.alpha
-		model$modeldata$filterseries = filter.series
-		model$modeldata$filtersigma = filter.sigma
-		model$modeldata$data = data
-		model$modeldata$dates = dates
-		model$modeldata$dates.format = xdata$dformat
-		model$modeldata$datanames = datanames
-		
-		ans = new("uGARCHroll",
-				roll = rolllist,
-				forecast = forecastlist,
-				model = model)
+		VaR.matrix = NULL
+		VaR.alpha = NULL
 	}
+	rolllist = list()
+	rolllist$n.refit = nf
+	rolllist$refit.every = refit.every
+	rolllist$fdensity = fdensity
+	rolllist$f01density = f01density
+	rolllist$coefs = coefv
+	rolllist$coefmat = coefmat
+	rolllist$LLH = LLH
+	rolllist$VaR.out = VaR.list
+	rolllist$n.ahead = n.ahead
+	rolllist$forecast.length = forecast.length
+	rolllist$VaR.alpha =VaR.alpha
+	model$modeldata$filterseries = filter.series
+	model$modeldata$filtersigma = filter.sigma
+	model$modeldata$data = data
+	model$modeldata$dates = dates
+	model$modeldata$dates.format = xdata$dformat
+	model$modeldata$datanames = datanames
+	ans = new("uGARCHroll",
+			roll = rolllist,
+			forecast = forecastlist,
+			model = model)
 	return(ans)
 }
 

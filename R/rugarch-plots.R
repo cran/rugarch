@@ -372,10 +372,10 @@
 	if(vmodel == "iGARCH"){
 		warning(paste("\nplot-->: iGARCH newsimpact not available"))
 	} else{
-		ni	= newsimpact(z = NULL, x)
+		ni = newsimpact(z = NULL, x)
 		ni.y = ni$zy
 		ni.x = ni$zx
-		xf	= ni$xexpr
+		xf = ni$xexpr
 		yf  = ni$yexpr
 		plot( ni.x, ni.y, ylab = yf, xlab = xf, type = "l", lwd = 2, col = "steelblue", main = "News Impact Curve", cex.main = 0.8)
 		#mtext(yf, side = 2, adj = 0.5, padj = -2.5, cex = 0.85)
@@ -1308,10 +1308,9 @@
 	distribution = x@model$modeldesc$distribution
 	forecast.length = x@roll$forecast.length
 	# we plot a maximum of 500 forecasts
-	n = min(500, forecast.length)
-	esd = seq(1,n, by = round(n/5,0))
-	colr = topo.colors(n, alpha = 1)
-	if(n.ahead > n) stop("\nplot-->error: n.ahead chosen is not valid for object\n", call.=FALSE)
+	esd = floor(seq(1,forecast.length, length.out = min(500, forecast.length)))
+	nesd = length(esd)
+	colr = topo.colors(nesd, alpha = 1)
 	if(is.vector(fdensity)){
 		xden = fdensity[[n.ahead]][,-1]
 		xdate =  as.Date(as.character(fdensity[[n.ahead]][,"fdate"]), format = "%Y-%m-%d")
@@ -1322,18 +1321,19 @@
 		if(is.na(xdate[1])) xdate = as.character(fdensity[,"fdate"])
 	}
 	xseq = seq(density.support[1], density.support[2], length.out=1000)
-	yseq = apply(as.data.frame(2:n), 1, FUN=function(i)  
-				.ddensity(xseq, mu = xden[i,"fmu"], sigma = xden[i,"fsigma"], 
-						lambda = xden[i,"fdlambda"], skew = xden[i,"fskew"], shape = xden[i,"fshape"], 
+	yseq = apply(as.data.frame(2:nesd), 1, FUN=function(i)  
+				.ddensity(xseq, mu = xden[esd[i],"fmu"], sigma = xden[esd[i],"fsigma"], 
+						lambda = xden[esd[i],"fdlambda"], skew = xden[esd[i],"fskew"], shape = xden[esd[i],"fshape"], 
 						distribution = distribution))
 	plot(xseq, .ddensity(xseq, mu = xden[1,"fmu"], sigma = xden[1,"fsigma"], 
 					lambda = xden[1,"fdlambda"], skew = xden[1,"fskew"], shape = xden[1,"fshape"], 
 					distribution = distribution), type="l", col = "steelblue", 
 			main = paste("n.ahead-", n.ahead," Forecast Density (time varying)",sep=""), ylab="", cex.main = 0.7)
-	for(i in 1:(n-1)){
+	for(i in 1:(nesd-1)){
 		lines(xseq, yseq[,i], col = colr[i+1])
 	}
-	legend("topright", legend = as.character(xdate[esd]), fill = colr[esd], col = colr[esd], bty = "n")
+	xesd = floor(seq(1,length(esd), length.out = 5))
+	legend("topright", legend = as.character(xdate[esd[xesd]]), fill = colr[xesd], col = colr[xesd], bty = "n")
 	invisible(x)
 }
 

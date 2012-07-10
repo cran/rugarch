@@ -8,7 +8,7 @@ Implements the GMM Orthogonality Test of Hansen.
 
 }
 \usage{
-GMMTest(z, lags = 1, skew=0, kurt=0, conf.level = 0.95)
+GMMTest(z, lags = 1, skew=0, kurt=3, conf.level = 0.95)
 }
 \arguments{
 \item{z}{
