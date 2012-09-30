@@ -23,7 +23,7 @@ A positive integer indicating the number of periods before the last to keep for
 out of sample forecasting (see details).}
 \item{solver}{
 One of either \dQuote{nlminb}, \dQuote{solnp}, \dQuote{lbfgs}, 
-\dQuote{gosolnp} or \dQuote{nloptr}. }
+\dQuote{gosolnp}, \dQuote{nloptr} or \dQuote{hybrid} (see notes). }
 \item{solver.control}{
 Control arguments list passed to optimizer.}
 \item{fit.control}{
@@ -58,7 +58,13 @@ accepts the following additional (to the solnp) arguments: \dQuote{n.restarts}
 is the number of solver restarts required (defaults to 1), \dQuote{parallel} and 
 \dQuote{parallel.control} for use of the parallel functionality, \dQuote{rseed} 
 is the seed to initialize the random number generator, and \dQuote{n.sim} is the 
-number of simulated parameter vectors to generate per n.restarts.
+number of simulated parameter vectors to generate per n.restarts. The 
+\dQuote{hybrid} strategy solver first tries the \dQuote{solnp} solver, in failing
+to converge then tries then \dQuote{nlminb}, the \dQuote{gosolnp} and finally
+the \dQuote{nloptr} solvers. Solver control parameters can be passed for all the
+solver in the solver.control list as one long list which will be filtered for each
+solver's specific options as and when that solver is called during the hybrid
+strategy optimization.
 }
 \note{
 The nloptr solver takes the following options in the solver.control list:\cr

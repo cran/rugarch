@@ -1,8 +1,8 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH models
-Version: 1.0-11
-Date: 2012-07-10
+Version: 1.0-12
+Date: 2012-09-30
 Author: Alexios Ghalanos <alexios@4dscape.com>
 Maintainer: Alexios Ghalanos <alexios@4dscape.com>
 Depends: R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo, methods,
@@ -26,6 +26,9 @@ Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
         zzz.R
 LazyLoad: yes
 License: GPL-3
-Packaged: 2012-08-22 15:33:45 UTC; alexios
 Repository: CRAN
-Date/Publication: 2012-08-23 06:26:43
+Repository/R-Forge/Project: rgarch
+Repository/R-Forge/Revision: 456
+Repository/R-Forge/DateTimeStamp: 2012-10-01 20:30:18
+Date/Publication: 2012-10-29 15:34:15
+Packaged: 2012-10-01 22:20:50 UTC; rforge

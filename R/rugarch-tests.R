@@ -511,8 +511,8 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 	z = matrix(z, ncol = 1)
 	N = dim(z)[1] - lags
 	zlag = z[-c(1:lags), , drop = FALSE]
-	orthmat = matrix(NA, ncol = 6, nrow = 3)
-	colnames(orthmat) = c("E[z]", "E[z^2]-1", "E[z^3]", "E[z^4]-3", "Q2","J")
+	orthmat = matrix(NA, ncol = 8, nrow = 3)
+	colnames(orthmat) = c("E[z]", "E[z^2]-1", "E[z^3]", "E[z^4]-3", "Q2", "Q3", "Q4","J")
 	rownames(orthmat) = c("mean", "var", "t.value")
 	f1 = zlag[,1]
 	orthmat[1:3,1] = c(mean(f1), mean(f1^2)/N, mean(f1)/sqrt(mean(f1^2)/N))
@@ -527,23 +527,32 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 	tmp1 = .waldcomomtest(z[,1]^2-1, lags, N)
 	orthmat[3, 5] = tmp1$tval[lags+1]
 	
-	M = rbind(M, tmp1$h)
-	g = c(as.numeric(orthmat[1,1:4]), tmp1$g)
+	tmp2 = .waldcomomtest(z[,1]^3-sk, lags, N)
+	orthmat[3, 6] = tmp2$tval[lags+1]
+	
+	tmp3 = .waldcomomtest(z[,1]^4-ku, lags, N)
+	orthmat[3, 7] = tmp3$tval[lags+1]
+	
+	M = rbind(M, tmp1$h, tmp2$h, tmp3$h)
+	g = c(as.numeric(orthmat[1,1:4]), tmp1$g, tmp2$g, tmp3$g)
 	
 	# all moments
 	S = (M %*% t(M))/N
 	jtval = N*t(g)%*%solve(S)%*%g
-	orthmat[3,6] = jtval
+	orthmat[3,8] = jtval
 	p = rep(conf.level, 2)
-	df = c(lags, (4+1*lags))	
+	df = c(lags, lags, lags, (4+3*lags))	
 	critical.values = qchisq(p,df)
 	# i.e. if tval>critical value reject the NULL
 	Decision = NULL
 	Decision[1] = ifelse(orthmat[3, 5]<critical.values[1], "Fail to Reject H0", "Reject H0")
 	Decision[2] = ifelse(orthmat[3, 6]<critical.values[2], "Fail to Reject H0", "Reject H0")
+	Decision[2] = ifelse(orthmat[3, 7]<critical.values[3], "Fail to Reject H0", "Reject H0")
+	Decision[2] = ifelse(orthmat[3, 8]<critical.values[4], "Fail to Reject H0", "Reject H0")
+	
 	H0 = "[Moment Conditions] Model is Correctly Specified"
 	moment.mat = orthmat[1:3,1:4]
-	joint.mat = rbind(orthmat[3,5:6], critical.values)
+	joint.mat = rbind(orthmat[3,5:8], critical.values)
 	rownames(joint.mat) = c("t-value", "critical.value")
 	return(list(joint.mat = joint.mat, moment.mat = moment.mat, H0 = H0, Decision = Decision) )
 }

@@ -23,6 +23,7 @@
 	gocontrol = control
 	control = .getcontrol(solver, control)
 	retval = switch(solver,
+			hybrid = .hybridsolver(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, gocontrol, LB, UB, ...),
 			nlminb = .nlminbsolver(pars, fun, gr, hessian, parscale, control, LB, UB, ...),
 			solnp = .solnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...),
 			gosolnp = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, ...),
@@ -62,6 +63,27 @@
 	}
 	hess = NULL
 	return(list(sol = sol, hess = hess))
+}
+
+.hybridsolver = function(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, control, LB, UB, ...){
+	xcontrol = .getcontrol("solnp", control)
+	ans = .solnpsolver(pars, fun, Ifn, ILB, IUB, xcontrol, LB, UB, ...)
+	if(ans$sol$convergence >= 1)
+	{
+		xcontrol = .getcontrol("nlminb", control)
+		if(xcontrol$trace) cat("\nTrying nlminb solver...\n")
+		ans = .nlminbsolver(pars, fun, gr, hessian, parscale, control=xcontrol, LB, UB,...)
+		if(ans$sol$convergence>=1){
+			if(xcontrol$trace) cat("\nTrying gosolnp solver...\n")
+			ans = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...)
+			if(ans$sol$convergence>=1){
+				xcontrol = .getcontrol("nloptr", control)
+				if(xcontrol$trace) cat("\nLast try...nloptr solver...\n")
+				ans = .nloptrsolver(pars, fun, Ifn, xcontrol, LB, UB, ...)
+			}
+		}
+	}
+	return(ans)
 }
 
 .gosolnpsolver = function(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, ...){
@@ -198,7 +220,7 @@
 		if(any(substr(npar, 1, 10) == "inner.iter")) ans$inner.iter = as.numeric(params["inner.iter"]) else ans$inner.iter = 1000
 		if(any(substr(npar, 1, 5) == "delta")) ans$delta = as.numeric(params["delta"]) else ans$delta = 1.0e-8
 		if(any(substr(npar, 1, 3) == "tol")) ans$tol = as.numeric(params["tol"]) else ans$tol = 1.0e-8
-		if(any(substr(npar, 1, 5) == "trace")) ans$trace = as.numeric(params["trace"]) else ans$trace = 1
+		if(any(substr(npar, 1, 5) == "trace")) ans$trace = as.numeric(params["trace"]) else ans$trace = 0
 	}
 	return(ans)
 }

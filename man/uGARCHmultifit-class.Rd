@@ -26,7 +26,8 @@ Class \code{\linkS4class{rGARCH}}, by class \code{\linkS4class{GARCHfit}}, dista
     \item{fitted}{\code{signature(object = "uGARCHmultifit")}: 
     Extracts the fitted values.}
     \item{residuals}{\code{signature(object = "uGARCHmultifit")}: 
-    Extracts the residuals.}
+	Extracts the residuals. Optional logical argument \code{standardize} 
+	(default is FALSE) allows to extract the standardized residuals.}
     \item{show}{\code{signature(object = "uGARCHmultifit")}: 
     Fit summary.}
 	}

@@ -1,4 +1,4 @@
-citHeader("When using rgarch in publications, please cite:")
+citHeader("When using rugarch in publications, please cite:")
 
 ## R >= 2.8.0 passes package metadata to citation().
 if(!exists("meta") || is.null(meta)) meta <- packageDescription("rugarch")
@@ -18,3 +18,4 @@ citEntry(entry="Manual",
 	       note),
 	 header = "To cite the rugarch package, please use:"
 )
+

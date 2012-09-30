@@ -2015,30 +2015,38 @@ setMethod("as.uGARCHforecast", signature(object = "uGARCHroll"), .roll2forc)
 
 #----------------------------------------------------------------------------------
 # residuals method
-.ugarchfitresids = function(object)
+.ugarchfitresids = function(object, standardize = FALSE)
 {
-	object@fit$residuals
+	if(standardize) object@fit$residuals/object@fit$sigma else  object@fit$residuals
 }
 
 setMethod("residuals", signature(object = "uGARCHfit"), .ugarchfitresids)
 
-.ugarchfilterresids = function(object)
+.ugarchfilterresids = function(object, standardize = FALSE)
 {
-	object@filter$residuals
+	if(standardize) object@filter$residuals/object@filter$sigma else  object@filter$residuals	
 }
 
 setMethod("residuals", signature(object = "uGARCHfilter"), .ugarchfilterresids)
 
-.ugarchmultifitresids = function(object)
+.ugarchmultifitresids = function(object, standardize = FALSE)
 {
-	sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	if(standardize){
+		sapply(object@fit, FUN = function(x) residuals(x)/sigma(x), simplify = TRUE)
+	} else{
+		sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	}
 }
 
 setMethod("residuals", signature(object = "uGARCHmultifit"), .ugarchmultifitresids)
 
-.ugarchmultifilterresids = function(object)
+.ugarchmultifilterresids = function(object, standardize = FALSE)
 {
-	sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
+	if(standardize){
+		sapply(object@filter, FUN = function(x) residuals(x)/sigma(x), simplify = TRUE)
+	} else{
+		sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
+	}	
 }
 
 setMethod("residuals", signature(object = "uGARCHmultifilter"), .ugarchmultifilterresids)

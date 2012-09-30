@@ -122,7 +122,7 @@
 		Ifn = .sgarchcon
 		ILB = cb$LB
 		IUB = cb$UB
-		if(solver == "solnp" | solver == "gosolnp") fit.control$stationarity = 0
+		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
 	} else{
 		Ifn = NULL
 		ILB = NULL

@@ -1039,30 +1039,38 @@ setMethod("as.ARFIMAforecast", signature(object = "ARFIMAroll"), .roll2arfimafor
 
 #----------------------------------------------------------------------------------
 # residuals method
-.arfimafitresids = function(object)
+.arfimafitresids = function(object, standardize = FALSE)
 {
-	object@fit$residuals
+	if(standardize) object@fit$residuals/coef(object)["sigma"] else object@fit$residuals
 }
 
 setMethod("residuals", signature(object = "ARFIMAfit"), .arfimafitresids)
 
-.arfimafilterresids = function(object)
+.arfimafilterresids = function(object, standardize = FALSE)
 {
-	object@filter$residuals
+	if(standardize) object@filter$residuals/coef(object)["sigma"] else object@filter$residuals
 }
 
 setMethod("residuals", signature(object = "ARFIMAfilter"), .arfimafilterresids)
 
-.arfimamultifitresids = function(object)
+.arfimamultifitresids = function(object, standardize = FALSE)
 {
-	sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	if(standardize){
+		sapply(object@fit, FUN = function(x) residuals(x)/coef(x)["sigma"], simplify = TRUE)
+	} else{
+		sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	}
 }
 
 setMethod("residuals", signature(object = "ARFIMAmultifit"), .arfimamultifitresids)
 
-.arfimamultifilterresids = function(object)
+.arfimamultifilterresids = function(object, standardize = FALSE)
 {
-	sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
+	if(standardize){
+		sapply(object@filter, FUN = function(x) residuals(x)/coef(x)["sigma"], simplify = TRUE)
+	} else{
+		sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
+	}
 }
 
 setMethod("residuals", signature(object = "ARFIMAmultifilter"), .arfimamultifilterresids)

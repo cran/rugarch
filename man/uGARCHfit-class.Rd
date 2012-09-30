@@ -95,7 +95,8 @@ Extracts the conditional sigma values.}
 \item{fitted}{\code{signature(object = "uGARCHfit")}: 
 Extracts the fitted values.}
 \item{residuals}{\code{signature(object = "uGARCHfit")}: 
-Extracts the residuals.}
+Extracts the residuals. Optional logical argument \code{standardize} 
+(default is FALSE) allows to extract the standardized residuals.}
 \item{getspec}{\code{signature(object = "uGARCHfit")}: 
 Extracts and returns the GARCH specification from a fit object.}
 \item{uncvariance}{\code{signature(object = "uGARCHfit", pars = "missing", 

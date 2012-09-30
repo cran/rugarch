@@ -1,7 +1,15 @@
+2012-09-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-12.
+	* Added a hybrid strategy optimization method to sequentially try a list of 
+	alternative solvers in case of non-convergence.
+	* Added optional logical argument 'standardize' (default: FALSE)
+	to residuals method to return the stanardized residuals for both the
+	arfima and garch classes.
+
 2012-07-09  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-11.
 	* Added the Component GARCH model of Lee and Engle (1999)
-	with a complete set of methods (still needs extensive testing).
+	with a complete set of methods.
 	* ugarchroll now only allows n.ahead=1 (alternative was too complicated).
 	* Change to ugarchboot to allow simulated external regressors input seperately 
 	from the forecast of the external regressors.

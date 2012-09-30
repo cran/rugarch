@@ -121,7 +121,7 @@
 		Ifn = .csgarchcon
 		ILB = c(1e-16, 1e-16)
 		IUB = c(1,1)
-		if(solver == "solnp" | solver == "gosolnp") fit.control$stationarity = 0
+		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
 	} else{
 		Ifn = NULL
 		ILB = NULL

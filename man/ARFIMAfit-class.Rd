@@ -38,7 +38,8 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
     \item{likelihood}{\code{signature(object = "ARFIMAfit")}: 
     Extracts the likelihood.}
     \item{residuals}{\code{signature(object = "ARFIMAfit")}: 
-    Extracts the residuals.}
+    Extracts the residuals. Optional logical argument \code{standardize} 
+	(default is FALSE) allows to extract the standardized residuals.}
     \item{show}{\code{signature(object = "ARFIMAfit")}: 
     Fit summary.}
     \item{uncmean}{\code{signature(object = "ARFIMAfit")}: 

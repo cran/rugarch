@@ -26,46 +26,47 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHfilter", distance 2.
 \section{Methods}{
  \describe{
 \item{as.data.frame}{\code{signature(x = "uGARCHfilter")}: 
-	extracts the position (dates), data, fitted values, residuals and 
+	Extracts the position (dates), data, fitted values, residuals and 
 	conditional sigma.}
 \item{fitted}{\code{signature(object = "uGARCHfilter")}: 
-	extracts the fitted values.}
+	Extracts the fitted values.}
 \item{residuals}{\code{signature(object = "uGARCHfilter")}: 
-	extracts the residuals.}
+	Extracts the residuals. Optional logical argument \code{standardize} 
+	(default is FALSE) allows to extract the standardized residuals.}
 \item{sigma}{\code{signature(object = "uGARCHfilter")}:
-	extracts the conditional sigma values.}
+	Extracts the conditional sigma values.}
 \item{coef}{\code{signature(object = "uGARCHfilter")}:
-	extracts the coefficients.}
+	Extracts the coefficients.}
 \item{infocriteria}{\code{signature(object = "uGARCHfilter")}: 
-	calculates and returns various information criteria. }
+	Calculates and returns various information criteria. }
 \item{newsimpact}{\code{signature(object = "uGARCHfilter")}:
-	calculates and returns the news impact curve.}
+	Calculates and returns the news impact curve.}
 \item{likelihood}{\code{signature(object = "uGARCHfilter")}:
-	extracts the likelihood.}
+	Extracts the likelihood.}
 \item{signbias}{\code{signature(object = "uGARCHfilter")}: 
-	calculates and returns the sign bias test of Engle and Ng (1993). }
+	Calculates and returns the sign bias test of Engle and Ng (1993). }
 \item{gof}{\code{signature(object = "uGARCHfilter", groups = "numeric")}: 
-	calculates and returns the adjusted goodness of fit statistic and p-values 
+	Calculates and returns the adjusted goodness of fit statistic and p-values 
 	for the fitted distribution based on the Vlaar and Palm paper (1993). 
 	Groups is a numeric vector of bin sizes.}
 \item{persistence}{\code{signature(object = "uGARCHfilter", pars = "missing", 
 distribution = "missing", model = "missing", submodel = "missing")}: 
-	calculates and returns the persistence of the garch filter model.}
+	Calculates and returns the persistence of the garch filter model.}
 \item{halflife}{\code{signature(object = "uGARCHfilter", pars = "missing", 
 distribution = "missing", model = "missing")}: 
-	calculates and returns the halflife of the garch fit variance given a 
+	Calculates and returns the halflife of the garch fit variance given a 
 	\code{\linkS4class{uGARCHfilter}} object.}
 \item{uncmean}{\code{signature(object = "uGARCHfilter")}:
-	calculates and returns the unconditional mean of the conditional mean 
+	Calculates and returns the unconditional mean of the conditional mean 
 	equation (constant, ARMAX, arch-in-mean). }
 \item{uncvariance}{\code{signature(object = "uGARCHfilter", pars = "missing", 
 distribution = "missing", model = "missing", submodel = "missing")}: 
-	calculates and  returns the long run unconditional variance of the garch 
+	Calculates and  returns the long run unconditional variance of the garch 
 	filter given a \code{\linkS4class{uGARCHfilter}} object.}
 \item{plot}{\code{signature(x = "uGARCHfilter", y = "missing")}:
-	filter plots}
+	Filter plots}
 \item{show}{\code{signature(object = "uGARCHfilter")}: 
-	filter summary.}
+	Filter summary.}
 }}
 \author{Alexios Ghalanos}
 \note{The \code{\linkS4class{uGARCHfilter}} class contains almost all the methods 

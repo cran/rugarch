@@ -18,20 +18,18 @@ in analytical risk management measures.\cr
 The mean equation allows for AR(FI)MA, arch-in-mean and external regressors, 
 while the variance equation implements a wide variety of univariate GARCH models 
 as well as the possibility of including external regressors. Finally, a set of 
-rich distributions from the \dQuote{fBasics} package and Johnson's reparametrized 
-SU from the \dQuote{gamlss} package are used for modelling innovations.\cr
+feature rich distributions are used for modelling innovations and documented in
+the vignette.\cr
 This package is part of what used to be the rgarch package, which was split 
 into univariate (rugarch) and multivariate (rmgarch) models for easier 
-maintenance and use. The rmgarch package is still under re-write so the old 
-rgarch package should be used in the meantime for multivariate models (and
-hosted on r-forge).
+maintenance and use.
 }
 \details{
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.0-11\cr
-Date: \tab 2012-07-09\cr
+Version: \tab 1.0-12\cr
+Date: \tab 2012-09-30\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo, numDeriv, chron, Rsolnp\cr }
@@ -100,7 +98,7 @@ comments.
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2012},
- note 	      = {R package version 1.0-11.},}}
+ note 	      = {R package version 1.0-12.},}}
 \emph{}
 }
 \section{License}{

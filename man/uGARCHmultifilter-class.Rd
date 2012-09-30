@@ -18,7 +18,8 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHfilter", distance 3.
     \item{fitted}{\code{signature(object = "uGARCHmultifilter")}:
     Extracts the fitted values.}
     \item{residuals}{\code{signature(object = "uGARCHmultifilter")}: 
-    Extracts the residuals.}
+    Extracts the residuals. Optional logical argument \code{standardize} 
+	(default is FALSE) allows to extract the standardized residuals.}
     \item{sigma}{\code{signature(object = "uGARCHmultifilter")}:
     Extracts the conditional sigma values.}
     \item{coef}{\code{signature(object = "uGARCHmultifilter")}:

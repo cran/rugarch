@@ -23,15 +23,16 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 \section{Methods}{
   \describe{
     \item{coef}{\code{signature(object = "ARFIMAmultifit")}: 
-    	extracts the coefficients. }
+    	Extracts the coefficients. }
     \item{likelihood}{\code{signature(object = "ARFIMAmultifit")}: 
-    	extracts the likelihood. }
+    	Extracts the likelihood. }
     \item{fitted}{\code{signature(object = "ARFIMAmultifit")}: 
-    	extracts the fitted values.}
+    	Extracts the fitted values.}
     \item{residuals}{\code{signature(object = "ARFIMAmultifit")}: 
-    	extracts the residuals.}
+    	Extracts the residuals. Optional logical argument \code{standardize} 
+	(default is FALSE) allows to extract the standardized residuals.}
     \item{show}{\code{signature(object = "ARFIMAmultifit")}: 
-    	fit summary.}
+    	Fit summary.}
 	 }
 }
 \author{Alexios Ghalanos}
