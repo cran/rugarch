@@ -11,6 +11,9 @@
 \alias{residuals,ARFIMAfit-method}
 \alias{show,ARFIMAfit-method}
 \alias{uncmean,ARFIMAfit-method}
+\alias{convergence,ARFIMAfit-method}
+\alias{vcov,ARFIMAfit-method}
+
 \title{class: ARFIMA Fit Class}
 \description{
 Class for the ARFIMA fit.
@@ -48,6 +51,12 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
     \sQuote{n.sim} for the number of simulations (if that method was chosen, 
     and defaults to 100000) and \sQuote{rseed} for the simulation random 
     generator initialization seed.}
+    \item{vcov}{\code{signature(object = "ARFIMAfit")}: 
+	Extracts the covariance matrix of the parameters. Additional logical option of 
+	\sQuote{robust} indicates whether to extract the robust based covariance matrix. }
+	\item{convergence}{\code{signature(object = "ARFIMAfit")}: 
+	Returns the solver convergence code for the fitted object (zero denotes
+	convergence). }
 	}
 }
 \author{Alexios Ghalanos}

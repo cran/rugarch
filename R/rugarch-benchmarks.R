@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -64,7 +63,7 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 			mean.model = list(armaOrder = c(0,0), include.mean = TRUE), 
 			distribution.model = "norm")
 	# fit the model
-	fit2 = ugarchfit(data = dmbp[,1], spec = spec, solver = "solnp", solver.control = list(trace=0))
+	fit2 = ugarchfit(data = dmbp[,1], spec = spec, solver = "solnp")
 	benchmark.pars = c(-.01167873487, -.12633933747, -.03845788444, .91265373928, .33305592776)
 	benchmark.se = c(.00886, .0285, .0192, .0168, .0406)
 	rugarch.pars = coef(fit2)

@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -20,7 +19,7 @@
 # Fixed and Starting Parameter Testing
 #################################################################################
 
-rugarch.test2a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test2a = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -113,7 +112,7 @@ rugarch.test2a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 
-rugarch.test2b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test2b = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -195,7 +194,7 @@ rugarch.test2b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test2c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test2c = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -279,7 +278,7 @@ rugarch.test2c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 
-rugarch.test2d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test2d = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -365,7 +364,7 @@ rugarch.test2d = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test2e = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test2e = function(cluster=NULL)
 {
 	tic = Sys.time()
 	

@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -48,14 +47,13 @@
 	# p=1 normal case, p=2 squared std. residuals
 	# Q-Statistics on Standardized Residuals
 	#H0 : No serial correlation ==> Accept H0 when prob. is High [Q < Chisq(lag)]
-	box10 = Box.test(stdresid^p, lag = 10, type = "Ljung-Box", fitdf = df)
-	box15 = Box.test(stdresid^p, lag = 15, type = "Ljung-Box", fitdf = df)
-	box20 = Box.test(stdresid^p, lag = 20, type = "Ljung-Box", fitdf = df)
+	box10 = Box.test(stdresid^p, lag = 1, type = "Ljung-Box", fitdf = 0)
+	box15 = Box.test(stdresid^p, lag = df+1, type = "Ljung-Box", fitdf = df)
+	box20 = Box.test(stdresid^p, lag = df+5, type = "Ljung-Box", fitdf = df)
 	LBSR<-matrix(NA,ncol=2,nrow=3)
 	LBSR[1:3,1] = c(box10$statistic[[1]],box15$statistic[[1]],box20$statistic[[1]])
 	LBSR[1:3,2] = c(box10$p.value[[1]],box15$p.value[[1]],box20$p.value[[1]])
-	rownames(LBSR) = c("Lag10","Lag15","Lag20")
-	#LBSR<-as.data.frame(cbind(LBSR,.stars(as.vector(1-LBSR[,2]))))
+	rownames(LBSR) = c(paste("Lag[1]",sep=""), paste("Lag[p+q+1][",df+1,"]",sep=""), paste("Lag[p+q+5][",df+5,"]",sep=""))
 	colnames(LBSR) = c("statistic","p-value")
 	return(LBSR)
 }

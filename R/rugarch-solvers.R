@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -18,23 +17,24 @@
 # implements nlminb, lbgs and solnp
 # only solnp implements true constraint (stationarity) optimization
 .garchsolver = function(solver, pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, 
-		control, LB, UB, ux=NULL, ci=NULL, mu=NULL, ...)
+		control, LB, UB, ux=NULL, ci=NULL, mu=NULL, arglist)
 {
 	gocontrol = control
 	control = .getcontrol(solver, control)
 	retval = switch(solver,
-			hybrid = .hybridsolver(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, gocontrol, LB, UB, ...),
-			nlminb = .nlminbsolver(pars, fun, gr, hessian, parscale, control, LB, UB, ...),
-			solnp = .solnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...),
-			gosolnp = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, ...),
-			lbfgs = .lbfgssolver(pars, fun, gr, parscale, control, LB, UB, ...),
-			nloptr = .nloptrsolver(pars, fun, Ifn, control, LB, UB, ...))
+			hybrid = .hybridsolver(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, gocontrol, LB, UB, arglist),
+			nlminb = .nlminbsolver(pars, fun, gr, hessian, parscale, control, LB, UB, arglist),
+			solnp = .solnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, arglist),
+			gosolnp = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, arglist),
+			lbfgs = .lbfgssolver(pars, fun, gr, parscale, control, LB, UB, arglist),
+			nloptr = .nloptrsolver(pars, fun, control, LB, UB, arglist))
 	return(retval)
 }
 
-.nlminbsolver = function(pars, fun, gr, hessian, parscale, control, LB, UB,...){
+.nlminbsolver = function(pars, fun, gr, hessian, parscale, control, LB, UB, arglist){
 	ans = try(nlminb(start = pars, objective = fun, gradient = gr, hessian = hessian,
-			..., scale = 1/parscale, control = control, lower = LB, upper = UB), silent = TRUE)
+					arglist = arglist, scale = 1/parscale, control = control, 
+					lower = LB, upper = UB), silent = TRUE)
 	if(inherits(ans, "try-error")){
 		sol = list()
 		sol$convergence = 1
@@ -48,16 +48,16 @@
 	return(list(sol = sol,hess = hess))
 }
 
-.solnpsolver = function(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...){
+.solnpsolver = function(pars, fun, Ifn, ILB, IUB, control, LB, UB, arglist){
 	ans = try(solnp(pars, fun = fun, eqfun = NULL, eqB = NULL, ineqfun = Ifn, ineqLB = ILB, 
-					ineqUB = IUB, LB = LB, UB = UB, control = control, ...), silent = TRUE)
+					ineqUB = IUB, LB = LB, UB = UB, control = control, arglist), silent = TRUE)
 	if(inherits(ans,"try-error")){
 		sol = list()
 		sol$convergence = 1
 		sol$message = ans
 		sol$par = rep(NA, length(pars))
 		names(sol$par) = names(pars)
-		warning("\nrgarch-->warning: no convergence...\n")
+		warning("\nrugarch-->warning: no convergence...\n")
 	} else{
 		sol = ans
 	}
@@ -65,51 +65,68 @@
 	return(list(sol = sol, hess = hess))
 }
 
-.hybridsolver = function(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, control, LB, UB, ...){
+.hybridsolver = function(pars, fun, Ifn, ILB, IUB, gr, hessian, parscale, control, LB, UB, arglist){
 	xcontrol = .getcontrol("solnp", control)
-	ans = .solnpsolver(pars, fun, Ifn, ILB, IUB, xcontrol, LB, UB, ...)
+	ans = .solnpsolver(pars, fun, Ifn, ILB, IUB, xcontrol, LB, UB, arglist)
 	if(ans$sol$convergence >= 1)
 	{
 		xcontrol = .getcontrol("nlminb", control)
 		if(xcontrol$trace) cat("\nTrying nlminb solver...\n")
-		ans = .nlminbsolver(pars, fun, gr, hessian, parscale, control=xcontrol, LB, UB,...)
+		ans = .nlminbsolver(pars, fun, gr, hessian, parscale, control=xcontrol, LB, UB, arglist = arglist)
 		if(ans$sol$convergence>=1){
 			if(xcontrol$trace) cat("\nTrying gosolnp solver...\n")
-			ans = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, ...)
+			ans = .gosolnpsolver(pars, fun, Ifn, ILB, IUB, control, LB, UB, arglist)
 			if(ans$sol$convergence>=1){
 				xcontrol = .getcontrol("nloptr", control)
-				if(xcontrol$trace) cat("\nLast try...nloptr solver...\n")
-				ans = .nloptrsolver(pars, fun, Ifn, xcontrol, LB, UB, ...)
+				if(xcontrol$print_level) cat("\nLast try...nloptr solver...\n")
+				ans = .nloptrsolver(pars, fun, xcontrol, LB, UB, arglist = arglist)
 			}
 		}
 	}
 	return(ans)
 }
 
-.gosolnpsolver = function(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, ...){
+.gosolnpsolver = function(pars, fun, Ifn, ILB, IUB, gocontrol, LB, UB, arglist){
 	control = .solnpctrl(gocontrol)
 	gocontrol = .gosolnpctrl(gocontrol)
 	n.restarts = gocontrol$n.restarts
-	parallel = gocontrol$parallel
-	parallel.control = gocontrol$parallel.control
+	doparallel = gocontrol$parallel
+	pkg = gocontrol$pkg
+	cores = gocontrol$cores
 	rseed = gocontrol$rseed
 	n.sim = gocontrol$n.sim
 	op <- options()
 	options(warn = 0)
-	
 	# use the truncated normal distribution
 	distr.opt = vector(mode = "list", length = length(pars))
 	for(i in 1:length(pars)){
 		distr.opt[[i]]$mean = pars[i]
-		distr.opt[[i]]$sd = sqrt(pars[i]^2)*2
+		distr.opt[[i]]$sd = ifelse(pars[i]==0, 0.1, sqrt(pars[i]^2)*2)
 	}
-	# ok parallel will work with snowfall without changing the fun and Ifn to rugarch:::fun and rugarch:::Ifn
+	if(doparallel){
+		require(parallel)
+		if(pkg=="multicore"){
+			cl = parallel::makeForkCluster(nnodes = as.integer(cores))
+			parallel::clusterEvalQ(cl, library(rugarch))
+		} else{
+			cl = parallel::makePSOCKcluster(as.integer(cores))
+			parallel::clusterEvalQ(cl, library(rugarch))
+		}
+		# set parallel mode on (pmode=1) to tell the likelihood function not to use
+		# environment assignment
+		arglist$pmode = 1
+	} else{
+		cl = NULL
+	}
 	ans = try(gosolnp(pars = pars, fixed = NULL, fun = fun, eqfun = NULL, 
-			eqB = NULL, ineqfun = Ifn, ineqLB = ILB, 
-			ineqUB = IUB, LB = LB, UB = UB, control = control, distr = rep(2, length(LB)), distr.opt = distr.opt, 
-			n.restarts = n.restarts, n.sim = n.sim, parallel = parallel, parallel.control = parallel.control, 
-			rseed = rseed, ...),
+			eqB = NULL, ineqfun = Ifn, ineqLB = ILB, ineqUB = IUB, LB = LB, 
+			UB = UB, control = control, distr = rep(2, length(LB)), 
+			distr.opt = distr.opt, n.restarts = n.restarts, n.sim = n.sim, 
+			cluster = cl, rseed = rseed, arglist),
 	silent = TRUE)
+	if(doparallel) parallel::stopCluster(cl)
+	# return to normal mode
+	arglist$pmode = 0
 	if(inherits(ans,"try-error")){
 		sol = list()
 		sol$convergence = 1
@@ -124,9 +141,9 @@
 	return(list(sol = sol, hess = hess))
 }
 
-.lbfgssolver = function(pars, fun, gr, parscale, control, LB, UB, ...){
+.lbfgssolver = function(pars, fun, gr, parscale, control, LB, UB, arglist){
 	control$parscale = parscale
-	ans = try(optim(par = pars, fn = fun, gr = gr, ...,
+	ans = try(optim(par = pars, fn = fun, gr = gr, arglist = arglist,
 			method = "L-BFGS-B", lower = LB, upper = UB, control = control, 
 			hessian = TRUE),silent=TRUE)
 	if(inherits(ans, "try-error")){
@@ -142,17 +159,16 @@
 	return(list(sol = sol, hess = hess))
 }
 
-.nloptrsolver = function(pars, fun, Ifn, control, LB, UB, ...){
+# nloptr solver requires named (...)!
+.nloptrsolver = function(pars, fun, control, LB, UB, arglist){
 	if(!exists("nloptr")){
 		warning("\nLoading package nloptr...")
 		require('nloptr')
 	}
-	#.ineqcon2 = function(x, ...){
-	#	return( Ifn(x, ...) - 1 )
-	#}
-	ans = try(nloptr::nloptr(x0 = pars, eval_f = fun,  eval_grad_f = NULL, eval_g_ineq = NULL, 
-					lb = LB, ub = UB, eval_jac_g_ineq = NULL, eval_g_eq = NULL, 
-					eval_jac_g_eq = NULL, opts = control,  ...), silent=TRUE)
+	ans = try(nloptr::nloptr(x0 = pars, eval_f = fun,  eval_grad_f = NULL, 
+					eval_g_ineq = NULL, lb = LB, ub = UB, eval_jac_g_ineq = NULL, 
+					eval_g_eq = NULL, eval_jac_g_eq = NULL, opts = control, arglist = arglist), 
+			silent=TRUE)
 	if(inherits(ans, "try-error")){
 		sol = list()
 		sol$convergence = 1
@@ -184,6 +200,7 @@
 .nlminbctrl = function(control)
 {
 	if(is.null(control$eval.max)) control$eval.max = 2000
+	if(is.null(control$trace)) control$trace = 0
 	if(is.null(control$iter.max)) control$iter.max = 1500
 	if(is.null(control$abs.tol)) control$abs.tol = 1e-20
 	if(is.null(control$rel.tol)) control$rel.tol = 1e-10
@@ -231,20 +248,23 @@
 	params = unlist(control)
 	if(is.null(params)) {
 		ans$parallel = FALSE
-		ans$parallel.control = list(pkg = "snowfall", cores = 2)
+		ans$pkg = "snowfall"
+		ans$cores= 2
 		ans$n.restarts = 1
 		ans$rseed
 		ans$n.sim = 500
+		ans$trace = 0
 	} else{
 		npar = tolower(names(unlist(control)))
 		names(params) = npar
 		ans$parallel.control = list()
 		if(any(substr(npar, 1, 8) == "parallel")) ans$parallel = as.logical(params["parallel"]) else ans$parallel = FALSE
-		if(any(substr(npar, 1, 20) == "parallel.control.pkg")) ans$parallel.control$pkg = params["parallel.control.pkg"] else ans$parallel.control$pkg = "snowfall"
-		if(any(substr(npar, 1, 22) == "parallel.control.cores")) ans$parallel.control$cores = params["parallel.control.cores"] else ans$parallel.control$cores = "snowfall"
+		if(any(substr(npar, 1, 3) == "pkg")) ans$pkg = unname(params["pkg"]) else ans$pkg = "snowfall"
+		if(any(substr(npar, 1, 5) == "cores")) ans$cores = unname(params["cores"]) else ans$cores = 2
 		if(any(substr(npar, 1, 10) == "n.restarts")) ans$n.restarts = as.numeric(params["n.restarts"]) else ans$n.restarts = 1
 		if(any(substr(npar, 1, 5) == "rseed")) ans$rseed = as.numeric(params["rseed"]) else ans$rseed = NULL
-		if(any(substr(npar, 1, 5) == "n.sim")) ans$n.sim = as.numeric(params["n.sim"]) else ans$n.sim = 500		
+		if(any(substr(npar, 1, 5) == "n.sim")) ans$n.sim = as.numeric(params["n.sim"]) else ans$n.sim = 500
+		if(any(substr(npar, 1, 5) == "trace")) ans$trace = as.numeric(params["trace"]) else ans$trace = 0
 	}
 	return(ans)
 }
@@ -301,69 +321,69 @@
 	return(list(LB = eps,UB = 0.999))
 }
 
-.sgarchcon = function(pars, data, returnType, garchenv){
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
+.sgarchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
-	distribution = get("model", garchenv)$modeldesc$distribution
+	distribution = arglist$model$modeldesc$distribution
 	con = .persistsgarch1(pars = ipars[,1], idx, distribution = distribution)
 	return(con)
 }
 
-.igarchcon = function(pars, data, returnType, garchenv){
+.igarchcon = function(pars, arglist){
 	# this is an equality constraint
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
-	modelinc = get("model", garchenv)$modelinc
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
+	modelinc = arglist$model$modelinc
 	con = ifelse(modelinc[9]>1, sum(ipars[idx["alpha", 1]:idx["alpha", 2], 1]) + sum(ipars[idx["beta", 1]:(idx["beta", 2]-1), 1]) -
 					ipars[idx["beta", 2],1], sum(ipars[idx["alpha", 1]:idx["alpha", 2], 1]) - ipars[idx["beta", 2],1])
 	return(con)
 }
 
-.aparchcon = function(pars, data, returnType, garchenv){
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
+.aparchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
-	distribution = get("model", garchenv)$modeldesc$distribution	
+	distribution = arglist$model$modeldesc$distribution	
 	con = .persistaparch1(pars = ipars[,1], idx = idx, distribution = distribution)
 	if(is.na(con)) con = 1
 	return(con)
 }
 
-.fgarchcon = function(pars, data, returnType, garchenv){
-	
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
+.fgarchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
-	distribution = get("model", garchenv)$modeldesc$distribution
-	vsubmodel = get("model", garchenv)$modeldesc$vsubmodel
-	con = .persistfgarch1(pars = ipars[,1], idx = idx, distribution = distribution, submodel = vsubmodel)
+	distribution = arglist$model$modeldesc$distribution	
+	vsubmodel = arglist$model$modeldesc$vsubmodel
+	con = .persistfgarch1(pars = ipars[,1], idx = idx, distribution = distribution, 
+			submodel = vsubmodel)
 	if(is.na(con)) con = 1
 	return(con)
 }
 
-.gjrgarchcon = function(pars, data, returnType, garchenv){
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
+.gjrgarchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
-	distribution = get("model", garchenv)$modeldesc$distribution
+	distribution = arglist$model$modeldesc$distribution
 	con = .persistgjrgarch1(pars = ipars[,1], idx = idx, distribution = distribution)
 	if(is.na(con)) con = 1
 	return(con)
 }
 
-.egarchcon = function(pars, data, returnType, garchenv){
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
+.egarchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
-	distribution = get("model", garchenv)$modeldesc$distribution	
+	distribution = arglist$model$modeldesc$distribution	
 	con = .persistegarch1(pars = ipars[,1], idx = idx, distribution = distribution)
 	if(is.na(con)) con = 1
 	return(con)
@@ -371,12 +391,12 @@
 
 
 # Constraints from Section 3.1 of Engle and Lee Paper
-.csgarchcon = function(pars, data, returnType, garchenv){
-	ipars = get("ipars", garchenv)
-	estidx = get("estidx", garchenv)
-	idx = get("model", garchenv)$pidx
-	modelinc = get("model", garchenv)$modelinc
+.csgarchcon = function(pars, arglist){
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
 	ipars[estidx, 1] = pars
+	modelinc = arglist$model$modelinc
 	eta1 = ipars["eta11",1]
 	eta2 = ipars["eta21",1]
 	if(modelinc[9]>0) beta = sum(ipars[idx["beta",1]:idx["beta",2],1]) else beta = 0
@@ -388,7 +408,3 @@
 	return(c(c1, c2))
 	#return( 1-  ( (alpha + beta)*(1-eta1) + eta1 ) )
 }
-
-
-
-

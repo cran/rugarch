@@ -10,11 +10,8 @@
 Method for multiple fitting a variety of univariate GARCH and ARFIMA models.
 }
 \usage{
-multifit(multispec, data, out.sample = 0, 
-solver = "solnp", solver.control = list(), 
-fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), 
-parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), 
-cores = 2), ...)
+multifit(multispec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
+fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), cluster = NULL, ...)
 }
 \arguments{
 \item{multispec}{
@@ -38,12 +35,10 @@ calculated for those parameters which were fixed (through the fixed.pars
 argument of the \code{\link{ugarchspec}} or \code{\link{arfimaspec}} functions). 
 The scale parameter controls whether the data should be scaled before being 
 submitted to the optimizer.}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and \sQuote{snowfall} 
-for all O/S), and the number of cores to make use of.}
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation.
+}
 \item{...}{ . }
 }
 \value{

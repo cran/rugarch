@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -22,8 +21,7 @@
 		m.sim = 100,  recursive = FALSE, recursive.length = 6000, recursive.window = 1000,
 		presigma = NA, prereturns = NA, preresiduals = NA, rseed = NA,
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, vexsimdata = NULL, 
-		fit.control = list(), solver = "solnp", solver.control = list(), 
-		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		fit.control = list(), solver = "solnp", solver.control = list(), cluster = NULL, ...)
 {
 	# recursive = FALSE, recursive.maxlength = 6000, recursive.window = 1000,
 	# simulate
@@ -77,41 +75,24 @@
 	#setstart(spec) = fixpars
 
 	fitlist = vector( mode = "list", length = m.sim )
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) parallel.control$pkg = "snowfall" else parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2 else parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
+	if( !is.null(cluster) ){
+		parallel::clusterEvalQ(cluster, library(rugarch))
+		parallel::clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
+				envir = environment())
+		for(i in 1:nwindows){
+			parallel::clusterExport(cluster, c("i"), envir = environment())
+			nx = dim(swindow[[i]]$path.df)[2]
+			rwindow[[i]]$fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(j){
+						rugarch:::.fitandextract(spec, swindow[[i]]$path.df[,j], out.sample = 0, 
+								solver = solver, fit.control = fit.control, solver.control = solver.control)
+					})
 			}
-			for(i in 1:nwindows){
-				rwindow[[i]]$fitlist = multicore::mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextract(spec, x, out.sample = 0, 
-							solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
-			}
-		} else{
-			
-			for(i in 1:nwindows){
-				nx = dim(swindow[[i]]$path.df)[2]
-				sfInit(parallel = TRUE, cpus = parallel.control$cores)
-				sfExport("spec", "swindow", "solver", "fit.control", "solver.control", "i", local = TRUE)
-				rwindow[[i]]$fitlist = sfLapply(as.list(1:nx), fun = function(j) rugarch:::.fitandextract(spec, swindow[[i]]$path.df[,j], out.sample = 0, 
-									solver = solver, fit.control = fit.control, solver.control = solver.control))
-				sfStop()
-			}
-		}
 	} else{
 		for(i in 1:nwindows){
-			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x) .fitandextract(spec, x, out.sample = 0, 
-								solver = solver, fit.control = fit.control, solver.control = solver.control))
+			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x){
+						.fitandextract(spec, x, out.sample = 0, solver = solver, 
+								fit.control = fit.control, solver.control = solver.control)
+					})
 		}
 	}	
 	reslist = vector(mode = "list", length = nwindows)
@@ -160,7 +141,7 @@
 .fitandextract = function(spec, x, out.sample = 0,  solver = "solnp", fit.control = list(), solver.control = list())
 {
 	dist = list()
-	fit = .safefit(spec, x, out.sample = 0, solver = solver, fit.control = fit.control, solver.control = solver.control)
+	fit = rugarch:::.safefit(spec, x, out.sample = 0, solver = solver, fit.control = fit.control, solver.control = solver.control)
 	if( is.null(fit) || fit@fit$convergence == 1 || !is( fit, "uGARCHfit" ) || any( is.na( coef( fit ) ) ) ){
 		dist$convergence = 1
 		return(dist)

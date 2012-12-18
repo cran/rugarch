@@ -10,12 +10,13 @@ Method for forecasting the GARCH density based on a bootstrap procedures (see
 details and references).
 }
 \usage{
-ugarchboot(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, 
+ugarchboot(fitORspec, data = NULL, method = c("Partial", "Full"), 
+sampling = c("raw", "kernel", "spd"), spd.options = list(upper = 0.9, 
+lower = 0.1, type = "pwm", kernel = "normal"), n.ahead = 10, 
 n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
 solver.control = list(), fit.control = list(), 
-external.forecasts = list(mregfor = NULL, vregfor = NULL), 
-mexsimdata = NULL, vexsimdata = NULL, parallel = FALSE, 
-parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+external.forecasts = list(mregfor = NULL, vregfor = NULL), mexsimdata = NULL, 
+vexsimdata = NULL, cluster = NULL, verbose = FALSE)
 }
 \arguments{
 \item{fitORspec}{
@@ -27,6 +28,12 @@ specification.}
 Required if a specification rather than a fit object is supplied.}
 \item{method}{
 Either the full or partial bootstrap (see note).}
+\item{sampling}{
+Whether to sample from the raw residuals, the kernel-fitted distribution of the
+residuals or the spd-fitted distribution of the residuals.}
+\item{spd.options}{
+If sampling is from the SPD distribution, this controls the options for fitting
+this distribution to the residuals (see \code{spd} package for details).}
 \item{n.ahead}{
 The forecast horizon.}
 \item{n.bootfit}{
@@ -64,13 +71,14 @@ List of matrices (size of list n.bootpred, with each matrix having n.ahead rows)
 simulated external regressor-in-variance data. If the fit object contains 
 external regressors in the mean equation, this must be provided else will be
 assumed zero.}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and \sQuote{snowfall} 
-for all O/S), and the number of cores to make use of.}
-\item{...}{ . }
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation
+of the refits (remember to stop the cluster on completion).
+}
+\item{verbose}{
+Whether to print out progress messages.}
+\item{...}{ .}
 }
 \value{
 A \code{\linkS4class{uGARCHboot}} object containing details of the GARCH 
@@ -82,18 +90,24 @@ models, namely that arising from the form of the predictive density and due to
 parameter estimation. The bootstrap method considered here, is based on 
 resampling innovations from the empirical distribution of the fitted GARCH model 
 to generate future realizations of the series and sigma. The \dQuote{full} method, 
-based on the referenced paper by Pascual et al, takes into account parameter 
-uncertainty by building a simulated distribution of the parameters through 
-simulation and refitting. This process, while more accurate, is very time 
-consuming which is why the parallel option (as in the \code{\link{ugarchdistribution}} 
-is available and recommended). The \dQuote{partial} method, only considers
-distribution uncertainty and while faster, will not generate prediction 
-intervals for the sigma 1-ahead forecast for which only the parameter 
-uncertainty is relevant in GARCH type models.\cr
+based on the referenced paper by Pascual et al (2006), takes into account 
+parameter uncertainty by building a simulated distribution of the parameters 
+through simulation and refitting. This process, while more accurate, is very time 
+consuming which is why choice of parallel computation via a cluster (as in the 
+\code{\link{ugarchdistribution}} is available and recommended). The 
+\dQuote{partial} method, only considers distribution uncertainty and while faster, 
+will not generate prediction intervals for the sigma 1-ahead forecast for which 
+only the parameter uncertainty is relevant in GARCH type models.\cr
 If using external regressors, the routine requires both the forecast (of length
 n.ahead as in the \code{\link{ugarchforecast}} routine) and a list
 of simulated forecasts as in the \code{\link{ugarchsim}} routine (else with be 
-assumed zero).
+assumed zero). Finally, it is possible to resample based on 3 schemes, namely 
+the \dQuote{raw} innovations as in the original paper of Pascual et al (2006),
+\dQuote{kernel} fits a Gaussian kernel to the innovations from the \code{ks}
+package in order to then generate random samples, and the \dQuote{spd} fits
+a semi-parametric distribution to the innovations based on the \code{spd} 
+package in order to generate the random samples, for which an optional list 
+(\code{spd.options}) may be further passed to the spd fitting routine.
 }
 \references{
 Pascual, L., Romo, J. and Ruiz, E. 2004, Bootstrap predictive inference for 
@@ -105,8 +119,9 @@ volatilities in GARCH models, \emph{Computational Statistics and Data Analysis}.
 \seealso{
 For specification \code{\link{ugarchspec}}, fitting \code{\link{ugarchfit}}, 
 filtering \code{\link{ugarchfilter}}, forecasting \code{\link{ugarchforecast}}, 
-simulation \code{\link{ugarchsim}}, rolling forecast and estimation \code{\link{ugarchroll}}, 
-parameter distribution and uncertainty \code{\link{ugarchdistribution}}.
+simulation \code{\link{ugarchsim}}, rolling forecast and estimation 
+\code{\link{ugarchroll}}, parameter distribution and uncertainty 
+\code{\link{ugarchdistribution}}.
 }
 \examples{
 \dontrun{

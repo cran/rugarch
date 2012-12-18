@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -16,7 +15,7 @@
 ##
 #################################################################################
 # fractional difference series C wrapper
-.arfimaxfilter = function(model, pars, idx, mexdata, h, data, N, garchenv)
+.arfimaxfilter = function(model, pars, idx, mexdata, h, data, N)
 {
 	#if(model[1] == 0) pars[1,1] = 0
 	m = as.integer(N[1])
@@ -52,41 +51,39 @@
 	zrf = double(length = T)
 	constm = double(length = T)
 	condm = double(length = T)
+	ans = list()
 	if(model[2]>0 | model[3]>0){
 		ans = try(.C("arfimaxfilterC", model = as.integer(model), pars = as.double(pars), 
-						idx = as.integer(idx-1), x = data, res = res, mexdata = mexdata, 
+						idx = as.integer(idx[,1]-1), x = data, res = res, mexdata = mexdata, 
 						zrf = zrf, constm = constm, condm = condm, h = h, m = m, T = T,  
 						PACKAGE = "rugarch"), silent = TRUE)
-		if(inherits(ans, "try-error")){
-			assign(".csol", 1, envir = garchenv)
-			assign(".filtermessage", ans, envir = garchenv)
+		if(inherits(ans, "try-error") | any(is.nan(ans$res)) | any(is.na(ans$res)) | any(!is.finite(ans$res)) ){
 			res = data - pars[idx[1,1]]
 			ans$res = res
 			if(model[4]>0)
 			{
-				ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4]])
-				ans$res = .fracdiff(ans$res, darfima = pars[idx[4]])
+				ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4,1]])
+				ans$res = .fracdiff(ans$res, darfima = pars[idx[4,1]])
 			}
 			if(any(is.na(res))) res[which(is.na(res))]=0
 			return(ans)
 		} else{
-			assign(".csol", 0, envir = garchenv)
 			if(model[4]>0)
 			{
-				ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4]])
-				ans$res = .fracdiff(ans$res, darfima = pars[idx[4]])
+				ans$zrf = .fracdiff(c(1, rep(0,length(data)-1)), darfima = pars[idx[4,1]])
+				ans$res = .fracdiff(ans$res, darfima = pars[idx[4,1]])
 			}
 			if(any(is.na(ans$res))) res[which(is.na(ans$res))]=0
 			return(ans)
 		}
 	} else{
 		ans = list()
-		ans$res = data -  pars[idx[1,1]] - imx - pars[idx[5]]*(h^model[5])
+		ans$res = data -  pars[idx[1,1]] - imx - pars[idx[5,1]]*(h^model[5])
 		ans$zrf = zrf
 		if(model[4]>0)
 		{
-			ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4]])
-			ans$res = .fracdiff(ans$res, darfima = pars[idx[4]])
+			ans$zrf = .fracdiff(c(1,rep(0,length(data)-1)), darfima = pars[idx[4,1]])
+			ans$res = .fracdiff(ans$res, darfima = pars[idx[4,1]])
 		}
 		if(any(is.na(ans$res))) res[which(is.na(ans$res))]=0
 		return(ans)
@@ -105,7 +102,7 @@
 	return(res$ydiff)
 }
 
-.arfimafitC = function(model, pars, idx, mexdata, sigma, data, zrf, N, res, garchenv)
+.arfimafitC = function(model, pars, idx, mexdata, sigma, data, zrf, N, res)
 {
 	m = as.integer(N[1])
 	T = as.integer(N[2])
@@ -128,11 +125,8 @@
 					m = m, T = T, h = h, z = z, llh = llh, LHT = LHT, 
 					PACKAGE = "rugarch"), silent = TRUE)
 	if(inherits(ans, "try-error")){
-		assign(".csol", 1, envir = garchenv)
-		assign(".filtermessage", ans, envir = garchenv)
 		return(0)
 	} else{
-		assign(".csol", 0, envir = garchenv)
 		return(ans)
 	}
 }
@@ -140,7 +134,7 @@
 
 .armaxsim = function(model, ipars, idx, constm, x, res, T, m)
 {
-	ans = try(.C("armaxsim", model = as.integer(model), para = as.double(ipars[,1]), 
+	ans = try(.C("armaxsim", model = as.integer(model), pars = as.double(ipars[,1]), 
 					idx = as.integer(idx[,1]-1), x = as.double(x), res = as.double(res), 
 					constm = as.double(constm), m = as.integer(m), T = as.integer(T), 
 					PACKAGE = "rugarch"), silent = TRUE)
@@ -150,7 +144,6 @@
 		return(ans)
 	}
 }
-
 .arfimaxsim = function(model, ipars, idx, constm, res, T)
 {
 	res = as.double(res)
@@ -160,11 +153,15 @@
 	flmax = as.double(.Machine$double.xmax)
 	epmin = as.double(.Machine$double.neg.eps)
 	epmax = as.double(.Machine$double.eps)
-	s = double(T)
+	s = double(T+model[3])
+	d = as.double( ipars[idx["arfima",1], 1] )
+	d = max(1e-9, d)
+	d = min(0.5-1e-9, d)
+	ans = list()
 	ans = try(.Fortran("fdsim", n = T, ip = as.integer( model[2] ), iq = as.integer( model[3] ), 
 					ar = as.double( ipars[idx["ar",1]:idx["ar",2], 1] ), 
 					ma = as.double( ipars[idx["ma",1]:idx["ma",2], 1] ), 
-					d = as.double( ipars[idx["arfima",1], 1] ),
+					d = as.double(d),
 					rmu = constm, y = res, s = s, flmin = flmin, flmax = flmax,
 					epmin = epmin, epmax = epmax,
 			PACKAGE = "rugarch"), silent = TRUE)

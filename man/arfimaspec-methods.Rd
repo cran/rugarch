@@ -17,7 +17,7 @@ arfimaspec(mean.model = list(armaOrder = c(1, 1), include.mean = TRUE,
  	List containing the mean model specification:\cr
  	\code{armaOrder} The autoregressive (ar) and moving average (ma) orders (if any).\cr
  	\code{include.mean} Whether to include the mean.\cr
- 	\code{arfima} Whether to include arfima.\cr
+ 	\code{arfima} Whether to include arfima (0<d<0.5).\cr
  	\code{external.regressors} A matrix object containing the external regressors to 
  	include in the mean equation with as many rows as will be included in the
  	data (which is passed in the fit function).
@@ -59,7 +59,7 @@ the order of the model. Just increment the number for higher orders):\cr
          \tab AR term	\tab \code{ar1}\cr
          \tab MA term	\tab \code{ma1}\cr
          \tab exogenous regressors	\tab \code{mxreg1}\cr
-         \tab arfima	\tab \code{darfima}\cr
+         \tab arfima	\tab \code{arfima}\cr
        }
 \emph{\bold{Distribution Model}}:\cr
        \tabular{rll}{

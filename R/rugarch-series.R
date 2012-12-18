@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -251,12 +250,12 @@ setMethod(f = "WeekDayDummy", signature(Dates = "character"), definition = .Week
 	
 	if(any(allc[[1]] == "-")){
 		dt = "-"
-		ld = length(which(diff(which(allc[[1]]!="-"))==1))+3
 		dte = t(apply(as.data.frame(x), 1, FUN=function(z) as.numeric(strsplit(z, dt)[[1]]) ))
+		ld = max(apply(dte, 1, FUN = function(x) max(nchar(as.character(x)))))+3		
 	} else if(any(allc[[1]] == "/")){
 		dt = "/"
-		ld = length(which(diff(which(allc[[1]]!="/"))==1))+3
 		dte = t(apply(as.data.frame(x), 1, FUN=function(z) as.numeric(strsplit(z, dt)[[1]]) ))
+		ld = max(apply(dte, 1, FUN = function(x) max(nchar(as.character(x)))))+3
 	} else if(any(allc[[1]] == ".")){
 		dt = "."
 		dte = t(apply(as.data.frame(x), 1, FUN=function(z) as.numeric(strsplit(z, dt)[[1]]) ))
@@ -297,7 +296,7 @@ setMethod(f = "WeekDayDummy", signature(Dates = "character"), definition = .Week
 		if(any(dte[,i]>31)) y = i
 	}
 	if(y==0) return(list(status=0))
-	d = sq[-y]
+	d = sq[-which(sq==y)]
 	dmatrix = cbind(dte[,d], dte[,m], dte[,y])
 	colnames(dmatrix) = c("d","m","y")
 	if(ld==6){

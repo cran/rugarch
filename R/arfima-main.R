@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -48,7 +47,10 @@
 	origdates = xdata$pos
 	dformat = xdata$dformat
 	# create a temporary environment to store values (deleted at end of function)
-	tempenvir = new.env(hash = TRUE, parent = .GlobalEnv)
+	garchenv = new.env(hash = TRUE)
+	arglist = list()
+	arglist$garchenv <- garchenv
+	arglist$pmode = 0
 	model = spec@model
 	modelinc = model$modelinc
 	pidx = model$pidx
@@ -59,25 +61,24 @@
 		mexdata = NULL
 	}
 	
-	assign("dates", dates, envir = tempenvir)
-	assign("trace", trace, envir = tempenvir)
-	assign("fit.control", fit.control, envir = tempenvir)
-	
+	arglist$dates = dates
+	arglist$trace = trace
+	arglist$fit.control = fit.control
 	m =  model$maxOrder
 	model$modeldata$T = T = length(as.numeric(data))
 	dist = model$modeldesc$distribution
 	if(fit.control$scale) dscale = sd(data) else dscale = 1
 	zdata = data/dscale
-	assign("dscale", dscale, envir = tempenvir)
-	assign("model", model, envir = tempenvir)
+	arglist$data = zdata
+	arglist$dscale = dscale
+	arglist$model = model
 	ipars = model$pars
 	# Optimization Starting Parameters Vector & Bounds
-	ipars = .arfimastart(ipars, data = zdata, garchenv = tempenvir)
-	assign("ipars", ipars, envir = tempenvir)
+	ipars = .arfimastart(ipars, arglist = arglist)
+	arglist$ipars = ipars
 	# we now split out any fixed parameters
 	estidx = as.logical( ipars[,4] )
-	assign("estidx", estidx, envir = tempenvir)
-	
+	arglist$estidx = estidx	
 	npars = sum(estidx)
 	if(any(ipars[,2]==1)){
 		if(npars == 0){
@@ -93,9 +94,9 @@
 				use.solver = 0
 				ipars[ipars[,2]==1, 4] = 1
 				ipars[ipars[,2]==1, 2] = 0
-				assign("ipars", ipars, envir = tempenvir)
+				arglist$ipars = ipars
 				estidx = as.logical( ipars[,4] )
-				assign("estidx", estidx, envir = tempenvir)
+				arglist$estidx = estidx	
 			}
 		} else{
 			# with some parameters fixed we extract them (to be rejoined at end)
@@ -107,40 +108,41 @@
 	}
 	
 	# start counter
-	assign(".llh", 1, envir = tempenvir)
-	
+	assign("rugarch_llh", 1, envir = garchenv)
+
 	if(fit.control$stationarity==1 && modelinc[2]>0){
-		Ifn = function(pars, data, returnType, garchenv){
+		Ifn = function(pars, arglist){
 			arx = 0.5
-			modelinc = get("model", garchenv)$modelinc
-			idx = get("model", garchenv)$pidx
-			ipars = get("ipars", garchenv)
-			estidx = get("estidx", garchenv)
+			modelinc = arglist$model$modelinc
+			idx = arglist$model$pidx
+			ipars = arglist$ipars
+			estidx = arglist$estidx
 			ipars[estidx, 1] = pars		
 			if(modelinc[2] > 0 && modelinc[4] == 0) arx = ipars[idx["ar",1]:idx["ar",2],1]
 			min(Mod(polyroot(c(1, -arx))))
 		}
 		ILB = 1.01
 		IUB = 100
-		if(solver == "solnp" | solver == "gosolnp") fit.control$stationarity = 0
+		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
 	} else{
 		Ifn = ILB = IUB = NULL
 	}
-	assign("fit.control", fit.control, , envir = tempenvir)
-	
+	arglist$fit.control = fit.control
+	# need to control for use of parallel environment which cannot handle the
+	# calls between the locally stored environment
 	if(use.solver){
 		parscale = rep(1, length = npars)
 		names(parscale) = rownames(ipars[estidx,])
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(zdata))
 		if(modelinc[7] > 0) parscale["sigma"] = sd(zdata)
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = .arfimaLLH, Ifn, ILB, IUB, 
-				gr = NULL, hessian = NULL, parscale = parscale, 
+		arglist$returnType = "llh"
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.arfimaLLH, 
+				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], UB = ipars[estidx, 6], 
-				ux = NULL, ci = NULL, mu = NULL, data = zdata, returnType = "llh", garchenv = tempenvir)
+				ux = NULL, ci = NULL, mu = NULL, arglist = arglist)
 		sol = solution$sol
 		hess = solution$hess
 		timer = Sys.time()-tic
-		ipars = get("ipars", tempenvir)
 		if(!is.null(sol$par)) ipars[estidx, 1] = sol$par else ipars[estidx, 1] = NA
 		if(sum(ipars[,2]) == 0){
 			if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
@@ -149,7 +151,7 @@
 			}
 			ipars[pidx["sigma",1], 1] = ipars[pidx["sigma",1],1] * dscale
 		}
-		assign("ipars", ipars, envir = tempenvir)
+		arglist$ipars = ipars
 		convergence = sol$convergence
 	} else{
 		hess = NULL
@@ -162,15 +164,18 @@
 	# check convergence else write message/return
 	ipars2 = ipars
 	if(convergence == 0){
+		arglist$dscale = 1
 		if(sum(ipars[,2]) > 0 && fit.control$fixed.se == 1){
 			ipars[ipars[,2]==1, 4] = 1
 			ipars[ipars[,2]==1, 2] = 0
-			assign("ipars", ipars, envir = tempenvir)
+			arglist$ipars = ipars
 			estidx = as.logical( ipars[,4] )
-			assign("estidx", estidx, envir = tempenvir)
+			arglist$estidx = estidx	
 		}
-		fit = .makearfimafitmodel(f = .arfimaLLH, data = data,  T = T, m = m, timer = timer, 
-				convergence = convergence, message = sol$message, hess, garchenv = tempenvir)
+		arglist$data = data
+		fit = .makearfimafitmodel(f = .arfimaLLH, T = T, m = m, timer = timer, 
+				convergence = convergence, message = sol$message, hess, 
+				arglist = arglist)
 		model$modelinc[7] = modelinc[7]
 		model$modeldata$data = origdata
 		model$modeldata$dates = origdates
@@ -191,30 +196,33 @@
 	# make model list to return some usefule information which
 	# will be called by other functions (show, plot, sim etc)
 	model$n.start = n.start
-
+	fit$solver = solution
 	ans = new("ARFIMAfit",
 			fit = fit,
 			model = model)
-	rm(tempenvir)
 	return(ans)
 }
 
 #---------------------------------------------------------------------------------
 # SECTION sGARCH LLH
 #---------------------------------------------------------------------------------
-.arfimaLLH = function(pars, data, returnType = "llh", garchenv)
+.arfimaLLH = function(pars, arglist)
 {
 	# prepare inputs
 	# rejoin fixed and pars
-	model = get("model", garchenv)
-	estidx = get("estidx", garchenv)
+	data = arglist$data
+	returnType = arglist$returnType
+	garchenv = arglist$garchenv
+	# rejoin fixed and pars
+	model = arglist$model
+	estidx = arglist$estidx
 	idx = model$pidx
-	ipars = get("ipars", garchenv)
+	ipars = arglist$ipars	
 	ipars[estidx, 1] = pars
-	trace = get("trace", garchenv)
+	trace = arglist$trace
 	T = length(data)
 	
-	fit.control = get("fit.control", garchenv)
+	fit.control = arglist$fit.control	
 	m = model$maxOrder
 	N = c(m,T)
 	mexdata = model$modeldata$mexdata[1:T,, drop = FALSE]
@@ -225,7 +233,7 @@
 	dist = model$modeldesc$distno
 	hm = 0
 	if(modelinc[4]>0){
-		rx = .arfimaxfilter(modelinc, ipars[,1], idx, mexdata = mexdata, h = 0, data = data, N = N, garchenv)
+		rx = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata, h = 0, data = data, N = N)
 		res = rx$res
 		zrf = rx$zrf
 		res[is.na(res) | !is.finite(res) | is.nan(res)] = 0
@@ -234,39 +242,52 @@
 		zrf = 0
 	}
 	# unconditional sigma value
-	assign("ipars", ipars, envir = garchenv)
 	if(fit.control$stationarity == 1 && modelinc[4] == 0 && modelinc[2] > 0){
 		arx = ipars[idx["ar",1]:idx["ar",2],1]
 		kappa = min(Mod(polyroot(c(1, -arx))))
-		if(!is.na(kappa) && (kappa < 1 | kappa > 100) ) return(llh = get(".llh", garchenv) + 0.1*(abs(get(".llh", garchenv))))
+		if(is.na(kappa) || (kappa < 1 || kappa > 100) ){
+			if(arglist$pmode!=1){
+				return(llh = get("rugarch_llh", garchenv) + 0.1*(abs(get("rugarch_llh", garchenv))))
+			} else{
+				return(llh = 1e10)
+			}
+		}
 	}
 	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
 
-	ans = try( .C("arfimafitC", model = as.integer(modelinc), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
-					x = as.double(data), res = as.double(res), mexdata = mexdata, zrf = as.double(zrf),
-					constm = double(T), condm = double(T), m = as.integer(m), T = as.integer(T),
-					z = double(T), llh = double(1), LHT = double(T), PACKAGE = "rugarch"), silent = TRUE )
+	ans = try( .C("arfimafitC", model = as.integer(modelinc[1:21]), 
+					pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
+					x = as.double(data), res = as.double(res), mexdata = mexdata, 
+					zrf = as.double(zrf), constm = double(T), condm = double(T), 
+					m = as.integer(m), T = as.integer(T), z = double(T), 
+					llh = double(1), LHT = double(T), PACKAGE = "rugarch"), silent = TRUE )
 	
 	if(inherits(ans, "try-error")){
-		assign(".csol", 1, envir = garchenv)
-		assign(".filtermessage", ans, envir = garchenv)
-		if( trace > 0 ) cat(paste("\narfimafit-->warning: ", get(".filtermessage",garchenv),"\n", sep=""))
-		return(llh = (get(".llh", garchenv) + 0.1*(abs(get(".llh", garchenv)))))
+		if(arglist$pmode!=1){
+			assign("rugarch_csol", 1, envir = garchenv)
+			assign("rugarch_filtermessage", ans, envir = garchenv)
+			if( trace > 0 ) cat(paste("\narfimafit-->warning: ", get("rugarch_filtermessage", garchenv),"\n", sep=""))
+			return(llh = (get("rugarch_llh", garchenv) + 0.1*(abs(get("rugarch_llh", garchenv)))))
+		} else{
+			return(llh = 1e10)
+		}
 	} else{
-		assign(".csol", 0, envir = garchenv)
+		if(arglist$pmode!=1){
+			assign("rugarch_csol", 0, envir = garchenv)
+		}	
 	}
 	z = ans$z
 	epsx = ans$res
 	llh = ans$llh
 	
 	if(is.finite(llh) && !is.na(llh) && !is.nan(llh)){
-		assign(".llh", llh, envir = garchenv)
+		if(arglist$pmode!=1) assign("rugarch_llh", llh, envir = garchenv)
 	} else {
-		llh = (get(".llh", garchenv) + 0.1*(abs(get(".llh", garchenv))))
+		if(arglist$pmode!=1) llh = (get("rugarch_llh", garchenv) + 0.1*(abs(get("rugarch_llh", garchenv)))) else llh = 1e10
 	}
 	
 	# LHT = raw scores
-	#LHT = -ans$LHT[(m):T]
+	# LHT = -ans$LHT[(m):T]
 	LHT = -ans$LHT
 	ans = switch(returnType,
 			llh = llh,
@@ -287,7 +308,6 @@
 	# is influenced by new data. For a small augmentation the values converge after
 	# x periods, but it is sometimes preferable to have this option so that there is
 	# no forward looking information contaminating the study.
-	.garchenv = environment()
 	xdata = .extractdata(data)
 	data = xdata$data
 	dates = xdata$pos
@@ -327,7 +347,7 @@
 	
 	
 	if(modelinc[4]>0){
-		rx = .arfimaxfilter(modelinc, ipars[,1], idx, mexdata = mexdata, h = 0, data = data, N = N, .garchenv)
+		rx = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata, h = 0, data = data, N = N)
 		res = rx$res
 		zrf = rx$zrf
 		res[is.na(res) | !is.finite(res) | is.nan(res)] = 0
@@ -338,10 +358,12 @@
 	
 	if(modelinc[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = double(1)
 	
-	ans = try( .C("arfimafitC", model = as.integer(modelinc), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
-					x = as.double(data), res = as.double(res), mexdata = mexdata, zrf = as.double(zrf),
-					constm = double(T), condm = double(T), m = as.integer(m), T = as.integer(T),
-					z = double(T), llh = double(1), LHT = double(T), PACKAGE = "rugarch"), silent = TRUE )
+	ans = try( .C("arfimafitC", model = as.integer(modelinc[1:21]), 
+					pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
+					x = as.double(data), res = as.double(res), mexdata = mexdata, 
+					zrf = as.double(zrf), constm = double(T), condm = double(T), 
+					m = as.integer(m), T = as.integer(T), z = double(T), 
+					llh = double(1), LHT = double(T), PACKAGE = "rugarch"), silent = TRUE )
 	
 	if(inherits(ans, "try-error")) stop("\nugarchfilter-->error: problem in C code...exiting.")
 	filter = list()
@@ -356,7 +378,6 @@
 	model$modeldata$date.format = dformat
 	model$n.start = out.sample
 	
-	rm(.garchenv)
 	sol = new("ARFIMAfilter",
 			filter = filter,
 			model = model)
@@ -419,9 +440,9 @@
 		mxfi = mxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		
 		if(modelinc[4]>0){
-			res = arfimaf(ipars, modelinc, idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
+			res = arfimaf(ipars, modelinc[1:21], idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
 		} else{
-			res = armaf(ipars, modelinc, idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
+			res = armaf(ipars, modelinc[1:21], idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
 		}
 		ans = res[(np + 1):(np + n.ahead)]
 		fdf = data.frame(series = ans)
@@ -519,9 +540,9 @@
 		mxfi = mxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		
 		if(modelinc[4]>0){
-			res = arfimaf(ipars, modelinc, idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
+			res = arfimaf(ipars, modelinc[1:21], idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
 		} else{
-			res = armaf(ipars, modelinc, idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
+			res = armaf(ipars, modelinc[1:21], idx, mu, mxfi, h=0, epsx, z, data = x, N = np, n.ahead)
 		}
 		ans = res[(np + 1):(np + n.ahead)]
 		fdf = data.frame(series = ans)
@@ -552,6 +573,12 @@
 		preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA, type = "z"), 
 		mexsimdata = NULL)
 {
+	if(fit@model$modelinc[4]>0){
+		if(n.start<fit@model$modelinc[3]){
+			warning("\narfimasim-->warning: n.start>=MA order for arfima model...automatically setting.")
+			n.start = fit@model$modelinc[3]
+		}
+	}
 	# some checks
 	if(is.na(rseed[1])){
 		sseed = as.integer(runif(1,0,as.integer(Sys.time())))
@@ -649,10 +676,10 @@
 		if(modelinc[4]>0){
 			x = c(prereturns, rep(0, n +  modelinc[3]))
 			res = c(if(cres) as.numeric(z[(m+1):(n+m),i]) else as.numeric(z[(m+1):(n+m),i]) * Sigma, if(modelinc[3]>0) rep(0,  modelinc[3]) else NULL)
-			ans2 = .arfimaxsim(modelinc, ipars, idx, constm[1:n, i], res[1:(n+modelinc[3])], T = n)	
-			seriesSim[,i] = tail(ans2$series, n.sim)
+			ans2 = .arfimaxsim(modelinc[1:21], ipars, idx, constm[1:n, i], res[1:(n+modelinc[3])], T = n)	
+			seriesSim[,i] = head(ans2$series, n.sim)
 		} else{
-			ans2 = .armaxsim(modelinc, ipars, idx, constm[,i],  x, res, T = n + m, m)
+			ans2 = .armaxsim(modelinc[1:21], ipars, idx, constm[,i],  x, res, T = n + m, m)
 			seriesSim[,i] = tail(ans2$x, n.sim)
 		}
 	}
@@ -673,6 +700,12 @@
 		rseed = NA, custom.dist = list(name = NA, distfit = NA, type = "z"), mexsimdata = NULL)
 {
 	# some checks
+	if(spec@model$modelinc[4]>0){
+		if(n.start<spec@model$modelinc[3]){
+			warning("\narfimapath-->warning: n.start>=MA order for arfima model...automatically setting.")
+			n.start = spec@model$modelinc[3]
+		}
+	}
 	if(is.na(rseed[1])){
 		sseed = as.integer(runif(1,0,as.integer(Sys.time())))
 	} else{
@@ -763,10 +796,10 @@
 		if(modelinc[4]>0){
 			x = c(prereturns, rep(0, n + modelinc[3]))
 			res = c(if(cres) as.numeric(z[(m+1):(n+m),i]) else as.numeric(z[(m+1):(n+m),i]) * Sigma, if(modelinc[3]>0) rep(0, modelinc[3]) else NULL)
-			ans2 = .arfimaxsim(modelinc, ipars, idx, constm[1:n, i], res[1:(n+modelinc[3])], T = n)
-			seriesSim[,i] = tail(ans2$series, n.sim)
+			ans2 = .arfimaxsim(modelinc[1:21], ipars, idx, constm[1:n, i], res[1:(n+modelinc[3])], T = n)
+			seriesSim[,i] = head(ans2$series, n.sim)
 		} else{
-			ans2 = .armaxsim(modelinc, ipars, idx, constm[,i],  x, res, T = n + m, m)
+			ans2 = .armaxsim(modelinc[1:21], ipars, idx, constm[,i],  x, res, T = n + m, m)
 			seriesSim[,i] = tail(ans2$x, n.sim)
 		}
 	}
@@ -778,301 +811,435 @@
 	return(sol)
 }
 
-.arfimaroll = function(spec,  data, n.ahead = 1, forecast.length = 500, refit.every = 25, 
-		refit.window = c("recursive", "moving"), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), solver = "solnp", 
-		fit.control = list(), solver.control = list(), calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), ...)
+.arfimaroll = function(spec, data, n.ahead = 1, forecast.length = 500, 
+		n.start = NULL, refit.every = 25, refit.window = c("recursive", "moving"), 
+		window.size = NULL, solver = "hybrid", fit.control = list(), solver.control = list(),
+		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), cluster = NULL,
+		keep.coef = TRUE, ...)
 {
 
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) parallel.control$pkg = "snowfall" else parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2 else parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
+	tic = Sys.time()
+	if(is.null(solver.control$trace)) trace = 0 else trace = solver.control$trace
+	if(is.null(fit.control$stationarity)) fit.control$stationarity = TRUE
+	if(is.null(fit.control$fixed.se)) fit.control$fixed.se = FALSE
+	if(is.null(fit.control$scale)) fit.control$scale = FALSE
+	if(is.null(fit.control$rec.init)) fit.control$rec.init = 'all'
+	mm = match(names(fit.control), c("stationarity", "fixed.se", "scale", "rec.init"))
+	if(any(is.na(mm))){
+		idx = which(is.na(mm))
+		enx = NULL
+		for(i in 1:length(idx)) enx = c(enx, names(fit.control)[idx[i]])
+		warning(paste(c("unidentified option(s) in fit.control:\n", enx), sep="", collapse=" "), call. = FALSE, domain = NULL)
 	}
 	datanames = names(data)
 	xdata = .extractdata(data)
 	data = xdata$data
 	dates = xdata$pos
-	xdata = data.frame(data)
-	rownames(xdata) = as.character(dates)
-	if(is.null(fit.control$stationarity)) fit.control$stationarity=1
-	if(is.null(fit.control$fixed.se)) fit.control$fixed.se=0
-	T = length(data)
-	startT = T-forecast.length
-	# forecast window index
-	fwindex = t( .embed((T - forecast.length - n.ahead + 2):T, refit.every, by = refit.every, TRUE ) )
-	#forecast.length = dim(fwindex)[1] * dim(fwindex)[2]
-	fitindx.start = c(fwindex[1,]-1)
-	fwindex.end = fwindex[refit.every,]
-	nf = length(fwindex.end)
-	fitdata = vector(mode="list",length = nf)
-	mexdata = vector(mode="list",length = nf)
-	fitlist = vector(mode="list",length = nf)
-	outdata = vector(mode="list",length = nf)
-	coefv = vector(mode="list", length = nf)
+	T = NROW(data)
+	modelinc = spec@model$modelinc
+	if( modelinc[6]>0 ){
+		mexdata = spec@model$modeldata$mexdata
+		mex = TRUE
+	} else{
+		mex = FALSE
+		mexdata = NULL
+	}
+	if(n.ahead>1) stop("\narfimaroll:--> n.ahead>1 not supported...try again.")
+	if(is.null(n.start)){
+		if(is.null(forecast.length)) stop("\narfimaroll:--> forecast.length amd n.start are both NULL....try again.")
+		n.start = T - forecast.length
+	}
+	if(T<=n.start) stop("\nugarchroll:--> start cannot be greater than length of data")
+	# the ending points of the estimation window
+	s = seq(n.start+refit.every, T, by = refit.every)
+	m = length(s)
+	# the rolling forecast length
+	out.sample = rep(refit.every, m)
+	# adjustment to include all the datapoints from the end
+	if(s[m]<T){
+		s = c(s,T)
+		m = length(s)
+		out.sample = c(out.sample, s[m]-s[m-1])
+	}
+	if(refit.window == "recursive"){
+		rollind = lapply(1:m, FUN = function(i) 1:s[i])
+	} else{
+		if(!is.null(window.size)){
+			if(window.size<100) stop("\narfimaroll:--> window size must be greater than 100.")
+			rollind = lapply(1:m, FUN = function(i) max(1, (s[i]-window.size)):s[i])
+		} else{
+			rollind = lapply(1:m, FUN = function(i) (1+(i-1)*refit.every):s[i])
+		}
+	}
+	# distribution
 	distribution = spec@model$modeldesc$distribution
-	model = spec@model
-	modelinc = model$modelinc
-	forecastlist = vector(mode="list", length = nf)
-	forecast.length = floor(forecast.length/refit.every) * refit.every
-	VaR.list = NULL
+	if(any(distribution==c("snorm","sstd","sged","jsu","nig","ghyp","ghst"))) skewed = TRUE else skewed = FALSE
+	if(any(distribution==c("std","sstd","ged","sged","jsu","nig","ghyp","ghst"))) shaped = TRUE else shaped = FALSE
+	if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
 	
-	for(i in 1:nf){
-		if(refit.window[1]=="recursive"){
-			fitdata[[i]] = xdata[1:(fitindx.start[i]+refit.every), , drop = FALSE]
-			outdata[[i]] = xdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
-			if( modelinc[6]>0 ){
-				mexdata[[i]] = model$modeldata$mexdata[1:(fitindx.start[i]+refit.every), , drop = FALSE]
-			} else{
-				mexdata[[i]] = NULL
-			}
-		} else{
-			fitdata[[i]] = xdata[(i*refit.every):(fitindx.start[i]+refit.every), , drop = FALSE]
-			outdata[[i]] = xdata[(fitindx.start[i]+1):(fitindx.start[i]+refit.every), , drop = FALSE]
-			if( modelinc[6]>0 ){
-				mexdata[[i]] = model$modeldata$mexdata[(i*refit.every):(fitindx.start[i]+refit.every), , drop = FALSE]
-			} else{
-				mexdata[[i]] = NULL
-			}
-		}
-	}
-	
-	cat("\n...estimating refit windows...\n")
-	specx = vector(mode = "list", length = nf)
-	for(i in 1:nf){
-		specx[[i]] = spec
-		if(modelinc[6]>0)  specx[[i]]@model$modeldata$mexdata = mexdata[[i]] else specx[[i]]@model$modeldata$mexdata = NULL
-	}
-	if( parallel ){
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist = multicore::mclapply(1:nf, FUN = function(i) arfimafit(spec = specx[[i]], data = fitdata[[i]], 
-								solver = solver, out.sample = refit.every, solver.control = solver.control,
-								fit.control = fit.control), mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("specx", "fitdata", "refit.every", "solver", "solver.control", "fit.control",local = TRUE)
-			fitlist = sfLapply(as.list(1:nf), fun = function(i) rugarch::arfimafit(spec = specx[[i]], 
-								data = fitdata[[i]], solver = solver, out.sample = refit.every, 
-								solver.control = solver.control, fit.control = fit.control))
-			sfStop()
-		}
+	if(!is.null(cluster)){
+		clusterEvalQ(cl = cluster, library(rugarch))
+		clusterExport(cluster, c("data", "dates", "s","refit.every", 
+						"keep.coef", "shaped", "skewed", "ghyp", 
+						"rollind", "spec", "out.sample", "mex",
+						"solver", "solver.control", "fit.control"), envir = environment())
+		if(mex) clusterExport(cluster, c("mex"), envir = environment())
+		tmp = parLapply(cluster, as.list(1:m), fun = function(i){
+					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
+					fit = try(arfimafit(spec, data[rollind[[i]]], out.sample = out.sample[i], 
+									solver = solver, solver.control = solver.control, 
+									fit.control = fit.control), silent=TRUE)
+					if(inherits(fit, 'try-error') || convergence(fit)!=0){
+						ans = list(y = NA, cf = NA, converge = FALSE)
+					} else{
+						if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
+						f = arfimaforecast(fit, n.ahead = 1, n.roll = out.sample[i]-1, 
+								external.forecasts = list(mregfor = fmex))
+						sig = as.numeric( rep(coef(fit)["sigma"], out.sample[i]) )
+						ret = as.numeric( as.data.frame(f, rollframe="all", align = FALSE) )
+						if(shaped) shp = rep(coef(fit)["shape"], out.sample[i]) else shp = rep(0, out.sample[i])
+						if(skewed) skw = rep(coef(fit)["skew"], out.sample[i]) else skw = rep(0, out.sample[i])
+						if(ghyp) shpgig = rep(coef(fit)["ghlambda"], out.sample[i]) else shpgig = rep(0, out.sample[i])
+						rlz = tail(data[rollind[[i]]], out.sample[i])
+						# use xts for indexing the forecasts
+						y = as.data.frame(cbind(ret, sig, skw, shp, shpgig, rlz))
+						rownames(y) = tail(as.character(dates[rollind[[i]]]), out.sample[i])						
+						colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
+						if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
+						ans = list(y = y, cf = cf, converge = TRUE)
+					}
+					return(ans)})
 	} else{
-		for(i in 1:nf){
-			fitlist[[i]] = arfimafit(data = fitdata[[i]], spec = specx[[i]], solver = solver, 
-					out.sample = refit.every, solver.control = solver.control,
-					fit.control = fit.control)
-			if(fitlist[[i]]@fit$convergence!=0){
-				if(i>1){
-					specx[[i]]@model$start.pars = as.list(coef(fitlist[[i-1]]))
-					fitlist[[i]] = arfimafit(data = fitdata[[i]], spec = specx[[i]], solver = solver, 
-							out.sample = refit.every, solver.control = solver.control,
-							fit.control = fit.control)
-					specx[[i]]@model$start.pars = NULL
-				}
-			}
-		}
+		tmp = lapply(as.list(1:m), FUN = function(i){
+					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
+					fit = try(arfimafit(spec, data[rollind[[i]]], out.sample = out.sample[i], 
+									solver = solver, solver.control = solver.control, 
+									fit.control = fit.control), silent=TRUE)
+					if(inherits(fit, 'try-error') || convergence(fit)!=0){
+						ans = list(y = NA, cf = NA, converge = FALSE)
+					} else{
+						if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
+						f = arfimaforecast(fit, n.ahead = 1, n.roll = out.sample[i]-1, 
+								external.forecasts = list(mregfor = fmex))
+						sig = as.numeric( rep(coef(fit)["sigma"], out.sample[i]) )
+						ret = as.numeric( as.data.frame(f, rollframe="all", align = FALSE) )
+						if(shaped) shp = rep(coef(fit)["shape"], out.sample[i]) else shp = rep(0, out.sample[i])
+						if(skewed) skw = rep(coef(fit)["skew"], out.sample[i]) else skw = rep(0, out.sample[i])
+						if(ghyp) shpgig = rep(coef(fit)["ghlambda"], out.sample[i]) else shpgig = rep(0, out.sample[i])
+						rlz = tail(data[rollind[[i]]], out.sample[i])
+						# use xts for indexing the forecasts
+						y = as.data.frame(cbind(ret, sig, skw, shp, shpgig, rlz))
+						rownames(y) = tail(as.character(dates[rollind[[i]]]), out.sample[i])
+						colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
+						if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
+						ans = list(y = y, cf = cf, converge = TRUE)
+					}
+					return(ans)})
 	}
-	converge = sapply(fitlist, FUN=function(x) x@fit$convergence)
-	if(any(converge!=0)){
-		ncon = which(converge!=0)
-		stop(paste("\nno convergence in the following fits: ", ncon, "...exiting", sep=""), call.=FALSE)
-	}
-	cat("\nDone!...all converged.\n")
-	coefv = t(sapply(fitlist,FUN=function(x) x@fit$coef))
-	coefmat = lapply(fitlist,FUN=function(x) x@fit$robust.matcoef)
-	LLH = sapply(fitlist, FUN=function(x) x@fit$LLH)
-	# filtered sigma/series(actual) estimates
-	filter.sigma = vector(mode = "numeric", length = forecast.length)
-	filter.series = unlist(outdata)
-	
-	if( parallel ){
-		if( parallel.control$pkg == "multicore" ){
-			forecastlist = multicore::mclapply(fitlist, FUN = function(x) arfimaforecast(x, 
-								n.ahead = n.ahead, n.roll = refit.every-1), mc.cores = parallel.control$cores)
-		} else{
-			nx = length(fitlist)
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("fitlist", "n.ahead", "refit.every", local = TRUE)
-			forecastlist = sfLapply(as.list(1:nx), fun = function(i) rugarch::arfimaforecast(fitlist[[i]], 
-								n.ahead = n.ahead, n.roll = refit.every-1))
-			sfStop()
-		}
+	conv = sapply(tmp, FUN = function(x) x$converge)
+	if(any(!conv)){
+		warning("\nnon-converged estimation windows present...resubsmit object with different solver parameters...")
+		noncidx = which(!conv)
+		model = list()
+		model$spec = spec
+		model$data = data
+		model$dates = dates
+		model$datanames = datanames
+		model$n.ahead = n.ahead
+		model$forecast.length = forecast.length 
+		model$n.start = n.start
+		model$n.refits = m
+		model$refit.every = refit.every
+		model$refit.window = refit.window
+		model$window.size = window.size
+		model$calculate.VaR = calculate.VaR
+		model$VaR.alpha = VaR.alpha
+		model$keep.coef = keep.coef
+		model$noncidx = noncidx
+		forecast = tmp
+		toc = Sys.time()-tic
+		model$elapsed = toc
+		ans = new("ARFIMAroll",
+				model = model,
+				forecast = forecast)
+		return(ans)
 	} else{
-		forecastlist = lapply(fitlist, FUN = function(x) arfimaforecast(x, n.ahead = n.ahead, n.roll = refit.every-1))
-	}
-	
-	eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
-	# collect forecasts [mu sigma (skew shape)]
-	# 2 cases : n.ahead = 1 we use a matrix, else
-	# n.ahead > 1 we use a list object
-	if(n.ahead == 1){
-		fser = as.numeric(sapply(forecastlist,FUN=function(x) sapply(x@forecast$forecasts, FUN=function(x) x)))
-		fdates = dates[as.numeric(fwindex)]
-		rdat = data[(fitindx.start[1]+1):(fitindx.start[1] + forecast.length + 1 - 1)]
-		eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
-		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
-		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
-		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
-		sigma.f = sapply(fitlist,FUN=function(x) coef(x)["sigma"])
-		fmatrix = matrix(NA, ncol = 5, nrow = forecast.length)
-		colnames(fmatrix) = c("muf", "sigmaf", "ghlambdaf", "skewf", "shapef")
-		fmatrix[,1] = fser
-		for(i in 1:dim(eindex)[2]){
-			fmatrix[eindex[,i], 2] = rep(sigma.f[i], refit.every)
-			fmatrix[eindex[,i], 3] = rep(if(modelinc[18]>0) ghlambda.f[i] else 0, refit.every)
-			fmatrix[eindex[,i], 4] = rep(if(modelinc[16]>0) skew.f[i] else 0, refit.every)
-			fmatrix[eindex[,i], 5] = rep(if(modelinc[17]>0) shape.f[i] else 0, refit.every)
+		noncidx = NULL
+		forc = tmp[[1]]$y
+		for(i in 2:m){
+			forc = rbind(forc, tmp[[i]]$y)
 		}
-		#re - scale the fmatrix to returns-based density
-		smatrix = .scaledist(dist = distribution, fmatrix[,1], fmatrix[,2], fmatrix[,3], fmatrix[,4], fmatrix[,5])
-		#fdates = dates[as.numeric(fwindex)]
-		fdensity = vector(mode = "list", length = 1)
-		f01density = vector(mode = "list", length = 1)
-		fdensity[[1]] = data.frame(fdate = fdates, fmu=smatrix[,1], fsigma=smatrix[,2], fdlambda = fmatrix[,3], fskew=smatrix[,3], fshape=smatrix[,4])
-		f01density[[1]] = data.frame(f01date=fdates, f01mu=fmatrix[,1], f01sigma=fmatrix[,2], f01ghlambda = fmatrix[,3], f01skew=fmatrix[,3], f01shape=fmatrix[,4])
+		cf = vector(mode = "list", length = m)
+		for(i in 1:m){
+			cf[[i]]$date = dates[tail(rollind[[i]],1) - out.sample[i]]
+			cf[[i]]$coef = tmp[[i]]$cf
+		}
 		if(calculate.VaR){
-			VaR.list = vector(mode="list", length = 1)
-			cat("\n...calculating VaR...\n")
 			if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
-			n.v = dim(fdensity[[1]])[1]
-			m.v = length(VaR.alpha)
-			VaR.matrix = matrix(NA, ncol = m.v + 1, nrow = n.v)
-			for(i in 1:m.v){
-				VaR.matrix[,i] = .qdensity(rep(VaR.alpha[i], n.v) , mu = smatrix[,1], sigma = smatrix[,2], lambda = fmatrix[,3], 
-						skew = smatrix[,3], shape = smatrix[,4], distribution = distribution)
+			VaR.matrix = matrix(NA, ncol = length(VaR.alpha)+1, nrow = NROW(forc))
+			for(i in 1:length(VaR.alpha)){
+				VaR.matrix[,i] = qdist(rep(VaR.alpha[i], NROW(forc)) , mu = forc[,1], sigma = forc[,2], 
+						skew = forc[,3], shape = forc[,4], lambda = forc[,5], 
+						distribution = spec@model$modeldesc$distribution)
 			}
-			VaR.matrix[,m.v+1] = unlist(outdata)
-			colnames(VaR.matrix) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "actual")
-			rownames(VaR.matrix) = as.character(fdates)
-			VaR.list[[1]] = VaR.matrix
-			cat("\nDone!\n")
+			VaR.matrix[,length(VaR.alpha)+1] = forc[,6]
+			colnames(VaR.matrix) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "realized")
+			VaR.matrix = as.data.frame(VaR.matrix)
+			rownames(VaR.matrix) = rownames(forc)
 		} else{
 			VaR.matrix = NULL
-			VaR.alpha = NULL
 		}
-		rolllist = list()
-		rolllist$n.refit = nf
-		rolllist$refit.every = refit.every
-		rolllist$fdensity = fdensity
-		rolllist$f01density = f01density
-		rolllist$coefs = coefv
-		rolllist$coefmat = coefmat
-		rolllist$LLH = LLH
-		rolllist$VaR.out = VaR.list
-		rolllist$n.ahead = n.ahead
-		rolllist$forecast.length = forecast.length
-		rolllist$VaR.alpha =VaR.alpha
-		model$modeldata$filterseries = filter.series
-		model$modeldata$data = data
-		model$modeldata$dates = dates
-		model$modeldata$dates.format = xdata$dformat
-		model$modeldata$datanames = datanames
-		ans = new("ARFIMAroll",
-				roll = rolllist,
-				forecast = forecastlist,
-				model = model)
-	} else{
-		eindex = t(.embed(1:forecast.length, refit.every, refit.every, TRUE))
-		sigma.f = sapply(fitlist,FUN=function(x) coef(x)["sigma"])
-		if(modelinc[16]>0) skew.f = sapply(fitlist,FUN=function(x) coef(x)["skew"])
-		if(modelinc[17]>0) shape.f = sapply(fitlist,FUN=function(x) coef(x)["shape"])
-		if(modelinc[18]>0) ghlambda.f = sapply(fitlist,FUN=function(x) coef(x)["ghlambda"])
-		# split the array into 1:n-day ahead forecasts
-		flist = vector(mode="list", length = n.ahead)
-		f01density = vector(mode="list", length = n.ahead)
-		fdensity = vector(mode="list", length = n.ahead)
-		for(i in 1:n.ahead){
-			fser =  unlist(lapply(forecastlist, FUN=function(x) sapply(x@forecast$forecast, FUN=function(x) x[i,])))
-			rdat = data[(fitindx.start[1]+i):(fitindx.start[1] + forecast.length + i - 1)]
-			fdates = as.character(dates[(fitindx.start[1]+i):(fitindx.start[1] + forecast.length + i - 1)])
-			flist[[i]] = fdensity[[i]] = f01density[[i]] = matrix(NA, ncol = 5, nrow = forecast.length)	
-			f01density[[i]][,1] = fser
-			for(j in 1:dim(eindex)[2]){
-				f01density[[i]][eindex[,j],2] = rep(sigma.f[j], refit.every)
-				f01density[[i]][eindex[,j],3] = rep(if(modelinc[18]>0) ghlambda.f[j] else 0, refit.every)
-				f01density[[i]][eindex[,j],4] = rep(if(modelinc[16]>0) skew.f[j] else 0, refit.every)
-				f01density[[i]][eindex[,j],5] = rep(if(modelinc[17]>0) shape.f[j] else 0, refit.every)
-			}
-			fdensity[[i]] = .scaledist(dist = distribution, f01density[[i]][,1], f01density[[i]][,2], f01density[[i]][,3], f01density[[i]][,4], f01density[[i]][,5])
-			fdensity[[i]] = as.data.frame(fdensity[[i]])
-			f01density[[i]] = as.data.frame(f01density[[i]])
-			
-			fdensity[[i]] = cbind(fdates, fdensity[[i]])
-			
-			f01density[[i]] = cbind(fdates, f01density[[i]])
-			
-			colnames(fdensity[[i]])  = c("fdate", "fmu", "fsigma", "fskew", "fshape")
-			colnames(f01density[[i]]) = c("f01date", "f01mu", "f01sigma", "f01ghlambda", "f01skew", "f01shape")
-		}
-		if(calculate.VaR){
-			# should consider implementing mclapply here as well
-			cat("\n...calculating VaR...\n")
-			if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
-			n.v = forecast.length
-			m.v = length(VaR.alpha)
-			VaR.list = vector(mode="list", length = n.ahead)
-			for(j in 1:n.ahead){
-				VaR.list[[j]] = matrix(NA, ncol = m.v+1, nrow = n.v)
-				for(i in 1:m.v){
-					VaR.list[[j]][,i] = .qdensity(rep(VaR.alpha[i], n.v) , mu = fdensity[[j]][,2],
-							sigma = fdensity[[j]][,3], lambda = f01density[[i]][,3], skew = fdensity[[j]][,4], 
-							shape = fdensity[[j]][,5],distribution = distribution)
-				}
-				VaR.list[[j]][,m.v+1] = data[(fitindx.start[1]+j):(fitindx.start[1] + forecast.length + j - 1)]
-				colnames(VaR.list[[j]]) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "actual")
-				rownames(VaR.list[[j]]) = as.character(dates[(fitindx.start[1]+j):(fitindx.start[1] + forecast.length + j - 1)])
-			}
-			cat("\nDone!\n")
-		} else{
-			VaR.list = NULL
-			VaR.alpha = NULL
-		}
-			rolllist = list()
-			rolllist$n.refit = nf
-			rolllist$refit.every = refit.every
-			rolllist$garchmodel = model
-			rolllist$fdensity = fdensity
-			rolllist$f01density = f01density
-			rolllist$coefs = coefv
-			rolllist$coefmat = coefmat
-			rolllist$LLH = LLH
-			rolllist$VaR.out = VaR.list
-			rolllist$n.ahead = n.ahead
-			rolllist$forecast.length = forecast.length
-			rolllist$VaR.alpha =VaR.alpha
-			model$modeldata$filterseries = filter.series
-			model$modeldata$data = data
-			model$modeldata$dates = dates
-			model$modeldata$dates.format = xdata$dformat
-			model$modeldata$datanames = datanames
-			
-			ans = new("ARFIMAroll",
-					roll = rolllist,
-					model = model,
-					forecast = forecastlist)
+		model = list()
+		model$spec = spec
+		model$data = data
+		model$dates = dates
+		model$n.ahead = n.ahead
+		model$forecast.length = forecast.length 
+		model$n.start = n.start
+		model$refit.every = refit.every
+		model$n.refits = m
+		model$refit.window = refit.window
+		model$window.size = window.size
+		model$calculate.VaR = calculate.VaR
+		model$VaR.alpha = VaR.alpha
+		model$keep.coef = keep.coef
+		model$noncidx = noncidx
+		model$coef = cf
+		forecast = list(VaR = VaR.matrix, density = forc)
 	}
-	return(ans)
+	toc = Sys.time()-tic
+	model$elapsed = toc
+	ans = new("ARFIMAroll",
+			model = model,
+			forecast = forecast)
+	return( ans )
 }
 
-.arfimadistribution = function(fitORspec, n.sim = 2000, n.start = 1, 
-		m.sim = 100, recursive = FALSE, recursive.length = 6000, recursive.window = 1000, 
-		prereturns = NA, preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA, type = "z"), 
+.resumeroll2 = function(object, solver = "hybrid", fit.control = list(), 
+		solver.control = list(), cluster = NULL)
+{
+	if(!is.null(object@model$noncidx)){
+		noncidx = object@model$noncidx
+		tic = Sys.time()
+		if(is.null(solver.control$trace)) trace = 0 else trace = solver.control$trace
+		if(is.null(fit.control$stationarity)) fit.control$stationarity = TRUE
+		if(is.null(fit.control$fixed.se)) fit.control$fixed.se = FALSE
+		if(is.null(fit.control$scale)) fit.control$scale = FALSE
+		if(is.null(fit.control$rec.init)) fit.control$rec.init = 'all'
+		mm = match(names(fit.control), c("stationarity", "fixed.se", "scale", "rec.init"))
+		if(any(is.na(mm))){
+			idx = which(is.na(mm))
+			enx = NULL
+			for(i in 1:length(idx)) enx = c(enx, names(fit.control)[idx[i]])
+			warning(paste(c("unidentified option(s) in fit.control:\n", enx), sep="", collapse=" "), call. = FALSE, domain = NULL)
+		}
+		model = object@model
+		keep.coef = model$keep.coef
+		spec = model$spec
+		datanames = model$datanames
+		data = model$data
+		dates = model$dates
+		T = NROW(data)
+		modelinc = spec@model$modelinc
+		calculate.VaR = model$calculate.VaR
+		VaR.alpha = model$VaR.alpha
+		if( modelinc[6]>0 ){
+			mexdata = spec@model$modeldata$mexdata
+			mex = TRUE
+		} else{
+			mex = FALSE
+			mexdata = NULL
+		}
+		n.ahead = model$n.ahead
+		n.start = model$n.start
+		forecast.length = model$forecast.length
+		refit.every = model$refit.every
+		refit.window = model$refit.window
+		window.size = model$window.size
+		if(n.ahead>1) stop("\narfimaroll:--> n.ahead>1 not supported...try again.")
+		if(is.null(n.start)){
+			if(is.null(forecast.length)) stop("\narfimaroll:--> forecast.length amd n.start are both NULL....try again.")
+			n.start = T - forecast.length
+		}
+		if(T<=n.start) stop("\narfimaroll:--> start cannot be greater than length of data")
+		# the ending points of the estimation window
+		s = seq(n.start+refit.every, T, by = refit.every)
+		m = length(s)
+		# the rolling forecast length
+		out.sample = rep(refit.every, m)
+		# adjustment to include all the datapoints from the end
+		if(s[m]<T){
+			s = c(s,T)
+			m = length(s)
+			out.sample = c(out.sample, s[m]-s[m-1])
+		}
+		if(refit.window == "recursive"){
+			rollind = lapply(1:m, FUN = function(i) 1:s[i])
+		} else{
+			if(!is.null(window.size)){
+				if(window.size<100) stop("\nugarchroll:--> window size must be greater than 100.")
+				rollind = lapply(1:m, FUN = function(i) max(1, (s[i]-window.size)):s[i])
+			} else{
+				rollind = lapply(1:m, FUN = function(i) (1+(i-1)*refit.every):s[i])
+			}
+		}
+		# distribution
+		distribution = spec@model$modeldesc$distribution
+		if(any(distribution==c("snorm","sstd","sged","jsu","nig","ghyp","ghst"))) skewed = TRUE else skewed = FALSE
+		if(any(distribution==c("std","sstd","ged","sged","jsu","nig","ghyp","ghst"))) shaped = TRUE else shaped = FALSE
+		if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
+		if(!is.null(cluster)){
+			clusterEvalQ(cl = cluster, library(rugarch))
+			clusterExport(cluster, c("data", "dates","s","refit.every",
+							"keep.coef", "shaped", "skewed", "ghyp", 
+							"rollind", "spec", "out.sample", "mex", 
+							"noncidx", "solver", "solver.control", "fit.control"),
+					envir = environment())
+			if(mex) clusterExport(cluster, c("mex"), envir = environment())
+			tmp = parLapply(cluster, as.list(noncidx), fun = function(i){
+						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
+						fit = try(arfimafit(spec, data[rollind[[i]]], out.sample = out.sample[i], 
+										solver=solver, solver.control = solver.control, 
+										fit.control = fit.control), silent=TRUE)
+						if(inherits(fit, 'try-error') || convergence(fit)!=0){
+							ans = list(y = NA, cf = NA, converge = FALSE)
+						} else{
+							if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
+							f = arfimaforecast(fit, n.ahead = 1, n.roll = out.sample[i]-1, 
+									external.forecasts = list(mregfor = fmex))
+							sig = as.numeric( rep(coef(fit)["sigma"], out.sample[i]) )
+							ret = as.numeric( as.data.frame(f, rollframe="all", align = FALSE) )
+							if(shaped) shp = rep(coef(fit)["shape"], out.sample[i]) else shp = rep(0, out.sample[i])
+							if(skewed) skw = rep(coef(fit)["skew"], out.sample[i]) else skw = rep(0, out.sample[i])
+							if(ghyp) shpgig = rep(coef(fit)["ghlambda"], out.sample[i]) else shpgig = rep(0, out.sample[i])
+							rlz = tail(data[rollind[[i]]], out.sample[i])
+							# use xts for indexing the forecasts
+							y = as.data.frame(cbind(ret, sig, skw, shp, shpgig, rlz))
+							rownames(y) = tail(as.character(dates[rollind[[i]]]), out.sample[i])
+							colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
+							if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
+							ans = list(y = y, cf = cf, converge = TRUE)
+						}
+						return(ans)})
+		} else{
+			tmp = lapply(as.list(noncidx), FUN = function(i){
+						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
+						fit = try(arfimafit(spec, data[rollind[[i]]], out.sample = out.sample[i], 
+										solver=solver, solver.control = solver.control, 
+										fit.control = fit.control), silent=TRUE)
+						if(inherits(fit, 'try-error') || convergence(fit)!=0){
+							ans = list(y = NA, cf = NA, converge = FALSE)
+						} else{
+							if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
+							f = arfimaforecast(fit, n.ahead = 1, n.roll = out.sample[i]-1, 
+									external.forecasts = list(mregfor = fmex))
+							sig = as.numeric( rep(coef(fit)["sigma"], out.sample[i]) )
+							ret = as.numeric( as.data.frame(f, rollframe="all", align = FALSE) )
+							if(shaped) shp = rep(coef(fit)["shape"], out.sample[i]) else shp = rep(0, out.sample[i])
+							if(skewed) skw = rep(coef(fit)["skew"], out.sample[i]) else skw = rep(0, out.sample[i])
+							if(ghyp) shpgig = rep(coef(fit)["ghlambda"], out.sample[i]) else shpgig = rep(0, out.sample[i])
+							rlz = tail(data[rollind[[i]]], out.sample[i])
+							# use xts for indexing the forecasts
+							y = as.data.frame(cbind(ret, sig, skw, shp, shpgig, rlz))
+							rownames(y) = tail(as.character(dates[rollind[[i]]]), out.sample[i])
+							colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
+							if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
+							ans = list(y = y, cf = cf, converge = TRUE)
+						}
+						return(ans)})
+		}		
+		forecast = object@forecast
+		conv = sapply(tmp, FUN = function(x) x$converge)
+		for(i in 1:length(noncidx)){
+			if(conv[i]) forecast[[noncidx[i]]] = tmp[[i]]
+		}
+		if(any(!conv)){
+			warning("\nnon-converged estimation windows present...resubsmit object with different solver parameters...")
+			noncidx = which(!conv)
+			model = list()
+			model$spec = spec
+			model$data = data
+			model$dates = dates
+			model$n.ahead = n.ahead
+			model$forecast.length = forecast.length 
+			model$n.start = n.start
+			model$refit.every = refit.every
+			model$n.refits = m
+			model$refit.window = refit.window
+			model$window.size = window.size
+			model$calculate.VaR = calculate.VaR
+			model$VaR.alpha = VaR.alpha
+			model$keep.coef = keep.coef
+			model$noncidx = noncidx
+			forecast = forecast
+			toc = Sys.time()-tic
+			model$elapsed = toc
+			ans = new("ARFIMAroll",
+					model = model,
+					forecast = forecast)
+			return( ans )			
+		} else{
+			noncidx = NULL
+			forc = forecast[[1]]$y
+			for(i in 2:m){
+				forc = rbind(forc, forecast[[i]]$y)
+			}
+			cf = vector(mode = "list", length = m)
+			for(i in 1:m){
+				cf[[i]]$date = dates[tail(rollind[[i]],1) - out.sample[i]]
+				cf[[i]]$coef = forecast[[i]]$cf
+			}
+			if(calculate.VaR){
+				if(is.null(VaR.alpha)) VaR.alpha = c(0.01, 0.05)
+				VaR.matrix = matrix(NA, ncol = length(VaR.alpha)+1, nrow = NROW(forc))
+				for(i in 1:length(VaR.alpha)){
+					VaR.matrix[,i] = qdist(rep(VaR.alpha[i], NROW(forc)) , mu = forc[,1], sigma = forc[,2], 
+							skew = forc[,3], shape = forc[,4], lambda = forc[,5], 
+							distribution = spec@model$modeldesc$distribution)
+				}
+				VaR.matrix[,length(VaR.alpha)+1] = forc[,6]
+				colnames(VaR.matrix) = c(paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""), "realized")
+				VaR.matrix = as.data.frame(VaR.matrix)
+				rownames(VaR.matrix) = rownames(forc)
+			} else{
+				VaR.matrix = NULL
+			}
+			model = list()
+			model$spec = spec
+			model$data = data
+			model$dates = dates
+			model$n.ahead = n.ahead
+			model$forecast.length = forecast.length 
+			model$n.start = n.start
+			model$refit.every = refit.every
+			model$n.refits = m
+			model$refit.window = refit.window
+			model$window.size = window.size
+			model$calculate.VaR = calculate.VaR
+			model$VaR.alpha = VaR.alpha
+			model$keep.coef = keep.coef
+			model$noncidx = noncidx
+			model$coef = cf
+			forecast = list(VaR = VaR.matrix, density = forc)
+		}
+		toc = Sys.time()-tic
+		model$elapsed = toc
+		ans = new("ARFIMAroll",
+				model = model,
+				forecast = forecast)
+	} else{
+		# do nothing...all converged
+		ans = object
+	}
+	return( ans )
+}
+
+.arfimadistribution = function(fitORspec, n.sim = 2000, n.start = 1, m.sim = 100, 
+		recursive = FALSE, recursive.length = 6000, recursive.window = 1000, 
+		prereturns = NA, preresiduals = NA, rseed = NA, 
+		custom.dist = list(name = NA, distfit = NA, type = "z"), 
 		mexsimdata = NULL, fit.control = list(), solver = "solnp", 
-		solver.control = list(), parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		solver.control = list(), cluster = NULL, ...)
 {
 	if(recursive){
 		nwindows = 1 + round( (recursive.length - n.sim) / recursive.window )
@@ -1112,50 +1279,32 @@
 		spec = fitORspec
 		xmodel = spec@model
 		setfixed(spec) <- list(NA)
-		spec@model$pars[,4] = spec@model$pars[,2]
-		spec@model$pars[,2] = 0
 		fixpars = fitORspec@model$fixed.pars
 		truecoef = as.matrix(cbind(unlist(fitORspec@model$fixed.pars),rep(0,length(fixpars)),
 						rep(10, length(fixpars)),rep(0,length(fixpars))))
 	}
 	fitlist = vector( mode = "list", length = m.sim )
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) parallel.control$pkg = "snowfall" else parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2 else parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			for(i in 1:nwindows){
-				rwindow[[i]]$fitlist = multicore::mclapply(swindow[[i]]$path.df, FUN = function(x) .fitandextractarfima(spec, x, out.sample = 0, 
-									solver = solver, fit.control = fit.control, solver.control = solver.control), mc.cores = parallel.control$cores)
-			}
-		} else{
-			for(i in 1:nwindows){
-				nx = dim(swindow[[i]]$path.df)[2]
-				sfInit(parallel = TRUE, cpus = parallel.control$cores)
-				sfExport("spec", "swindow", "solver", "fit.control", "solver.control", local = TRUE)
-				rwindow[[i]]$fitlist = sfLapply(as.list(1:nx), fun = function(j) rugarch:::.fitandextractarfima(spec, swindow[[i]]$path.df[,j], 
-									out.sample = 0, solver = solver, fit.control = fit.control, solver.control = solver.control))
-				sfStop()
-			}
+	if( !is.null(cluster) ){
+		parallel::clusterEvalQ(cluster, library(rugarch))
+		parallel::clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
+				envir = environment())
+		for(i in 1:nwindows){
+			nx = dim(swindow[[i]]$path.df)[2]
+			parallel::clusterExport(cluster, "i", envir = environment())
+			rwindow[[i]]$fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(j){
+						rugarch:::.fitandextractarfima(spec, swindow[[i]]$path.df[,j], 
+								out.sample = 0, solver = solver, fit.control = fit.control, 
+								solver.control = solver.control)
+					})
 		}
 	} else{
 		for(i in 1:nwindows){
-			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x) .fitandextractarfima(spec, x, out.sample = 0, 
-								solver = solver, fit.control = fit.control, solver.control = solver.control))
+			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x){
+						.fitandextractarfima(spec, x, out.sample = 0, solver = solver, 
+								fit.control = fit.control, solver.control = solver.control)
+					})
 		}
 	}
-	
 	
 	reslist = vector(mode = "list", length = nwindows)
 	for(j in 1:nwindows){
@@ -1221,22 +1370,19 @@
 autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
 		method = c("partial", "full"), arfima = FALSE, include.mean = NULL, 
 		distribution.model = "norm",
-		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
-		external.regressors = NULL, solver = "solnp", solver.control=list(), 
-		fit.control=list(), return.all = FALSE){
+		cluster = NULL, external.regressors = NULL, solver = "solnp", 
+		solver.control=list(), fit.control=list(), return.all = FALSE){
 	m = tolower(method)
 	ans = switch(m, 
 			partial = .autoarfima1(Data = data, ar.max = ar.max, ma.max = ma.max, 
 					criterion = criterion[1], arfima = arfima, include.mean = include.mean, 
-					distribution.model = distribution.model,
-					parallel = parallel, parallel.control = parallel.control, 
+					distribution.model = distribution.model, cluster = cluster,
 					external.regressors = external.regressors, solver = solver, 
 					solver.control=solver.control, fit.control=fit.control, 
 					return.all = return.all),
 			full = .autoarfima2(Data = data, ar.max = ar.max, ma.max = ma.max, 
 					criterion = criterion[1], arfima = arfima, include.mean = include.mean, 
-					distribution.model = distribution.model,
-					parallel = parallel, parallel.control = parallel.control, 
+					distribution.model = distribution.model, cluster = cluster,
 					external.regressors = external.regressors, solver = solver, 
 					solver.control=solver.control, fit.control=fit.control, 
 					return.all = return.all))
@@ -1246,8 +1392,8 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 
 .autoarfima1 = function(Data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
 		arfima = FALSE, include.mean = NULL, distribution.model = "norm", 
-		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
-		external.regressors = NULL, solver = "solnp", solver.control=list(), fit.control=list(), return.all = FALSE){
+		cluster = NULL, external.regressors = NULL, solver = "solnp", 
+		solver.control=list(), fit.control=list(), return.all = FALSE){
 	# combinations
 	ar = 0:ar.max
 	ma = 0:ma.max
@@ -1263,62 +1409,45 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	n = dim(d)[1]
 	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
 	fitlist = vector(mode = "list", length = n)
-	if( parallel ){
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist = multicore::mclapply(1:n, FUN = function(i){
-						spec = arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
-										include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
+	if( !is.null(cluster) ){
+		parallel::clusterEvalQ(cluster, library(rugarch))
+		parallel::clusterExport(cluster, c("d", "Data", "n", "solver", "solver.control", 
+						"fit.control"), envir = environment)
+		fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+						spec = arfimaspec(
+								mean.model = list(armaOrder = c(d[i,1], d[i,2]),
+										include.mean =  as.logical(d[i,3]), 
+										arfima = as.logical(d[i,4])),
 								external.regressors = external.regressors, 
 								distribution.model = distribution.model)
-						fit = try(arfimafit(spec = spec, data = Data, 
-								solver = solver, solver.control = solver.control, 
-								fit.control = fit.control), silent = TRUE)
-						if(!is(fit, "try-error") && fit$convergence!=0 && solver == "solnp"){
+						fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
+										solver.control = solver.control, fit.control = fit.control), 
+								silent = TRUE)
+						if( !is(fit, "try-error") && fit$convergence!=0 && solver == "solnp" ){
 							fit = try(arfimafit(spec = spec, data = Data, 
 											solver = "nlminb", solver.control = list(trace=0), 
 											fit.control = fit.control), silent = TRUE)
 						}
-						return(fit)}, mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("d", "Data", "n", "solver", "solver.control", "fit.control",local = TRUE)
-			fitlist = sfLapply(as.list(1:n), fun = function(i){
-						spec = rugarch::arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
-										include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
-								external.regressors = external.regressors, 
-								distribution.model = distribution.model)
-						fit = try(rugarch::arfimafit(spec = spec, data = Data, 
-								solver = solver, solver.control = solver.control, 
-								fit.control = fit.control), silent = TRUE)
-						if(!is(fit, "try-error") && fit$convergence!=0 && solver == "solnp"){
-							fit = try(arfimafit(spec = spec, data = Data, 
-											solver = "nlminb", solver.control = list(trace=0), 
-											fit.control = fit.control), silent = TRUE)
-						}
-						return(fit)})
-			sfStop()
-		}
+						return(fit)
+					})
 	} else{
-		for(i in 1:n){
-			spec = arfimaspec(mean.model = list(armaOrder = c(d[i,1], d[i,2]),
-							include.mean =  as.logical(d[i,3]), arfima = as.logical(d[i,4])),
-					external.regressors = external.regressors, 
-					distribution.model = distribution.model)
-			fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
-					solver = solver, solver.control = solver.control, 
-					fit.control = fit.control), silent = TRUE)
-			if(!is(fitlist[[i]], "try-error") && fitlist[[i]]$convergence!=0 && solver == "solnp"){
-				fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
-								solver = "nlminb", solver.control = list(trace=0), 
-								fit.control = fit.control), silent = TRUE)
-			}
-		}
+		fitlist = lapply(as.list(1:n), FUN = function(i){
+					spec = arfimaspec(
+							mean.model = list(armaOrder = c(d[i,1], d[i,2]),
+									include.mean =  as.logical(d[i,3]), 
+									arfima = as.logical(d[i,4])),
+							external.regressors = external.regressors, 
+							distribution.model = distribution.model)
+					fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
+									solver.control = solver.control, fit.control = fit.control), 
+							silent = TRUE)
+					if( !is(fit, "try-error") && fit$convergence!=0 && solver == "solnp" ){
+						fit = try(arfimafit(spec = spec, data = Data, 
+										solver = "nlminb", solver.control = list(trace=0), 
+										fit.control = fit.control), silent = TRUE)
+					}
+					return(fit)
+				})
 	}
 	rankmat = matrix(NA, ncol = 6, nrow = n)
 	colnames(rankmat) = c("AR", "MA", "Mean", "ARFIMA", criterion[1], "converged")
@@ -1342,14 +1471,10 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	return(ans)
 }
 
-
-
-
 .autoarfima2 = function(Data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", "SIC", "HQIC"),
 		arfima = FALSE, include.mean = NULL, distribution.model = "norm", 
-		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
-		external.regressors = NULL, solver = "solnp", solver.control=list(), fit.control=list(),
-		return.all = FALSE)
+		cluster = NULL, external.regressors = NULL, solver = "solnp", 
+		solver.control=list(), fit.control=list(), return.all = FALSE)
 {
 	# combinations
 	arnames = paste("ar", 1:ar.max, sep = "")
@@ -1389,43 +1514,13 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	n = dim(d)[1]
 	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
 	fitlist = vector(mode = "list", length = n)
-	if( parallel ){
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist = multicore::mclapply(1:n, FUN = function(i){
-						if(ar.max>0){
-							arr = d[i,1:ar.max]
-							if(ma.max>0){
-								mar = d[i,(ar.max+1):(ma.max+ar.max)]
-							} else{
-								mar = 0
-							}
-						} else{
-							arr = 0
-							if(ma.max>0){
-								mar = d[i,1:ma.max]
-							} else{
-								mar = 0
-							}
-						}
-						spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
-								include.mean = d[i,'im'], arfima = d[i,'arf'], 
-								external.regressors = external.regressors, 
-								distribution.model = distribution.model)
-						fit = try(arfimafit(spec = spec, data = Data, 
-										solver = solver, solver.control = solver.control, 
-										fit.control = fit.control), silent = TRUE)
-						return(fit)}, mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel = TRUE, cpus = parallel.control$cores)
-			sfExport("d", "Data", "n", "solver", "external.regressors",  "distribution.model",
-					"ar.max", "ma.max", "solver.control", "fit.control",local = TRUE)
-			fitlist = sfLapply(as.list(1:n), fun = function(i){
+	if( !is.null(cluster) ){
+		parallel::clusterEvalQ(cluster, library(rugarch))
+		parallel::clusterExport(cluster, c("d", "Data", "n", "solver", 
+						"external.regressors",  "distribution.model",
+						"ar.max", "ma.max", "solver.control", "fit.control"), 
+				envir = environment())
+		fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
 						if(ar.max>0){
 							arr = d[i,1:ar.max]
 							if(ma.max>0){
@@ -1445,37 +1540,37 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 								include.mean = d[i,'im'], arfima = d[i,'arf'], 
 								external.regressors = external.regressors, 
 								distribution.model = distribution.model)
-						fit = try(rugarch::arfimafit(spec = spec, data = Data, 
-										solver = solver, solver.control = solver.control, 
+						fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
+										solver.control = solver.control, 
 										fit.control = fit.control), silent = TRUE)
-						return(fit)})
-			sfStop()
-		}
+						return(fit)
+					})
 	} else{
-		for(i in 1:n){
-			if(ar.max>0){
-				arr = d[i,1:ar.max]
-				if(ma.max>0){
-					mar = d[i,(ar.max+1):(ma.max+ar.max)]
-				} else{
-					mar = 0
-				}
-			} else{
-				arr = 0
-				if(ma.max>0){
-					mar = d[i,1:ma.max]
-				} else{
-					mar = 0
-				}
-			}
-			spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
-					include.mean = d[i,'im'], arfima = d[i,'arf'], 
-					external.regressors = external.regressors, 
-					distribution.model = distribution.model)
-			fitlist[[i]] = try(arfimafit(spec = spec, data = Data, 
-							solver = solver, solver.control = solver.control, 
-							fit.control = fit.control), silent = TRUE)
-		}
+		fitlist = lapply(as.list(1:n), FUN = function(i){
+					if(ar.max>0){
+						arr = d[i,1:ar.max]
+						if(ma.max>0){
+							mar = d[i,(ar.max+1):(ma.max+ar.max)]
+						} else{
+							mar = 0
+						}
+					} else{
+						arr = 0
+						if(ma.max>0){
+							mar = d[i,1:ma.max]
+						} else{
+							mar = 0
+						}
+					}
+					spec = rugarch:::.zarfimaspec( arOrder = arr, maOrder = mar, 
+							include.mean = d[i,'im'], arfima = d[i,'arf'], 
+							external.regressors = external.regressors, 
+							distribution.model = distribution.model)
+					fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
+									solver.control = solver.control, 
+									fit.control = fit.control), silent = TRUE)
+					return(fit)
+				})	
 	}
 	m = dim(d)[2]
 	rankmat = matrix(NA, ncol = m+2, nrow = n)

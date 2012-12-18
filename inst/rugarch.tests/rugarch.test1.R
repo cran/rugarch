@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -17,15 +16,14 @@
 #################################################################################
 
 
-rugarch.test1a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1a = function(cluster = NULL){
 	tic = Sys.time()
 	# simulated parameter distribution
 	spec = arfimaspec( mean.model = list(armaOrder = c(2,2), include.mean = TRUE, arfima = FALSE), 
 			distribution.model = "norm", fixed.pars = list(ar1=0.6, ar2=0.21, ma1=-0.7, ma2=0.3, mu = 0.02,
 					sigma = 0.02))
-	dist = arfimadistribution(spec, n.sim = 2000, n.start = 100, 
-			m.sim = 100, recursive = TRUE, recursive.length = 10000, recursive.window = 1000,
-			parallel = parallel, parallel.control = parallel.control)
+	dist = arfimadistribution(spec, n.sim = 2000, n.start = 100, m.sim = 100, recursive = TRUE, 
+			recursive.length = 10000, recursive.window = 1000, cluster = cluster)
 	
 	save(dist, file = "test1a.rda")
 	options(width=150)
@@ -79,7 +77,7 @@ rugarch.test1a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 
-rugarch.test1b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1b = function(cluster=NULL){
 	# fit/filter
 	tic = Sys.time()
 	data(sp500ret)	
@@ -146,7 +144,8 @@ rugarch.test1b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	print(cbind(uncmean(filt[[1]]), uncmean(fit[[1]])))
 	cat("\nuncmean method (by simulation):\n")
 	# For spec and fit
-	spec = arfimaspec( mean.model = list(armaOrder = c(1,1), include.mean = TRUE, arfima = FALSE), distribution.model = dist[1])
+	spec = arfimaspec( mean.model = list(armaOrder = c(1,1), include.mean = TRUE, 
+					arfima = FALSE), distribution.model = dist[1])
 	setfixed(spec) = as.list(coef(fit[[1]]))
 	print(cbind(uncmean(spec, method = "simulation", n.sim = 100000, rseed = 100), 
 					uncmean(fit[[1]], method = "simulation", n.sim = 100000, rseed = 100)))
@@ -161,7 +160,7 @@ rugarch.test1b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test1c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1c = function(cluster=NULL){
 	# unconditional forecasting
 	tic = Sys.time()
 	
@@ -251,7 +250,7 @@ rugarch.test1c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test1d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1d = function(cluster=NULL){
 	# rolling forecast
 	tic = Sys.time()
 	
@@ -333,7 +332,7 @@ rugarch.test1d = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1e = function(cluster=NULL){
 	# Multi-Methods
 	tic = Sys.time()
 	
@@ -349,9 +348,8 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 			distribution.model = "sstd")
 	speclist = as.list(c(spec1, spec2, spec3))
 	mspec = multispec( speclist )
-	mfit1 = multifit(multispec = mspec, data = Dat, 
-			fit.control = list(stationarity=1), parallel = parallel,
-			parallel.control = parallel.control)
+	mfit1 = multifit(multispec = mspec, data = Dat, fit.control = list(stationarity=1), 
+			cluster = cluster)
 	# Filter
 	fspec = vector(mode = "list", length = 3)
 	fspec[[1]] = spec1
@@ -361,14 +359,11 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 		setfixed(fspec[[i]])<-as.list(coef(mfit1)[[i]])
 	}
 	mspec1 = multispec( fspec )	
-	mfilt1 = multifilter(multifitORspec = mspec1, data = Dat, parallel = parallel,
-			parallel.control = parallel.control)
+	mfilt1 = multifilter(multifitORspec = mspec1, data = Dat, cluster = cluster)
 	# Forecast from Fit
-	mforc1 = multiforecast(mfit1, n.ahead = 10, parallel = parallel,
-			parallel.control = parallel.control)
+	mforc1 = multiforecast(mfit1, n.ahead = 10, cluster = cluster)
 	# Forecast from Spec
-	mforc11 = multiforecast(mspec1, data = Dat, n.ahead = 10, parallel = parallel,
-			parallel.control = parallel.control)	
+	mforc11 = multiforecast(mspec1, data = Dat, n.ahead = 10, cluster = cluster)	
 	#------------------------------------------------
 	
 	#------------------------------------------------
@@ -376,8 +371,7 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	# Fit
 	spec1 = arfimaspec(mean.model = list(armaOrder = c(1,1)))
 	mspec = multispec( replicate(3, spec1) )
-	mfit2 = multifit(multispec = mspec, data = Dat, parallel = parallel,
-			parallel.control = parallel.control)
+	mfit2 = multifit(multispec = mspec, data = Dat, cluster = cluster)
 	# Filter
 	fspec = vector(mode = "list", length = 3)
 	fspec = replicate(3, spec1)
@@ -385,13 +379,11 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 		setfixed(fspec[[i]])<-as.list(coef(mfit2)[,i])
 	}
 	mspec2 = multispec( fspec )
-	mfilt2 = multifilter(multifitORspec = mspec2, data = Dat, parallel = parallel,
-			parallel.control = parallel.control)
+	mfilt2 = multifilter(multifitORspec = mspec2, data = Dat, cluster = cluster)
 	# Forecast From Fit
 	mforc2 = multiforecast(mfit2, n.ahead = 10)
 	# Forecast From Spec
-	mforc21 = multiforecast(mspec2, data = Dat, n.ahead = 10, parallel = parallel,
-			parallel.control = parallel.control)
+	mforc21 = multiforecast(mspec2, data = Dat, n.ahead = 10, cluster = cluster)
 	#------------------------------------------------
 
 	#------------------------------------------------
@@ -402,10 +394,10 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	spec3 = arfimaspec(mean.model = list(armaOrder = c(3,1)))
 	speclist = as.list(c(spec1, spec2, spec3))
 	mspec = multispec( speclist )
-	mfit3 = multifit(multispec = mspec, data = cbind(Dat[,1], Dat[,1], Dat[,1]))
+	mfit3 = multifit(multispec = mspec, data = cbind(Dat[,1], Dat[,1], Dat[,1]),
+			cluster = cluster)
 	# Forecast
-	mforc3 = multiforecast(mfit3, n.ahead = 10, parallel = parallel,
-			parallel.control = parallel.control)
+	mforc3 = multiforecast(mfit3, n.ahead = 10, cluster = cluster)
 	#------------------------------------------------
 	
 	zz <- file("test1e.txt", open="wt")
@@ -453,22 +445,15 @@ rugarch.test1e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test1f = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1f = function(cluster=NULL){
 	# rolling fit/forecast
 	tic = Sys.time()
 	
 	data(sp500ret)
 	spec = arfimaspec()
 	roll1 = arfimaroll(spec,  data = sp500ret, n.ahead = 1, forecast.length = 500, 
-			refit.every = 25, refit.window = "moving", parallel = parallel,
-			parallel.control = parallel.control,
-			solver = "solnp", fit.control = list(), solver.control = list() ,
-			calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
-
-	roll2 = arfimaroll(spec,  data = sp500ret, n.ahead = 2, forecast.length = 500, 
-			refit.every = 25, refit.window = "moving", parallel = parallel,
-			parallel.control = parallel.control,
-			solver = "solnp", fit.control = list(), solver.control = list() ,
+			refit.every = 25, refit.window = "moving", cluster = cluster,
+			solver = "hybrid", fit.control = list(), solver.control = list() ,
 			calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
 	
 	# as.ARFIMAforecast
@@ -479,61 +464,28 @@ rugarch.test1f = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	cat("\nForecast Evaluation\n")
 	report(roll1, "VaR")
 	report(roll1, "fpm")
-	report(roll2, "VaR")
-	# equivalent to:
-	report(roll2, "VaR", n.ahead = 1, VaR.alpha = 0.01, conf.level = 0.95)
-	report(roll2, "VaR", n.ahead = 2, VaR.alpha = 0.05, conf.level = 0.95)
-	report(roll2, "fpm")
 	# Extractor Functions:
 	# default:
-	print(t(as.data.frame(roll2, which = "series", refit = 1)))
-	print(head(as.data.frame(roll2, which = "series", refit = "all", n.ahead = 1)))
-	print(head(as.data.frame(roll2, which = "series", refit = "all", n.ahead = 2)))
-	print(as.data.frame(roll2, which = "coefs"))
-	print(as.data.frame(roll2, which = "coefmat", refit = 1))
-	print(as.data.frame(roll2, which = "coefmat", refit = 20))
-	print(as.data.frame(roll2, which = "LLH"))
-	print(head(as.data.frame(roll2, which = "density", n.ahead = 1)))
-	print(head(as.data.frame(roll2, which = "density", n.ahead = 2)))
-	print(head(as.data.frame(roll2, which = "VaR", n.ahead = 1)))
-	print(head(as.data.frame(roll2, which = "VaR", n.ahead = 2)))
+	print(head(as.data.frame(roll1, which = "density"), 25))
+	print(tail(as.data.frame(roll1, which = "density"), 25))
+	print(head(as.data.frame(roll1, which = "VaR"), 25))
+	print(tail(as.data.frame(roll1, which = "VaR"), 25))
+	print(coef(roll1)[[1]])
+	print(coef(roll1)[[20]])
 	sink(type="message")
 	sink()
 	close(zz)
 	
-	# coefficient plots
-	coefx = as.data.frame(roll2, which = "coefs")
-	coefv = matrix(NA, ncol = 4, nrow = 20)
-	coefse = matrix(NA, ncol = 4, nrow = 20)
-	parnames = c("mu", "ar1", "ma1", "sigma")
-	for(i in 1:20){
-		coefv[i, 1] = coefx[i,1]
-		coefv[i, 2] = coefx[i,2]
-		coefv[i, 3] = coefx[i,3]
-		coefv[i, 4] = coefx[i,4]
-		coefxse = as.data.frame(roll2, which = "coefmat", refit = i)
-		coefse[i, 1] = coefxse[1,2]
-		coefse[i, 2] = coefxse[2,2]
-		coefse[i, 3] = coefxse[3,2]
-		coefse[i, 4] = coefxse[4,2]
-	}
-	postscript("test1f.eps", width = 16, height = 5)
-	par(mfrow = c(2,2))
-	for(i in 1:4){
-		plot(1:20, coefv[,i], type = "l", main = paste("coef: ", parnames[i], " with s.e. bands", sep = ""),
-				ylab = "", xlab = "refit", ylim = c(min(coefv[,i]-1.96*coefse[, i]), max(coefv[,i]+1.96*coefse[, i])))
-		lines(1:20, coefv[,i]+1.96*coefse[, i], lty=2, col = "red")
-		lines(1:20, coefv[,i]-1.96*coefse[, i], lty=2, col = "red")
-	}
-	dev.off()
+	
 	toc = Sys.time()-tic
 	cat("Elapsed:", toc, "\n")
 	return(toc)
 }
 
-rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1g = function(cluster=NULL){
 	# simulation
 	tic = Sys.time()
+	require(fracdiff)
 	
 	spec1 = arfimaspec( mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 			distribution.model = "std", fixed.pars = list(mu = 0.02, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7, arfima = 0,
@@ -552,7 +504,6 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	sink(type="message")
 	sink()
 	close(zz)
-	
 	# Now the rugarch simulation of ARFIMA/ARMA with arima.sim of R
 	# Note that arima.sim simulates the residuals (i.e no mean):
 	#  ARMA(2,2)
@@ -565,29 +516,48 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	spec2 = arfimaspec( mean.model = list(armaOrder = c(2,2), include.mean = FALSE, arfima = FALSE), 
 			distribution.model = "std", fixed.pars = list(ar1 = 0.6, ar2 = 0.21, ma1 = -0.7,
 					ma2 = 0.3, shape = 5,sigma = 0.0123))
-	
+	# Notice the warning...it would be an error had we not added 2 extra zeros to the custom distribution
+	# equal to the MA order since n.start >= MA order in arfima model
 	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
-					distfit = matrix(inn, ncol = 1), type = "z"))
+					distfit = matrix(c(0,0,inn), ncol = 1), type = "z"))
 	sim2 = arfimapath(spec2, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
 					distfit = matrix(inn, ncol = 1), type = "z"))
+	
+	
+	# Test with a GARCH specification as well (with alpha=beta=0)
+	specx = ugarchspec( mean.model = list(armaOrder = c(2,2), include.mean = FALSE, arfima = TRUE), 
+			distribution.model = "std", fixed.pars = list(ar1 = 0.6, ar2 = 0.21, ma1 = -0.7,
+					ma2 = 0.3, arfima=0, shape = 5, omega = 0.0123^2, alpha1 = 0, beta1=0))
+	
+	simx  = ugarchpath(specx, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
+			presigma = c(0,0), custom.dist = list(name = "sample",
+					distfit = matrix(c(0,0,inn), ncol = 1), type = "z"))
+	
 	
 	# Note that we pass the non-standardized innovations to arima.sim (i.e. multiply by sigma)
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = c(-0.7, 0.3)), n = 1000,
 			n.start = 4, start.innov = c(0,0,0,0), innov = inn*0.0123)
 	
-	tst = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)))
-	colnames(tst) = c("ARFIMA(d = 0)", "ARMA", "arima.sim")
+	sim4 = fracdiff.sim(n=1000, ar = c(0.6, 0.21), ma = c(0.7, -0.3), d = 0,
+			innov = c(0,0,inn*0.0123), n.start = NA, backComp = TRUE, allow.0.nstart = FALSE,
+			 mu = 0)
+	
+	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(sim4$series), head(as.data.frame(simx, which = "series")))
+	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(sim4$series), tail(as.data.frame(simx, which = "series")))
+	
+	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "fracdiff", "GARCH(0,0)")
 	
 	zz <- file("test1g-2.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA, ARMA arima.sim simulation tests:\n")
-	print(tst, digits = 6)
+	print(tst1, digits = 6)
+	print(tst2, digits = 6)
+	
 	sink(type="message")
 	sink()
 	close(zz)
-	
 	#  ARMA(2,1)
 	set.seed(33)
 	inn = rdist("std", 1000, mu = 0, sigma = 1, lambda = 0, skew = 0, shape = 5)
@@ -598,29 +568,42 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	spec2 = arfimaspec( mean.model = list(armaOrder = c(2,1), include.mean = FALSE, arfima = FALSE), 
 			distribution.model = "std", fixed.pars = list(ar1 = 0.6, ar2 = 0.21, ma1 = -0.7,
 					shape = 5,sigma = 0.0123))
+
 	
 	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
-					distfit = matrix(inn, ncol = 1), type = "z"))
+					distfit = matrix(c(0,inn), ncol = 1), type = "z"))
 	sim2 = arfimapath(spec2, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
 					distfit = matrix(inn, ncol = 1), type = "z"))
 	
+	
+	# Test with a GARCH specification as well (with alpha=beta=0)
+	specx = ugarchspec( mean.model = list(armaOrder = c(2,1), include.mean = FALSE, arfima = TRUE), 
+			distribution.model = "std", fixed.pars = list(ar1 = 0.6, ar2 = 0.21, ma1 = -0.7,
+					arfima=0, shape = 5, omega = 0.0123^2, alpha1 = 0, beta1=0))
+	
+	simx  = ugarchpath(specx, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
+			presigma = c(0,0), custom.dist = list(name = "sample",
+					distfit = matrix(c(0,inn), ncol = 1), type = "z"))
 	# Note that we pass the non-standardized innovations to arima.sim (i.e. multiply by sigma)
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = c(-0.7)), n = 1000,
 			n.start = 3, start.innov = c(0,0,0), innov = inn*0.0123)
 	
-	tst = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)))
-	colnames(tst) = c("ARFIMA(d = 0)", "ARMA", "arima.sim")
+	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
+	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	
+	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
 	zz <- file("test1g-3.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA, ARMA arima.sim simulation tests:\n")
-	print(tst, digits = 6)
+	print(tst1, digits = 6)
+	print(tst2, digits = 6)
+	
 	sink(type="message")
 	sink()
 	close(zz)
-	
 	
 	#  Pure AR
 	set.seed(33)
@@ -640,21 +623,31 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 			custom.dist = list(name = "sample",
 					distfit = matrix(inn, ncol = 1), type = "z"))
 	
+	specx = ugarchspec( mean.model = list(armaOrder = c(2,0), include.mean = FALSE, arfima = TRUE), 
+			distribution.model = "std", fixed.pars = list(ar1 = 0.6, ar2 = 0.21, 
+					arfima=0, shape = 5, omega = 0.0123^2, alpha1 = 0, beta1=0))
+	
+	simx  = ugarchpath(specx, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
+			presigma = c(0,0), custom.dist = list(name = "sample",
+					distfit = matrix(c(inn), ncol = 1), type = "z"))
+	
 	# Note that we pass the non-standardized innovations to arima.sim (i.e. multiply by sigma)
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = NULL), n = 1000,
 			n.start = 2, start.innov = c(0,0), innov = inn*0.0123)
 	
-	tst = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)))
-	colnames(tst) = c("ARFIMA(d = 0)", "ARMA", "arima.sim")
+	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
+	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
 	zz <- file("test1g-4.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA, ARMA arima.sim simulation tests:\n")
-	print(tst, digits = 6)
+	print(tst1, digits = 6)
+	print(tst2, digits = 6)
+	
 	sink(type="message")
 	sink()
 	close(zz)
-	
 	
 	#  Pure MA
 	set.seed(33)
@@ -667,28 +660,40 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 			distribution.model = "std", fixed.pars = list(ma1 = 0.6, ma2 = -0.21,
 					shape = 5,sigma = 0.0123))
 	
-	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
+	sim1 = arfimapath(spec = spec1, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
-					distfit = matrix(inn, ncol = 1), type = "z"))
+					distfit = matrix(c(0,0,inn), ncol = 1), type = "z"))
 	sim2 = arfimapath(spec2, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
 			custom.dist = list(name = "sample",
 					distfit = matrix(inn, ncol = 1), type = "z"))
 	
+	specx = ugarchspec( mean.model = list(armaOrder = c(0,2), include.mean = FALSE, arfima = TRUE), 
+			distribution.model = "std", fixed.pars = list(ma1 = 0.6, ma2 = -0.21, 
+					arfima=0, shape = 5, omega = 0.0123^2, alpha1 = 0, beta1=0))
+	
+	simx  = ugarchpath(specx, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0), 
+			presigma = c(0,0), custom.dist = list(name = "sample",
+					distfit = matrix(c(0,0,inn), ncol = 1), type = "z"))
+	
 	# Note that we pass the non-standardized innovations to arima.sim (i.e. multiply by sigma)
+	set.seed(33)
+	inn = rdist("std", 1000, mu = 0, sigma = 1, lambda = 0, skew = 0, shape = 5)
+
 	sim3 = arima.sim(model = list(ar = NULL, ma = c(0.6, -0.21)), n = 1000,
 			n.start = 2, start.innov = c(0,0), innov = inn*0.0123)
 	
-	tst = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)))
-	colnames(tst) = c("ARFIMA(d = 0)", "ARMA", "arima.sim")
+	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
+	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
 	zz <- file("test1g-5.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA, ARMA arima.sim simulation tests:\n")
-	print(tst, digits = 6)
+	print(tst1, digits = 6)
+	print(tst2, digits = 6)
 	sink(type="message")
 	sink()
 	close(zz)
-	
 	# arfimasim + exogenous regressors + custom innovations
 	data(dji30ret)
 	Dat = dji30ret[,1, drop = FALSE]
@@ -712,8 +717,6 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	
 	sim = arfimasim(fit, n.sim = 10, m.sim = 10000, startMethod="sample", 
 			custom.dist = list(name = "sample", distfit = ressim, type = "res"), mexsimdata = exsim)
-	
-		
 	forc = as.data.frame(arfimaforecast(fit, n.ahead = 10, external.forecasts = list(mregfor = BenchF)))
 	simx = as.data.frame(sim)
 	actual10 = Dat[(T-500+1):(T-500+10), 1, drop = FALSE]
@@ -733,46 +736,54 @@ rugarch.test1g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 # ARFIMA benchmark tests
-rugarch.test1h = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2)){
+rugarch.test1h = function(cluster=NULL){
 	tic = Sys.time()	
 	# ARFIMA(2,d,1)
+	require(fracdiff)
 	truecoef1 = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7, arfima = 0.3, sigma = 0.0123)
 	spec1 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm", 
 	fixed.pars = truecoef1)
-	sim1 = arfimapath(spec1, n.sim = 5000, n.start = 100, m.sim = 1)
+	sim1 = arfimapath(spec1, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 101)
 	data1 = as.data.frame(sim1)
 	#write.csv(data1[,1], file = "D:/temp1.csv")
 	spec1 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
-	distribution.model = "norm", 
-	start.pars = truecoef1)
+	distribution.model = "norm")
 	fit1 = arfimafit(spec1, data = data1)
+	fit1.fd = fracdiff(as.numeric(data1[,1])-coef(fit1)["mu"], nar = 2, nma = 1)
+	
 	# Commercial Implementation Program Fit (NLS-with imposed stationarity):
-	commcheck1 = c(0.005906822, 0.463559, -0.0337927, -0.562876, 0.310268, 0.0124086)
-	chk1 = cbind(coef(fit1), commcheck1, unlist(truecoef1))
-	colnames(chk1) = c("rugarch", "check", "true")
-	chk1lik = c(likelihood(fit1),  14852.6215)
+	commcheck1 = c(0.00488381, 0.537045,  0.0319251,  -0.721266, 0.348604, 0.0122415)
+	fdcheck1 = c(NA, coef(fit1.fd)[2:3], -coef(fit1.fd)[4], coef(fit1.fd)[1], fit1.fd$sigma)
+	
+	chk1 = cbind(coef(fit1), commcheck1, fdcheck1, unlist(truecoef1))
+	colnames(chk1) = c("rugarch", "commercial", "fracdiff", "true")
+	chk1lik = c(likelihood(fit1),   14920.4279, fit1.fd$log.likelihood)
 	
 	# ARFIMA(2,d,0)
-	truecoef2 = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, arfima = -0.3, sigma = 0.0123)
+	truecoef2 = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, arfima = 0.1, sigma = 0.0123)
 	spec2 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,0), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm", 
 	fixed.pars = truecoef2)
-	sim2 = arfimapath(spec2, n.sim = 5000, n.start = 100, m.sim = 1)	
+	sim2 = arfimapath(spec2, n.sim = 5000, n.start = 100, m.sim = 1,  rseed = 102)	
 	data2 = as.data.frame(sim2)
 	#write.csv(data2[,1], file = "D:/temp2.csv")
 	spec2 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,0), include.mean = TRUE, arfima = TRUE), 
-	distribution.model = "norm", 
-	start.pars = truecoef2)
+	distribution.model = "norm")
 	fit2 = arfimafit(spec2, data = data2)
-	commcheck2 = c(0.00498073,  0.632362,  -0.0225118, -0.308095,0.0122404)
-	chk2 = cbind(coef(fit2), commcheck2 , unlist(truecoef2))
-	colnames(chk2) = c("rugarch", "check", "true")
-	chk2lik = c(likelihood(fit2), 14920.8979)
+	fit2.fd = fracdiff(as.numeric(data2[,1])-coef(fit2)["mu"], nar = 2, nma = 0)
+	fdcheck2 = c(NA, coef(fit2.fd)[2:3], coef(fit2.fd)[1], fit2.fd$sigma)
+	
+	commcheck2 = c( 0.00585040, 0.692693, 0.000108778,0.00466664,0.0122636)
+	
+	chk2 = cbind(coef(fit2), commcheck2, fdcheck2, unlist(truecoef2))
+	colnames(chk2) = c("rugarch", "commercial", "fracdiff", "true")
+	chk2lik = c(likelihood(fit2), 14954.5702, fit2.fd$log.likelihood)
+	
 
 	# ARFIMA(0,d,2)
 	truecoef3 = list(mu = 0.005, ma1 = 0.3, ma2 = 0.2, arfima = 0.1, sigma = 0.0123)
@@ -780,22 +791,26 @@ rugarch.test1h = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	mean.model = list(armaOrder = c(0,2), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm", 
 	fixed.pars = truecoef3)
-	sim3 = arfimapath(spec3, n.sim = 5000, n.start = 100, m.sim = 1)
+	sim3 = arfimapath(spec3, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 103)
 	data3 = as.data.frame(sim3)
 	#write.csv(data3[,1], file = "D:/temp3.csv")
 	spec3 = arfimaspec( 
 	mean.model = list(armaOrder = c(0,2), include.mean = TRUE, arfima = TRUE), 
-	distribution.model = "norm", 
-	start.pars = truecoef3)
-	fit3 = arfimafit(spec3, data = data3)	
-	commcheck3 = c(0.00498073,   0.283231, 0.195064, 0.0987104, 0.0122155)
-	chk3 = cbind(coef(fit3), commcheck3 , unlist(truecoef3))
-	colnames(chk3) = c("rugarch", "check", "true")
-	chk3lik = c(likelihood(fit3),  14931.0414)
+	distribution.model = "norm")
+	fit3 = arfimafit(spec3, data = data3, solver="hybrid")
 	
+	fit3.fd = fracdiff(as.numeric(data3[,1])-coef(fit3)["mu"], nar = 0, nma = 2)
+	fdcheck3 = c(NA, -coef(fit3.fd)[2:3], coef(fit3.fd)[1], fit3.fd$sigma)
 	
-	# ARFIMA(2,d,1) simulation:
-	truecoef = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7, arfima = 0.3, sigma = 0.0123)
+	commcheck3 = c( 0.00580941, 0.320205, 0.206786, 0.0546052, 0.0120114)
+	
+	chk3 = cbind(coef(fit3), commcheck3, fdcheck3, unlist(truecoef3))
+	colnames(chk3) = c("rugarch", "commercial", "fracdiff", "true")
+	chk3lik = c(likelihood(fit3), 15015.2957, fit3.fd$log.likelihood)
+
+	
+	# ARFIMA(2,d,1) simulation (using rugarch path)
+	truecoef = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7, arfima = 0.45, sigma = 0.0123)
 	spec = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm", fixed.pars = truecoef)
@@ -803,15 +818,36 @@ rugarch.test1h = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	Data = as.data.frame(sim)
 	spec = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
-	distribution.model = "norm", 
-	start.pars = truecoef)
+	distribution.model = "norm")
 	coefx = matrix(NA, ncol = 6, nrow = 50)
-	for(i in 1:50){
-		fit = arfimafit(spec, data = Data[,i])
-		if(fit@fit$convergence == 0) coefx[i,] = coef(fit)
+	coefy = matrix(NA, ncol = 6, nrow = 50)
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterEvalQ(cluster, require(fracdiff))
+		parallel::clusterExport(cluster, c("Data", "spec"))
+		sol = parallel::parLapply(cluster, as.list(1:50), fun = function(i){
+					fit = arfimafit(spec, data = Data[,i], solver="hybrid")
+					if(fit@fit$convergence == 0) coefx = coef(fit) else coefx = rep(NA, 6)
+					if(fit@fit$convergence == 0){ 
+						fit = fracdiff(as.numeric(Data[,i]) - coef(fit)["mu"], nar = 2, nma = 1)
+					} else{
+						fit = fracdiff(scale(as.numeric(Data[,i]), scale=F), nar = 2, nma = 1)
+					}
+					coefy = c(NA, coef(fit)[2:3], -coef(fit)[4], coef(fit)[1], fit$sigma)
+					return(list(coefx = coefx, coefy = coefy))
+				})
+		coefx = t(sapply(sol, FUN = function(x) x$coefx))
+		coefy = t(sapply(sol, FUN = function(x) x$coefy))
+	} else{
+		for(i in 1:50){
+			fit = arfimafit(spec, data = Data[,i], solver="hybrid")
+			if(fit@fit$convergence == 0) coefx[i,] = coef(fit)
+			fit = fracdiff(scale(as.numeric(Data[,i]), scale=F), nar = 2, nma = 1)
+			coefy[i,] = c(NA, coef(fit)[2:3], -coef(fit)[4], coef(fit)[1], fit$sigma)
+		}
 	}
 	
-	zz <- file("test1h.txt", open="wt")
+	zz <- file("test1h-1.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA(2,d,1)\n")
 	print(chk1)
@@ -823,11 +859,71 @@ rugarch.test1h = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	print(chk3)
 	print(chk3lik)
 	cat("\nARFIMA(2,d,1) mini-simulation/fit\n")
-	# small sample/simulation use median:
-	print(	cbind(round(apply(coefx, 2, "median"),5), unlist(truecoef)) )	
+	# small sample/simulation also use median:
+	cat("\nMedian (rugarch, fracdiff)\n")
+	print(	data.frame(rugarch=round(apply(coefx, 2, "median"),5), fracdiff = round(apply(coefy, 2, "median"),5), true=unlist(truecoef) ) )
+	cat("\nMean (rugarch, fracdiff)\n")
+	print(	data.frame(rugarch=round(apply(coefx, 2, "mean"),5), fracdiff = round(apply(coefy, 2, "mean"),5), true=unlist(truecoef) ) )
+	print(	data.frame(rugarch.sd =round(apply(coefx, 2, "sd"),5), fracdiff.sd = round(apply(coefy, 2, "sd"),5) ) )
 	sink(type="message")
 	sink()
 	close(zz)
+	
+	
+	# ARFIMA(2,d,1) simulation (using fracdiff path)
+	truecoef = list(mu = 0.005, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7, arfima = 0.45, sigma = 0.0123)
+	Data = matrix(NA, ncol = 50, nrow = 5000)
+	for(i in 1:50){
+		set.seed(i)
+		sim = fracdiff.sim(n=5000, ar = c(0.6, 0.01), ma = c(0.7), d = 0.45,
+				rand.gen = rnorm, n.start = 100, backComp = TRUE, sd = 0.0123, mu = 0.005)
+		Data[,i] = sim$series
+	}
+	Data = as.data.frame(Data)
+	spec = arfimaspec( 
+			mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
+			distribution.model = "norm")
+	coefx = matrix(NA, ncol = 6, nrow = 50)
+	coefy = matrix(NA, ncol = 6, nrow = 50)
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterEvalQ(cluster, require(fracdiff))
+		parallel::clusterExport(cluster, c("Data", "spec"))
+		sol = parallel::parLapply(cluster, as.list(1:50), fun = function(i){
+					fit = arfimafit(spec, data = Data[,i], solver="hybrid")
+					if(fit@fit$convergence == 0) coefx = coef(fit) else coefx = rep(NA, 6)
+					if(fit@fit$convergence == 0){ 
+						fit = fracdiff(as.numeric(Data[,i]) - coef(fit)["mu"], nar = 2, nma = 1)
+					} else{
+						fit = fracdiff(scale(as.numeric(Data[,i]), scale=F), nar = 2, nma = 1)
+					}
+					coefy = c(NA, coef(fit)[2:3], -coef(fit)[4], coef(fit)[1], fit$sigma)
+					return(list(coefx = coefx, coefy = coefy))
+				})
+		coefx = t(sapply(sol, FUN = function(x) x$coefx))
+		coefy = t(sapply(sol, FUN = function(x) x$coefy))
+	} else{
+		for(i in 1:50){
+			fit = arfimafit(spec, data = Data[,i], solver="hybrid")
+			if(fit@fit$convergence == 0) coefx[i,] = coef(fit)
+			fit = fracdiff(scale(as.numeric(Data[,i]), scale=F), nar = 2, nma = 1)
+			coefy[i,] = c(NA, coef(fit)[2:3], -coef(fit)[4], coef(fit)[1], fit$sigma)
+		}
+	}
+	
+	zz <- file("test1h-2.txt", open="wt")
+	sink(zz)
+	cat("\nARFIMA(2,d,1) mini-simulation/fit2 (simulation from fracdiff.sim)\n")
+	# small sample/simulation also use median:
+	cat("\nMedian (rugarch, fracdiff)\n")
+	print(	data.frame(rugarch=round(apply(coefx, 2, "median"),5), fracdiff = round(apply(coefy, 2, "median"),5), true=unlist(truecoef) ) )
+	cat("\nMean (rugarch, fracdiff)\n")
+	print(	data.frame(rugarch=round(apply(coefx, 2, "mean"),5), fracdiff = round(apply(coefy, 2, "mean"),5), true=unlist(truecoef) ) )
+	print(	data.frame(rugarch.sd =round(apply(coefx, 2, "sd"),5), fracdiff.sd = round(apply(coefy, 2, "sd"),5) ) )
+	sink(type="message")
+	sink()
+	close(zz)
+	
 	toc = Sys.time()-tic
 	cat("Elapsed:", toc, "\n")
 	return(toc)

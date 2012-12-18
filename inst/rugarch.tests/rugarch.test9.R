@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -21,7 +20,7 @@
 #################################################################################
 
 # Fit and Forecast
-rugarch.test9a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test9a = function(cluster=NULL)
 {
 	tic = Sys.time()	
 	data(dji30ret)
@@ -117,7 +116,7 @@ rugarch.test9a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 
 # Filter and Forecast from Spec
-rugarch.test9b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test9b = function(cluster=NULL)
 {
 	tic = Sys.time()	
 	data(dji30ret)
@@ -159,7 +158,7 @@ rugarch.test9b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 # Simulation1
-rugarch.test9c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test9c = function(cluster=NULL)
 {
 	tic = Sys.time()	
 	N <- 2000
@@ -187,7 +186,7 @@ rugarch.test9c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 				, distribution.model = "norm")
 	}
 	mspec = multispec(spec)
-	mfit = multifit(mspec, data = Y, parallel = parallel, parallel.control = parallel.control)
+	mfit = multifit(mspec, data = Y, cluster = cluster)
 	for(i in 1:N){
 		if(convergence(mfit@fit[[i]]) == 0){
 			Ncoefs[i, ] <- coef(mfit@fit[[i]])
@@ -217,7 +216,7 @@ rugarch.test9c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 
 # Simulation2
-rugarch.test9d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test9d = function(cluster=NULL)
 {
 	tic = Sys.time()	
 	N <- 2000
@@ -242,7 +241,7 @@ rugarch.test9d = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 				, distribution.model = "norm")
 	}
 	mspec = multispec(spec)
-	mfit = multifit(mspec, data = Y, parallel = parallel, parallel.control = parallel.control)
+	mfit = multifit(mspec, data = Y, cluster = cluster)
 	for(i in 1:N){
 		if(convergence(mfit@fit[[i]]) == 0){
 			Ncoefs[i, ] <- coef(mfit@fit[[i]])

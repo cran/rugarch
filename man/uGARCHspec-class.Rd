@@ -9,6 +9,9 @@
 \alias{setstart<-}
 \alias{setstart<-,ANY,ANY-method}
 \alias{setstart<-,uGARCHspec,vector-method}
+\alias{setbounds<-}
+\alias{setbounds<-,ANY,ANY-method}
+\alias{setbounds<-,uGARCHspec,vector-method}
 \alias{halflife,uGARCHspec,missing,missing,missing,missing-method}
 \alias{persistence,uGARCHspec,missing,missing,missing,missing-method}
 \alias{show,uGARCHspec-method}
@@ -32,6 +35,14 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHspec", distance 2.
 	Sets the fixed parameters (which must be supplied as a named list). }
 	\item{setstart<-}{\code{signature(object = "uGARCHspec", value = "vector")}: 
 	Sets the starting parameters (which must be supplied as a named list). }
+	\item{setbounds<-}{\code{signature(object = "uGARCHspec", value = "vector")}: 
+	Sets the parameters lower and upper bounds, which must be supplied as a named 
+	list with each parameter being a numeric vector of length 2 i.e. 
+	"alpha1"=c(0,1)). If the vector is of length 1, then this is assumed to be 
+	the lower bound, and the upper bound will be set to its default value prior
+	to estimation. Some of the parameters in the fGARCH model are not allowed to 
+	take on custom bounds (since they determine the class of the model) nor the 
+	beta parameter(s) in the iGARCH model.}
 	\item{uncmean}{\code{signature(object = "uGARCHspec")}: 
 	Unconditional mean of model for a specification with fixed.pars list.}
 	\item{uncvariance}{\code{signature(object = "uGARCHspec")}: 

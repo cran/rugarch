@@ -153,7 +153,8 @@ omnibus model, valid choices are 'GARCH', 'TGARCH', 'GJRGARCH', 'AVGARCH',
 \item external.regressors (default = NULL. A matrix of external regressors of
 the same length as the data).
 \item variance.targeting  (default = FALSE. Whether to include variance
-targeting.)
+targeting. It is also possible to pass a numeric value instead of a logical, in which case it
+is used for the calculation instead of the variance of the conditional mean equation residuals).
 \end{itemize}
 The rest of this section discusses the various flavors of GARCH implemented in
 the package, while  Section \ref{section:distributions} discusses the
@@ -176,7 +177,15 @@ where ${\bar \sigma}^2$ is the unconditional variance of $\varepsilon^2$ which
 is consistently estimated by its sample counterpart at every iteration of the
 solver following the mean equation filtration, and ${\bar v}_j$ represents the
 sample mean of the $j^{th}$ external regressors in the variance equation
-(assuming stationarity), and $\hat P$ is the persistence and defined below.
+(assuming stationarity), and $\hat P$ is the persistence and defined below. If a
+numeric value was provided to the \emph{variance.targeting} option in the specification
+(instead of logical), this will be used instead of ${\bar \sigma }^2$ for the
+calculation.\footnote{Note that this should represent a value related to the variance
+in the plain vanilla GARCH model. In more general models such as the APARCH, this is
+a value related to $\sigma^{\delta}$, which may not be obvious since $\delta$ is not
+known prior to estimation, and therefore care should be taken in those cases.
+Finally, if scaling is  used in the estimation (via the fit.control option), this value will
+also be automatically scale adjusted by the routine.}
 One of the key features of the observed behavior of financial data which GARCH
 models capture is volatility clustering which may be quantified in the
 persistence parameter $\hat P$. For the 'sGARCH' model this may be calculated as,
@@ -781,23 +790,37 @@ the following arguments:
 \end{Sinput}
 \begin{Soutput}
 function (spec, data, out.sample = 0, solver = "solnp", solver.control = list(),
-    fit.control = list(stationarity = 1, fixed.se = 0, scale = 0),
+    fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init="all"),
     ...)
 NULL
 \end{Soutput}
 \end{Schunk}
 The out.sample option controls how many data points from the end to keep for out
 of sample forecasting, while the solver.control and fit.control provide additional
-options to the fitting routine. Currently, 5 solvers \footnote{Since version $1.0-8$ the
+options to the fitting routine. Importantly, the \emph{stationarity} option controls
+whether to impose a stationarity constraint during estimation, which is usually
+closely tied to the persistence of the process. The \emph{fixed.se} controls
+whether, for those values which are fixed, numerical standard errors should be
+calculated. The \emph{scale} option controls whether the data should be scaled prior
+to estimation by its standard deviation (scaling sometimes facilitates the estimation
+process). The option \emph{rec.init}, introduced in version 1.0-14 allows to set
+the type of method for the conditional recursion initialization, with default
+value 'all' indicating that all the data is used to calculate the mean of the
+squared residuals from the conditional mean filtration. To use the first 'n' points
+for the calculation, a positive integer greater than or equal to one (and less than
+the total estimation datapoints) can instead be provided. If instead a positive
+numeric value less than 1 is provided, this is taken as the weighting in an
+exponential smoothing backcast method for calculating the initial recursion value.\\
+Currently, 5 solvers \footnote{Since version $1.0-8$ the
 'nlopt' solver of Johnson (interfaced to R by Jelmer Ypma in the 'nloptr' package)
 has  been added, greatly expanding the range of possibilities available via its
 numerous subsolver options - see documentation.} are supported, with the main
 one being the augmented Lagrange solver solnp of \cite{Ye1997} implemented in R by
-\cite{Ghalanos2011}. The main functionality, namely the GARCH dynamics and
-conditional likelihood calculations are done in C for speed. For reference, there
-is a benchmark routine called \verb@ugarchbench@ which provides a comparison of
-rugarch against 2 published GARCH models with analytic standard errors, and a
-small scale comparison with a commercial GARCH implementation.
+\cite{Ghalanos2011}.
+The main functionality, namely the GARCH dynamics and conditional likelihood calculations are
+done in C for speed. For reference, there is a benchmark routine called \verb@ugarchbench@
+which provides a comparison of rugarch against 2 published GARCH models with analytic
+standard errors, and a small scale comparison with a commercial GARCH implementation.
 The fitted object is of class \verb@uGARCHfit@ which can be passed to a variety
 of other methods such as show (summary), plot, ugarchsim, ugarchforecast etc.
 The following example illustrates its use, but the interested reader should
@@ -806,7 +829,7 @@ consult the documentation on the methods available for the returned class.
 \begin{Sinput}
 > spec = ugarchspec()
 > data(sp500ret)
-> fit = ugarchfit(spec = spec, data = sp500ret, solver.control = list(trace = 0))
+> fit = ugarchfit(spec = spec, data = sp500ret)
 > show(fit)
 \end{Sinput}
 \begin{Soutput}
@@ -814,32 +837,32 @@ consult the documentation on the methods available for the returned class.
 *          GARCH Model Fit        *
 *---------------------------------*
 
-Conditional Variance Dynamics
+Conditional Variance Dynamics 	
 -----------------------------------
-GARCH Model     : sGARCH(1,1)
-Mean Model      : ARFIMA(1,0,1)
-Distribution    : norm
+GARCH Model	: sGARCH(1,1)
+Mean Model	: ARFIMA(1,0,1)
+Distribution	: norm
 
 Optimal Parameters
 ------------------------------------
         Estimate  Std. Error  t value Pr(>|t|)
-mu      0.000517    0.000090   5.7620        0
-ar1     0.834804    0.058900  14.1732        0
-ma1    -0.865358    0.054076 -16.0028        0
-omega   0.000001    0.000000   5.2865        0
-alpha1  0.087730    0.007667  11.4428        0
-beta1   0.904987    0.008387 107.9058        0
+mu      0.000516    0.000090   5.7617        0
+ar1     0.836764    0.058273  14.3593        0
+ma1    -0.867102    0.053433 -16.2279        0
+omega   0.000001    0.000000   5.2401        0
+alpha1  0.087790    0.007720  11.3717        0
+beta1   0.904818    0.008481 106.6878        0
 
 Robust Standard Errors:
         Estimate  Std. Error  t value Pr(>|t|)
-mu      0.000517    0.000101   5.1181 0.000000
-ar1     0.834804    0.048413  17.2435 0.000000
-ma1    -0.865358    0.044909 -19.2691 0.000000
-omega   0.000001    0.000001   2.1924 0.028351
-alpha1  0.087730    0.029486   2.9753 0.002927
-beta1   0.904987    0.028773  31.4530 0.000000
+mu      0.000516    0.000101   5.1139 0.000000
+ar1     0.836764    0.047845  17.4890 0.000000
+ma1    -0.867102    0.044321 -19.5642 0.000000
+omega   0.000001    0.000001   2.1398 0.032373
+alpha1  0.087790    0.029845   2.9415 0.003266
+beta1   0.904818    0.029298  30.8829 0.000000
 
-LogLikelihood : 17901.99
+LogLikelihood : 17902
 
 Information Criteria
 ------------------------------------
@@ -851,61 +874,62 @@ Hannan-Quinn -6.4780
 
 Q-Statistics on Standardized Residuals
 ------------------------------------
-      statistic  p-value
-Lag10     14.11 0.078859
-Lag15     27.78 0.009717
-Lag20     31.01 0.028675
-
+              statistic  p-value
+Lag[1]            6.554 0.010465
+Lag[p+q+1][3]     7.243 0.007118
+Lag[p+q+5][7]     9.624 0.086602
+d.o.f=2
 H0 : No serial correlation
 
 Q-Statistics on Standardized Squared Residuals
 ------------------------------------
-      statistic p-value
-Lag10     3.069  0.9299
-Lag15     5.905  0.9495
-Lag20     8.424  0.9716
+              statistic p-value
+Lag[1]            1.097  0.2950
+Lag[p+q+1][3]     1.523  0.2172
+Lag[p+q+5][7]     2.507  0.7754
+d.o.f=2
 
 ARCH LM Tests
 ------------------------------------
              Statistic DoF P-Value
-ARCH Lag[2]      1.482   2  0.4765
-ARCH Lag[5]      1.738   5  0.8841
-ARCH Lag[10]     3.018  10  0.9810
+ARCH Lag[2]      1.485   2  0.4759
+ARCH Lag[5]      1.739   5  0.8840
+ARCH Lag[10]     3.020  10  0.9810
 
 Nyblom stability test
 ------------------------------------
-Joint Statistic:  175.774
+Joint Statistic:  173.2573
 Individual Statistics:
-mu      0.1978
-ar1     0.2202
-ma1     0.1678
-omega  21.5725
-alpha1  0.1341
-beta1   0.1122
+mu      0.2009
+ar1     0.2125
+ma1     0.1629
+omega  21.3483
+alpha1  0.1346
+beta1   0.1137
 
-Asymptotic Critical Values (10% 5% 1%)
-Joint Statistic:         1.49 1.68 2.12
-Individual Statistic:    0.35 0.47 0.75
+Asymptotic Critical Values (10\% 5\% 1\%)
+Joint Statistic:     	 1.49 1.68 2.12
+Individual Statistic:	 0.35 0.47 0.75
 
 Sign Bias Test
 ------------------------------------
                    t-value      prob sig
-Sign Bias           0.3309 7.407e-01
-Negative Sign Bias  3.0036 2.680e-03 ***
-Positive Sign Bias  2.4489 1.436e-02  **
-Joint Effect       29.0989 2.135e-06 ***
+Sign Bias           0.3213 7.480e-01
+Negative Sign Bias  3.0111 2.615e-03 ***
+Positive Sign Bias  2.4506 1.429e-02  **
+Joint Effect       29.0979 2.136e-06 ***
 
 
 Adjusted Pearson Goodness-of-Fit Test:
 ------------------------------------
   group statistic p-value(g-1)
-1    20     182.8    8.624e-29
-2    30     188.2    3.007e-25
-3    40     230.3    5.779e-29
-4    50     234.0    6.090e-26
+1    20     182.6    9.455e-29
+2    30     187.0    5.044e-25
+3    40     231.2    3.913e-29
+4    50     236.6    2.171e-26
 
 
-Elapsed time : 1.628
+Elapsed time : 1.0996
 \end{Soutput}
 \end{Schunk}
 
@@ -948,23 +972,23 @@ Formally, they may be defined as:
 {N}} \right) \hfill \\
 \end{gathered}
 \end{equation}
-
-The Q-Statistics are the test statistics from the Box-Pierce test on the
-Standardized Residuals with $(10,15,20)$ lags and d.o.f the number of the
-AR and MA parameters, and Squared Standardized Residuals with
-$(10,15,20)$ lags and d.o.f the number of ARCH and GARCH parameters $(q,p)$
-Looking at the summary report, the high p-values for the Standardized Squared
-Residuals indicates that there is little chance of serial correlation at the
-lags tested. The evidence for the Standardized Residuals is not as convincing
-but one should consider other factors, particularly when it comes to forecasting
-models.
-
+were any parameters fixed during estimation are excluded from the calculation.
+The Q-Statistics are the test statistics from the test of \cite{Ljung1978} on the
+standardized residuals with $(1,p+q+1,p+q+5)$ lags (where p = AR order and q = MA order)
+and d.o.f the number of the AR and MA parameters, and squared standardized residuals with
+$(1,p+q+1,p+q+5)$ (where q = ARCH order and p = GARCH order) lags and d.o.f the
+number of ARCH and GARCH parameters $(q,p)$. Looking at the summary report, the
+high p-values for the standardized squared residuals indicates that there is little
+chance of serial correlation at the lags tested. The evidence for the standardized
+residuals is not as convincing but one should consider other factors, particularly when
+it comes to forecasting models.\footnote{The WeightedPortTest based on \cite{Fisher2012},
+and found on CRAN implements a number of more sophisticated set of weighted Portmanteau type
+tests, which the interested reader might like to consult.}
 The ARCH LM test of \cite{Engle1982} tests the presence of ARCH effects by regressing
 the squared residuals of a series against its own lags. Since the Null is of No
 ARCH effects, a high p-value, as evidenced by the summary indicates that the
 GARCH model used was adequate to remove any such effects present prior to
 fitting (i.e. it is a good idea to test the series prior to fitting a GARCH model!).
-
 The \verb@signbias@ calculates the Sign Bias Test of \cite{Engle1993}, and is also
 displayed in the summary. This tests the presence of leverage effects in the
 standardized residuals (to capture possible misspecification of the GARCH model),
@@ -994,7 +1018,8 @@ not adequately capture the empirical distribution based on this test.
 
 The \verb@nymblom@ test calculates the parameter stability test of \cite{Nyblom1989},
 as well as the joint test. Critical values against which to compare the results
-are displayed.
+are displayed, but this is not available for the joint test in the case of more than 20
+parameters.
 
 Finally, some informative plots can be drawn either interactively(which = 'ask'),
 individually (which = 1:12) else all at once (which = 'all') as in Figure
@@ -1031,11 +1056,11 @@ The example which follows explains how:
 *          GARCH Model Filter        *
 *------------------------------------*
 
-Conditional Variance Dynamics
+Conditional Variance Dynamics 	
 --------------------------------------
-GARCH Model     : apARCH(1,1)
-Mean Model      : ARFIMA(1,0,1)
-Distribution    : std
+GARCH Model	: apARCH(1,1)
+Mean Model	: ARFIMA(1,0,1)
+Distribution	: std
 
 Filter Parameters
 ---------------------------------------
@@ -1055,26 +1080,27 @@ LogLikelihood : 5627.291
 Information Criteria
 ---------------------------------------
 
-Akaike       -2.0345
-Bayes        -2.0237
-Shibata      -2.0345
-Hannan-Quinn -2.0307
+Akaike       -2.0378
+Bayes        -2.0378
+Shibata      -2.0378
+Hannan-Quinn -2.0378
 
 Q-Statistics on Standardized Residuals
 ---------------------------------------
-      statistic p-value
-Lag10      1231       0
-Lag15      1240       0
-Lag20      1248       0
-
+              statistic p-value
+Lag[1]             1178       0
+Lag[p+q+1][3]      1220       0
+Lag[p+q+5][7]      1222       0
+d.o.f=2
 H0 : No serial correlation
 
 Q-Statistics on Standardized Squared Residuals
 ---------------------------------------
-      statistic p-value
-Lag10     179.2       0
-Lag15     185.3       0
-Lag20     189.8       0
+              statistic p-value
+Lag[1]            170.3       0
+Lag[p+q+1][3]     175.6       0
+Lag[p+q+5][7]     178.1       0
+d.o.f=2
 
 ARCH LM Tests
 ---------------------------------------
@@ -1104,74 +1130,86 @@ Adjusted Pearson Goodness-of-Fit Test:
 \end{Schunk}
 The returned object is of class \verb@uGARCHfilter@ and shares many of the methods
 as the \verb@uGARCHfit@ class. Additional arguments to the function are explained
-in the documentation.
+in the documentation. Note that the information criteria shown here are based on
+zero estimated parameters (they are all fixed), and the same goes for the
+\emph{infocriteria} method on a \verb@uGARCHfilter@ object.
 
 \section{Forecasting and the GARCH Bootstrap}\label{section:forecasting}
 There are 2 types of forecasts available with the package. A rolling method,
 whereby consecutive 1-ahead forecasts are created based on the out.sample option
 set in the fitting routine, and an unconditional method for n>1 ahead forecasts.
-It is also possible to combine the 2 creating a rather complicated object.
-Additionally, it is possible to estimate the forecast density by means of the
-\verb@ugarchboot@ method which implements the strategy described in
-\cite{Pascual2006}. This method also includes the option to include parameter
-uncertainty via a monte carlo method. An example illustrates together with
-Figure \ref{fig:bootplot} created using the plot command on the resulting
-\verb@uGARCHboot@ object:
+(and it is also possible to combine the 2 creating a rather complicated object). 
+In the latter case, it is also possible to make use of the GARCH bootstrap, 
+described in \cite{Pascual2006} and implemented in the function \verb@ugarchboot@, 
+with the added innovation of an optional extra  step of fitting either a kernel 
+or semi-parametric density (SPD) to the standardized residuals prior to sampling 
+in order to provide for (possibly) more robustness  in the presence of limited data.
+To understand what the GARCH bootstrap does, consider that there are two main 
+sources of uncertainty about n.ahead forecasting from GARCH models: that arising 
+from the form of the predictive density and that due to parameter uncertainty. 
+The bootstrap method in the \verb@rugarch@ package is based on
+resampling standardized residuals from the empirical distribution of the fitted model
+to generate future realizations of the series and sigma. Two methods are implemented:
+one takes into account parameter uncertainty by building a simulated distribution
+of the parameters through simulation and refitting, and one which only considers
+distributional uncertainty and hence avoids the expensive and lengthy parameter
+distribution estimation. In the latter case, prediction intervals for the 1-ahead sigma
+forecast will not be available since only the parameter uncertainty is relevant in
+GARCH type models in this case. The following example provides for a brief look at the
+partial method, but the interested reader should consult the more comprehensive examples 
+in the inst folder of the package.
 \begin{Schunk}
 \begin{Sinput}
 > data(sp500ret)
-> spec = ugarchspec(variance.model = list(model = "eGARCH", garchOrder = c(1,
-+     1)), mean.model = list(armaOrder = c(1, 1), arfima = FALSE),
-+     distribution.model = "std")
-> fit = ugarchfit(spec = spec, data = sp500ret, out.sample = 0,
-+     solver = "solnp", solver.control = list(trace = 0))
-> bootpred = ugarchboot(fit, method = "Partial", n.ahead = 120,
-+     n.bootpred = 2000)
-> show(bootpred)
+> spec = ugarchspec(variance.model=list(model="csGARCH"), distribution="std")
+> fit = ugarchfit(spec, sp500ret, out.sample=500)
+> bootp = ugarchboot(fit, method = c("Partial", "Full")[1],
++ n.ahead = 500, n.bootpred = 500)
+> show(bootp)
 \end{Sinput}
 \begin{Soutput}
 *-----------------------------------*
 *     GARCH Bootstrap Forecast      *
 *-----------------------------------*
-Model : eGARCH
-n.ahead : 120
+Model : csGARCH
+n.ahead : 500
 Bootstrap method:  partial
+Date (T): 2009-01-30
 
 Series (summary):
-          min      q.25      mean     q.75      max forecast
-t+1  -0.16970 -0.012573  0.000160 0.014647 0.087117 0.001266
-t+2  -0.14045 -0.012198  0.000820 0.015917 0.088455 0.001043
-t+3  -0.15926 -0.013462  0.000291 0.014136 0.097728 0.000880
-t+4  -0.11009 -0.012629  0.000991 0.014653 0.088158 0.000761
-t+5  -0.26634 -0.013391 -0.000698 0.013250 0.123779 0.000674
-t+6  -0.24480 -0.012854 -0.000012 0.013587 0.089862 0.000610
-t+7  -0.13669 -0.011373  0.001100 0.015331 0.097236 0.000564
-t+8  -0.38366 -0.013117 -0.000036 0.014572 0.084560 0.000530
-t+9  -0.26574 -0.012405  0.000074 0.014094 0.088518 0.000505
-t+10 -0.21571 -0.011858  0.000652 0.013448 0.127877 0.000486
+           min      q.25      mean     q.75      max forecast
+t+1  -0.089993 -0.013537 -0.000081 0.015707 0.104630 0.001980
+t+2  -0.117838 -0.014739 -0.000128 0.014744 0.084440 0.001726
+t+3  -0.188616 -0.015283 -0.002322 0.012304 0.078553 0.001520
+t+4  -0.273685 -0.018463 -0.002888 0.014107 0.070060 0.001352
+t+5  -0.135797 -0.013646  0.000211 0.016148 0.074452 0.001214
+t+6  -0.276657 -0.011875  0.001879 0.018796 0.098409 0.001102
+t+7  -0.168347 -0.015986 -0.001128 0.014085 0.117204 0.001011
+t+8  -0.305760 -0.014770  0.000207 0.016109 0.085474 0.000936
+t+9  -0.130348 -0.011983  0.002120 0.016860 0.067658 0.000875
+t+10 -0.122018 -0.014796 -0.001472 0.014038 0.110837 0.000826
 .....................
 
 Sigma (summary):
           min    q0.25     mean    q0.75      max forecast
-t+1  0.024673 0.024673 0.024673 0.024673 0.024673 0.024673
-t+2  0.023374 0.023534 0.024438 0.024645 0.044920 0.024368
-t+3  0.022176 0.022738 0.024186 0.025007 0.049329 0.024071
-t+4  0.021142 0.022094 0.023938 0.025026 0.047645 0.023781
-t+5  0.020084 0.021567 0.023656 0.024912 0.051322 0.023498
-t+6  0.019257 0.021188 0.023476 0.024977 0.065176 0.023221
-t+7  0.018390 0.020751 0.023252 0.024853 0.065914 0.022951
-t+8  0.017720 0.020401 0.023005 0.024788 0.062841 0.022688
-t+9  0.016862 0.020194 0.022880 0.024554 0.093453 0.022430
-t+10 0.016061 0.019880 0.022697 0.024362 0.088260 0.022178
+t+1  0.026396 0.026396 0.026396 0.026396 0.026396 0.026396
+t+2  0.025526 0.025579 0.026388 0.026671 0.037014 0.026588
+t+3  0.024705 0.025107 0.026386 0.027058 0.039965 0.026627
+t+4  0.023950 0.024551 0.026312 0.027105 0.056809 0.026664
+t+5  0.023256 0.024426 0.026481 0.027405 0.075388 0.026699
+t+6  0.022623 0.024225 0.026439 0.027396 0.073482 0.026732
+t+7  0.021997 0.024091 0.026508 0.027417 0.076069 0.026764
+t+8  0.021580 0.023892 0.026461 0.027457 0.086559 0.026794
+t+9  0.021214 0.023683 0.026504 0.027519 0.084884 0.026823
+t+10 0.020648 0.023448 0.026424 0.027805 0.081304 0.026849
 .....................
 \end{Soutput}
 \end{Schunk}
 \begin{figure}
 \centering
-\includegraphics{boot.png}
+\includegraphics{boot_partial.png}
 \caption[GARCH Bootstrap Forecast Plots]{GARCH Bootstrap Forecast Plots}\label{fig:bootplot}
 \end{figure}
-
 \section{Simulation}\label{section:simulation}
 Simulation may be carried out either directly on a fitted object (\verb@ugarchsim@)
 else on a GARCH spec with fixed parameters (\verb@ugarchpath@). The \verb@ugarchsim@
@@ -1202,77 +1240,100 @@ forecasting of a model/dataset combination, optionally returning the VaR at
 specified levels. More importantly, it returns the distributional forecast
 parameters necessary to calculate any required measure on the forecasted
 density. The following example illustrates the use of the method where use is
-also made of the parallel option and run on 10 cores. Figure \ref{fig:roll}
-is generated by calling the plot function on the returned \verb@uGARCHroll@
-object. Additional methods, and more importantly extractor functions can be
-found in the documentation. \textbf{Note that only n.ahead=1 is allowed at
+also made of the parallel functionality and run on 10 cores.\footnote{\textbf{Since version 1.0-14
+the parallel functionality is based on the paralllel package and it is upto the
+user to initialize a cluster object and pass it to the function, and then terminate
+it once it is no longer required. Eventually, this approach to the parallel usage
+will filter through to all the functions in rugarch and rmgarch.}}
+Figure \ref{fig:roll} is generated by calling the plot function on the
+returned \verb@uGARCHroll@ object. Additional methods, and more importantly
+extractor functions can be found in the documentation. \textbf{Note that only n.ahead=1 is allowed at
 present (more complicated rolling forecasts can be created by the user with
-the ugarchfit and ugarchforecast functions).}
+the ugarchfit and ugarchforecast functions).} Finally, there is a new method
+called \emph{resume} which allows resumption of estimation of an object which had
+non-converged windows, optionally supplying a different solver and solver control
+combination.
 \begin{Schunk}
 \begin{Sinput}
 > data(sp500ret)
+> library(parallel)
+> cl = makePSOCKcluster(10)
 > spec = ugarchspec(variance.model = list(model = "eGARCH"), distribution.model = "jsu")
-> roll = ugarchroll(spec, data = sp500ret, n.ahead = 1, forecast.length = 500,
-+     refit.every = 25, refit.window = "recursive", parallel = TRUE,
-+     parallel.control = list(pkg = "snowfall", cores = 10), solver = "solnp",
-+     solver.control = list(tol = 1e-05, delta = 1e-06, trace = 0),
-+     calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
+> roll = ugarchroll(spec, sp500ret, n.start = 1000, refit.every = 100,
+refit.window = "moving", solver = "hybrid", calculate.VaR = TRUE,
+VaR.alpha = c(0.01, 0.05), cluster = cl, keep.coef = TRUE)
+>show(roll)
+>stopCluster(cl)
 \end{Sinput}
+\begin{Soutput}
+*-------------------------------------*
+*              GARCH Roll             *
+*-------------------------------------*
+No.Refits       : 46
+Refit Horizon   : 100
+No.Forecasts    : 4523
+GARCH Model     : eGARCH(1,1)
+Distribution    : jsu
+
+Forecast Density:
+              Mu  Sigma    Skew  Shape Shape(GIG) Realized
+1991-02-21 2e-04 0.0102 -0.2591 1.5041          0  -0.0005
+1991-02-22 3e-04 0.0099 -0.2591 1.5041          0   0.0019
+1991-02-25 3e-04 0.0096 -0.2591 1.5041          0   0.0044
+1991-02-26 4e-04 0.0093 -0.2591 1.5041          0  -0.0122
+1991-02-27 0e+00 0.0101 -0.2591 1.5041          0   0.0135
+1991-02-28 7e-04 0.0099 -0.2591 1.5041          0  -0.0018
+
+..........................
+                Mu  Sigma    Skew  Shape Shape(GIG) Realized
+2009-01-23  0.0016 0.0259 -0.8685 2.1297          0   0.0054
+2009-01-26  0.0006 0.0243 -0.8685 2.1297          0   0.0055
+2009-01-27 -0.0001 0.0228 -0.8685 2.1297          0   0.0109
+2009-01-28 -0.0011 0.0212 -0.8685 2.1297          0   0.0330
+2009-01-29 -0.0039 0.0191 -0.8685 2.1297          0  -0.0337
+2009-01-30  0.0008 0.0221 -0.8685 2.1297          0  -0.0231
+
+Elapsed: 10.19141 secs
+\end{Soutput}
 \begin{Sinput}
-> report(roll, type = "VaR", n.ahead = 1, VaR.alpha = 0.01, conf.level = 0.95)
+> report(roll, type = "VaR", VaR.alpha = 0.05, conf.level = 0.95)
+
+
 \end{Sinput}
 \begin{Soutput}
 VaR Backtest Report
 ===========================================
-Model:                  eGARCH-jsu
-Backtest Length:        500
-Data:                   SP500RET
-
+Model          :eGARCH-jsu
+Backtest Length:4523
+Data           :
 ==========================================
-alpha:                  1%
-Expected Exceed:        5
-Actual VaR Exceed:      9
-Actual %:               1.8%
+alpha               :5%
+Expected Exceed     :226.2
+Actual VaR Exceed   :250
+Actual %            :5.5%
 
 Unconditional Coverage (Kupiec)
-Null-Hypothesis:        Correct Exceedances
-LR.uc Statistic:        2.613
-LR.uc Critical:         3.841
-LR.uc p-value:          0.106
-Reject Null:            NO
+Null-Hypothesis     :Correct Exceedances
+LR.uc Statistic     :0
+LR.uc Critical      :3.841
+LR.uc p-value       :1
+Reject Null         :NO
 
 Conditional Coverage (Christoffersen)
-Null-Hypothesis:        Correct Exceedances &
-                        Independence of Failures
-LR.cc Statistic:        2.943
-LR.cc Critical:         5.991
-LR.cc p-value:          0.23
-Reject Null:            NO
-\end{Soutput}
-\begin{Sinput}
-> report(roll, type = "fpm")
-\end{Sinput}
-\begin{Soutput}
-GARCH Roll Mean Forecast Performance Measures
----------------------------------------------
-Model : eGARCH
-no.refits : 20
-n.ahead   : 1
-n.rolls   : 500
-
-    n.ahead.1
-MSE 4.080e-04
-MAE 1.295e-02
-DAC 5.500e-01
-N   5.000e+02
+Null-Hypothesis     :Correct Exceedances and
+                    Independence of Failures
+LR.cc Statistic     :0
+LR.cc Critical      :5.991
+LR.cc p-value       :1
+Reject Null         :NO
 \end{Soutput}
 \end{Schunk}
 \begin{figure}
 \centering
 \includegraphics{roll.png}
-\caption[GARCH Rolling Forecast Plots]{GARCH Rolling Forecast Plots}\label{fig:roll}
+\caption[eGARCH Rolling Forecast Plots]{eGARCH Rolling Forecast Plots}\label{fig:roll}
 \end{figure}
-
+\clearpage
 \section{Simulated Parameter Distribution and RMSE}\label{section:ugarchdist}
 It is sometimes instructive to be able to investigate the underlying
 density of the estimated parameters under different models. The \verb@ugarchdistribution@
@@ -1299,13 +1360,15 @@ persistence
       0.975
 \end{Soutput}
 \begin{Sinput}
+> library(parallel)
+> cl = makePSOCKcluster(10)
 > setfixed(spec) <- list(mu = 0.001, ar1 = 0.4, ma1 = -0.1, omega = 1e-06,
 +     alpha1 = 0.05, beta1 = 0.9, gamma1 = 0.05, shape = 1.5)
 > dist = ugarchdistribution(fitORspec = spec, n.sim = 2000, n.start = 1,
 +     m.sim = 100, recursive = TRUE, recursive.length = 6000, recursive.window = 1000,
 +     rseed = 1066, solver = "solnp", solver.control = list(trace = 0),
-+     parallel = TRUE, parallel.control = list(pkg = "snowfall",
-+         cores = 20))
++     cluster = cl)
+> stop(cl(
 > show(dist)
 \end{Sinput}
 \begin{Soutput}
@@ -1355,7 +1418,6 @@ window-6000 1.4902
 \caption[GARCH Simulated Parameters Density]{GARCH Simulated Parameters Density}\label{fig:dist3}
 \end{figure}
 \end{landscape}
-
 \section{The ARFIMAX Model with constant variance}\label{section:arfima}
 The \verb@rugarch@ package implements an additional set of methods and classes,
 mirroring those of the GARCH specification, for modelling ARFIMAX processes
@@ -1629,8 +1691,8 @@ given a set of dates), \verb@ForwardDates@ (to generate A POSIXct vector of futu
 dates).
 
 \section{Future Development}\label{section:fut}
-Time permitting, some more more exotic GARCH models including component GARCH,
-and Threshold (TAR) type models for the conditional mean.............
+Any future extensions will likely be 'add-on' packages released on r-forge
+in the rgarch project.
 
 \section{FAQs and Guidelines}\label{section:faqs}
 This section provides for answers to some Frequently Asked Questions (Q) as well
@@ -1638,61 +1700,14 @@ as Guidelines (G) for the use of the \verb@rugarch@ package.\\
 \\
 \textbf{Q: Does the package support parallel computation?}\\
 \\
-Yes. Most functions for which parallel functionality was deemed beneficial
-include the additional options of 'parallel' and 'parallel.control'. For Unix
-based systems the multicore package of \cite{Urbanek2009} provides
-for a very efficient parallel apply on multiple cores. For Windows and all
-systems, the snowfall package of \cite{Knaus2010} allows for socket based parallel
-apply which does not include shared memory of objects and can therefore be very
-expensive. This is definitely not as efficient as multicore, but the only option
-currently on windows systems. Some extra thought is required when using the
-snowfall parallel functionality as there is a trade-off to consider between the
-number of cores committed via socket, the overhead for setting up each new
-socket and the number of parallel iterations. As an example consider the
-following:
-\begin{Schunk}
-\begin{Sinput}
-> library(rugarch)
-\end{Sinput}
-\begin{Soutput}
-rugarch (version 1.0) initialized.
-\end{Soutput}
-\begin{Sinput}
-> data(dji30ret)
-> spec = ugarchspec()
-> mspec = multispec(replicate(spec, n = 30))
-> print(system.time(multifit(multispec = mspec, data = dji30ret[,
-+     1:30], parallel = TRUE, parallel.control = list(pkg = "snowfall",
-+     cores = 20))))
-\end{Sinput}
-\begin{Soutput}
-   user  system elapsed
-   1.08    1.88   24.00
-\end{Soutput}
-\begin{Sinput}
-> print(system.time(multifit(multispec = mspec, data = dji30ret[,
-+     1:30], parallel = TRUE, parallel.control = list(pkg = "snowfall",
-+     cores = 5))))
-\end{Sinput}
-\begin{Soutput}
-   user  system elapsed
-   0.34    0.23   15.78
-\end{Soutput}
-\begin{Sinput}
-> print(system.time(multifit(multispec = mspec, data = dji30ret[,
-+     1:30], solver.control = list(trace = 0), parallel = FALSE,
-+     parallel.control = list(pkg = "snowfall", cores = 10))))
-\end{Sinput}
-\begin{Soutput}
-   user  system elapsed
-  49.15    0.00   49.15
-\end{Soutput}
-\end{Schunk}
-It is clear that the overhead for using 20 cores is too high for the size of
-this problem, whereas using 5 cores does lead to a doubling of performance
-versus the non-parallel version. Also note that prior to using the snowfall
-package, this should be manually loaded by the user, since strange behavior has
-been observed when the package tries to load the snowfall itself.\\
+Yes. Since version 1.0-14, \verb@rugarch@ makes exclusive use of the
+\verb@parallel@ package for all parallel computations. Certain functions
+take as input a user supplied cluster object (created by calling
+\emph{parallel::makeCluster}), which is then used for parallel computations.
+It is then up to the user to terminate that cluster once it is no longer
+needed. Allowing a cluster object to be provided in this way was deemed the
+most flexible approach to the parallel computation problem across different
+architectures and resources.\\
 \\
 \textbf{Q: My model does not converge, what can I do?}\\
 \\

@@ -14,9 +14,11 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################*/
-#ifndef FRACDIFF_H
-#define FRACDIFF_H
-void fracdiff(int *n, double *d, double *p, double *x, double *ydiff);
-#endif /* FRACDIFF_H */
-
-
+#ifndef _numderiv_H
+#define _numderiv_H
+#include <R.h>
+#include <Rmath.h>
+#include <math.h>
+#include <Rcpp.h>
+RcppExport SEXP hessian2sided(SEXP fun, SEXP x, SEXP H, SEXP ee, SEXP gm, SEXP gp);
+#endif

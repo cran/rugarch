@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -15,9 +14,20 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
-
-# Check the GHST distribution
-rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.seeds = function(n, test)
+{
+	rseed = round(runif(n,100,10000),0)
+	options(width=120)
+	zz <- file(paste(test,"-seeds.txt", sep=""), open="wt")
+	sink(zz)
+	print(rseed)
+	sink(type="message")
+	sink()
+	close(zz)
+	return(rseed)
+}
+# Distribution Checks
+rugarch.test10a = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL)
 {
 	tic = Sys.time()
 	#cat("\nrugarch-->test10-1: Fixed and Starting Parameter Test (fGARCH/ALLGARCH)\n")
@@ -25,15 +35,15 @@ rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	# No Parameters Fixed, Starting Parameters
 	spars = list(mu = 1.9917e-04, ar1 = -1.7519e-02, omega = 6.5805e-05, 
 			alpha1 = 6.0165e-02, beta1 = 9.3376e-01, lambda = 1.1702e+00,  
-			eta21 = 4.2051e-02, eta11 = 7.9775e-01, skew = -0.9, 
-			shape = 9)
+			eta21 = 4.2051e-02, eta11 = 7.9775e-01, skew = skew, 
+			shape = shape)
 	
 	spec = ugarchspec(
 			variance.model = list(model = "fGARCH", garchOrder = c(1,1), 
 					submodel = "ALLGARCH"), 
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE, 
 					archm = FALSE, archpow = 2), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	setstart(spec)<-spars
 	
 	fgarch.fit1 = ugarchfit(data = sp500ret, spec = spec, solver = "solnp", 
@@ -46,7 +56,7 @@ rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 			variance.model = list(model = "fGARCH", garchOrder = c(1,1), 
 					submodel = "ALLGARCH"), 
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE, 
-					archm = FALSE, archpow = 2), distribution.model = "ghst", 
+					archm = FALSE, archpow = 2), distribution.model = dist, 
 			fixed.pars = fpars, start.pars = list(skew = -1))
 	# alternative use setfixed(spec)<-fpars
 	# this is pretty hard, nloptr seems to do best here
@@ -65,7 +75,7 @@ rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 			variance.model = list(model = "fGARCH", garchOrder = c(1,1), 
 					submodel = "ALLGARCH"), 
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE, 
-					archm = FALSE, archpow = 2), distribution.model = "ghst", 
+					archm = FALSE, archpow = 2), distribution.model = dist, 
 			fixed.pars = fpars)
 	
 	fgarch.fit4 = ugarchfit(data = sp500ret,spec = spec, solver = "solnp", 
@@ -95,7 +105,7 @@ rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	colnames(fgarch.se) = paste("test", 1:4, sep=".")
 	
 	options(width=100)
-	zz <- file("test10a.txt", open="wt")
+	zz <- file(paste("test10a-",dist,".txt",sep=""), open="wt")
 	sink(zz)
 	print(fgarch.lik)
 	cat("\nparameters:\n")
@@ -110,68 +120,76 @@ rugarch.test10a = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	return(toc)
 }
 
-rugarch.test10b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+
+rugarch.test10b = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL)
 {
 	tic = Sys.time()
 	
 	data(dji30ret)
-	rseed = rugarch.seeds(100, "test10b")
+	rseed = rugarch.seeds(300, "test10b")
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH"), 
-			distribution.model = "ghst")
+			distribution.model = dist)
+	# set lower bounds on the ghst distribution for existence of kurtosis
+	if(dist=="ghst"){
+		setbounds(spec)<-list(shape=c(8.1, 25))
+	# best to set a starting parameter above the lower bound else the solver
+	# might fail:
+		setstart(spec)<-list(shape = 8.1)
+	}
 	fit = ugarchfit(spec, data = dji30ret[,"XOM"], fit.control = list(scale = 1))	
-	dist = ugarchdistribution(fit, n.sim = 2000, n.start = 50, m.sim = 100, 
-			solver = "solnp",
-			fit.control = list(scale = 1), rseed  = rseed,
-			parallel = parallel, parallel.control = parallel.control)
+	distx = ugarchdistribution(fit, n.sim = 2000, n.start = 50, m.sim = 300, 
+			solver = "solnp", fit.control = list(scale = 1), rseed  = rseed, 
+			cluster = cluster)
 	
-	postscript("test10b1.eps", width = 12, height = 8)
-	plot(dist, which = 1)
+	postscript(paste("test10b1-",dist,".eps",sep=""), width = 12, height = 8)
+	plot(distx, which = 1)
 	dev.off()
 	
-	postscript("test10b2.eps", width = 12, height = 8)
-	plot(dist, which = 2)
+	postscript(paste("test10bs-",dist,".eps",sep=""), width = 12, height = 8)
+	plot(distx, which = 2)
 	dev.off()
 	
-	postscript("test10b3.eps", width = 12, height = 8)
-	plot(dist, which = 3)
+	postscript(paste("test10b3-",dist,".eps",sep=""), width = 12, height = 8)
+	plot(distx, which = 3)
 	dev.off()
 	
-	z1 <- file("test10b1.txt", open="wt")
+	z1 <- file(paste("test10b1-",dist,".txt",sep=""), open="wt")
 	sink(z1)
-	print(as.data.frame(dist, which = "coef"))
+	print(as.data.frame(distx, which = "coef"))
 	sink(type="message")
 	sink()
 	close(z1)
 	
-	z2 <- file("test10b2.txt", open="wt")
+	z2 <- file(paste("test10b2-",dist,".txt",sep=""), open="wt")
 	sink(z2)
-	print(as.data.frame(dist, which = "rmse"))
+	print(as.data.frame(distx, which = "rmse"))
 	sink(type="message")
 	sink()
 	close(z2)
 	
 	
-	z3 <- file("test10b3.txt", open="wt")
+	z3 <- file(paste("test10b3-",dist,".txt",sep=""), open="wt")
 	sink(z3)
-	print(as.data.frame(dist, which = "stats"))
+	print(as.data.frame(distx, which = "stats"))
 	sink(type="message")
 	sink()
 	close(z3)
 	
-	z4 <- file("test10b4.txt", open="wt")
+	z4 <- file(paste("test10b4-",dist,".txt",sep=""), open="wt")
 	sink(z4)
-	print(as.data.frame(dist, which = "coefse"))
+	print(as.data.frame(distx, which = "coefse"))
 	sink(type="message")
 	sink()
 	close(z4)
+	
 	toc = Sys.time()-tic
 	cat("Elapsed:", toc, "\n")
 	return(toc)
 }
 
 
-rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test10c = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -183,7 +201,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
 	sgarch.fit = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
 			solver = "solnp")
@@ -191,7 +209,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst", fixed.pars = as.list(coef(sgarch.fit)))
+			distribution.model = dist, fixed.pars = as.list(coef(sgarch.fit)))
 	sgarch.filter = ugarchfilter(data = dji30ret[,"AA",drop=FALSE], spec = spec)	
 	
 	# iGARCH Model
@@ -199,7 +217,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "iGARCH", garchOrder = c(2,2)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
 	igarch.fit = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
 			solver = "solnp")
@@ -207,7 +225,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "iGARCH", garchOrder = c(2,2)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst", fixed.pars = as.list(coef(igarch.fit)))
+			distribution.model = dist, fixed.pars = as.list(coef(igarch.fit)))
 	igarch.filter = ugarchfilter(data = dji30ret[,"AA",drop=FALSE], spec = spec)
 	
 	# apARCH Model
@@ -215,7 +233,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "apARCH", garchOrder = c(1,2)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
 	aparch.fit = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
 			solver = "solnp", fit.control = list(scale = 1))
@@ -223,7 +241,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "apARCH", garchOrder = c(1,2)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst", fixed.pars = as.list(coef(aparch.fit)))
+			distribution.model = dist, fixed.pars = as.list(coef(aparch.fit)))
 	aparch.filter = ugarchfilter(data = dji30ret[,"AA",drop=FALSE], spec = spec)
 	
 	x1 = cbind(head(sigma(sgarch.fit),10) , head(sigma(sgarch.filter),10))
@@ -232,7 +250,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	colnames(x1) = c("fit", "filter")
 	colnames(x2) = c("fit", "filter")
 	colnames(x3) = c("fit", "filter")
-	zz <- file("test10c.txt", open="wt")
+	zz <- file(paste("test10c-",dist,".txt",sep=""), open="wt")
 	sink(zz)
 	cat("\nsGARCH sigma\n")
 	print(x1, digits=8)
@@ -249,7 +267,7 @@ rugarch.test10c = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 }
 
 
-rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test10d = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL)
 {
 	#cat("\nrugarch-->test4-2: Forecast Test (sGARCH)\n")
 	tic = Sys.time()
@@ -258,7 +276,7 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	# ---------------------------------------------------------------------------------
 	data(dji30ret)
 	# create weekday dummies for external regressors
-	dates = rownames(dji30ret[,"AA", drop = FALSE])
+	dates = rownames(dji30ret[,"MSFT", drop = FALSE])
 	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
@@ -275,10 +293,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(0,0), include.mean = FALSE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
-	sgarch.fit1 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit1 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "nlminb")
 	
 	
 	sgarch.pred1 = ugarchforecast(sgarch.fit1, n.ahead = 50, n.roll = 10)
@@ -287,10 +305,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(0,0), include.mean = TRUE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
-	sgarch.fit2 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit2 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "nlminb")
 	
 	sgarch.pred2 = ugarchforecast(sgarch.fit2, n.ahead = 50, n.roll = 10)
 	
@@ -299,10 +317,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	spec = ugarchspec(
 			variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
-	sgarch.fit3 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit3 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "nlminb")
 	
 	sgarch.pred3 = ugarchforecast(sgarch.fit3, n.ahead = 50, n.roll = 10)
 	
@@ -313,10 +331,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 					external.regressors = friday), 
 			mean.model = list(armaOrder = c(1,1), include.mean = FALSE, 
 					external.regressors = monday), 
-			distribution.model = "ghst", start.pars = as.list(coef(sgarch.fit3)))
+			distribution.model = dist, start.pars = as.list(coef(sgarch.fit3)))
 	
-	sgarch.fit4 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit4 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "gosolnp")
 	
 	xregm = matrix(monday[5322:(5322+50+10 - 1)], ncol=1)
 	xregv = matrix(friday[5322:(5322+50+10 - 1)], ncol=1)
@@ -329,10 +347,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 					external.regressors = friday), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE, 
 					external.regressors = monday), 
-			distribution.model = "ghst", start.pars = as.list(coef(sgarch.fit4)))
+			distribution.model = dist, start.pars = as.list(coef(sgarch.fit4)))
 	
-	sgarch.fit5 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit5 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "gosolnp")
 	
 	xregm = matrix(monday[5322:(5322+50+10 - 1)], ncol=1)
 	xregv = matrix(friday[5322:(5322+50+10 - 1)], ncol=1)
@@ -345,10 +363,10 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 					external.regressors = friday), 
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE, 
 					archm = TRUE, archpow = 1, external.regressors = monday), 
-			distribution.model = "ghst", start.pars = as.list(coef(sgarch.fit5)))
+			distribution.model = dist, start.pars = as.list(coef(sgarch.fit5)))
 	
-	sgarch.fit6 = ugarchfit(data=dji30ret[,"AA", drop = FALSE], 
-			out.sample = 200, spec = spec, solver = "solnp")
+	sgarch.fit6 = ugarchfit(data=dji30ret[,"MSFT", drop = FALSE], 
+			out.sample = 200, spec = spec, solver = "gosolnp")
 	
 	xregm = matrix(monday[5322:(5322+50+10 - 1)], ncol=1)
 	xregv = matrix(friday[5322:(5322+50+10 - 1)], ncol=1)
@@ -370,18 +388,18 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 			rep(coef(sgarch.fit3)["skew"],10), rep(coef(sgarch.fit4)["skew"],10),
 			rep(coef(sgarch.fit5)["skew"],10), rep(coef(sgarch.fit6)["skew"],10))
 	# plot the forecast 1-step rolling density
-	postscript("test10d.eps", width = 12, height = 8)
+	postscript(paste("test10d-",dist,".eps",sep=""), width = 12, height = 8)
 	zseq = seq(-0.2, 0.2, length.out = 1000)
 	colr = heat.colors(10, alpha = 1)
 	par(mfrow = c(2,3))
 	for(i in 1:6){
-		plot(zseq, ddist(distribution = "ghst", y = zseq, mu = sgarch.fmu[1,i], 
+		plot(zseq, ddist(distribution = dist, y = zseq, mu = sgarch.fmu[1,i], 
 						sigma = sgarch.fsigma[1,i], skew = sgarch.skew[1,i],
 						shape = sgarch.shape[1,i]), 
 				main = "", xlab="", ylab="", ylim=c(0,24))
 		title(paste("model-", i, sep=""), line = 0.4, cex = 0.9)
 		for(j in 2:10){
-			lines(zseq, ddist(distribution = "ghst", y = zseq, mu = sgarch.fmu[j,i], 
+			lines(zseq, ddist(distribution = dist, y = zseq, mu = sgarch.fmu[j,i], 
 							sigma = sgarch.fsigma[j,i], skew = sgarch.skew[1,i],
 							shape = sgarch.shape[j,i]), col = colr[j])
 		}
@@ -396,7 +414,7 @@ rugarch.test10d = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 
 
 
-rugarch.test10e = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test10e = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL)
 {
 	#cat("\nrugarch-->test5-1: Simulation Test (sGARCH)\n")
 	tic = Sys.time()
@@ -421,10 +439,10 @@ rugarch.test10e = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 					external.regressors = friday), 
 			mean.model = list(armaOrder = c(0,0), include.mean = TRUE, 
 					external.regressors = monday), 
-			distribution.model = "ghst")
+			distribution.model = dist)
 	
 	sgarch.fit = ugarchfit(data = dji30ret[,"AA",drop=FALSE], spec = spec, 
-			solver = "solnp", solver.control = list(print_level=1, ftol_rel = 1e-4))
+			solver = "nlminb", solver.control = list(trace=0))
 	
 	sgarch.sim1 = ugarchsim(fit = sgarch.fit, n.sim = 1200, n.start = 0, 
 			m.sim = 1, startMethod = "unconditional", rseed = 100)
@@ -461,7 +479,7 @@ rugarch.test10e = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 			vexsimdata = list(matrix(fwdFriday,ncol=1)), rseed = 100:109)
 	
 	options(width=120)
-	zz <- file("test10e.txt", open="wt")
+	zz <- file(paste("test10e-",dist,".txt",sep=""), open="wt")
 	sink(zz)
 	cat("\nsGARCH simulation 1:\n")
 	show(sgarch.sim1)
@@ -477,10 +495,85 @@ rugarch.test10e = function(parallel = FALSE, parallel.control = list(pkg = c("mu
 	sink()
 	close(zz)
 	
-	postscript("test10e.eps", width = 12, height = 8)
+	postscript(paste("test10e-",dist,".eps",sep=""), width = 12, height = 8)
 	par(mfrow = c(3,3))
 	for(i in 1:9) plot(sgarch.sim5, which = 3, m.sim = i)
 	dev.off()
+	toc = Sys.time()-tic
+	cat("Elapsed:", toc, "\n")
+	return(toc)
+}
+
+
+rugarch.test10ef= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
+{
+	tic = Sys.time()
+	set.seed(100)
+	x = rdist(dist, n = 1000, skew = skew, shape = shape)
+	p = pdist(dist, x, skew = skew, shape = shape)
+	q = qdist(dist, p, skew = skew, shape = shape)
+	
+	postscript(paste("test10fa-",dist,".eps",sep=""), width = 12, height = 8)
+	par(mfrow=c(2,2))
+	plot(x, pch = 3, pty = 2, col = "steelblue", main = "quantile function check")
+	points(q, col = "tomato1")
+	legend("bottomleft", c("x", "q*(p)"), col=c("steelblue", "tomato1"), pch=c(3,1), bty="n")
+	hist( abs(x-q), main = "Absolute Error (quantile function)", col = "steelblue")
+	hist(x, col = "steelblue", freq  = FALSE, ylim = c(0, 0.5), main="Density of x", ylab="f(x)")
+	curve(ddist(dist, x, skew = skew, shape = shape), lty = 2, lwd = 2, add = TRUE, col = "tomato1")
+	plot(sort(x), ppoints(x), col  = "steelblue", xlab="x", ylab="F(x)", main = "Distribution of x")
+	lines(sort(x), pdist(dist, sort(x), skew = skew, shape = shape), col = "tomato1", lwd = 2)
+	dev.off()
+	
+	# fit test
+	if(!is.null(cluster)){
+		set.seed(10121)
+		mu = 0.015
+		sd = 0.035
+		x = matrix(rdist(dist, n = 100000, mu = mu, sigma = sd, skew = skew, shape = shape), ncol = 100)
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("x","dist"), envir = environment())
+		pars = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					fit = try(fitdist(dist, x[,i], control=list(trace=0, tol=1e-10)))
+					if(!inherits(fit, 'try-error') && fit$convergence==0){
+						ans = fit$par
+					} else{
+						ans = rep(NA, 4)
+					}
+					return(ans)
+				})
+	} else{
+		pars = lapply(as.list(1:100), FUN = function(i){
+					fit = try(fitdist(dist, x[,i], control=list(trace=0, tol=1e-10)))
+					if(!inherits(fit, 'try-error') && fit$convergence==0){
+						ans = fit$par
+					} else{
+						ans = rep(NA, 4)
+					}
+					return(ans)
+				})
+	}
+	pars = matrix(unlist(pars), ncol = 4, byrow = TRUE)
+	retmat = rbind(c(mu, sd, skew, shape), apply(pars, 2, "mean"), apply(pars, 2, "sd"))
+	colnames(retmat) = c("mu", "sd", "skew", "shape")
+	rownames(retmat) = c("real", "esimated", "s.d.")
+	
+	options(width=120)
+	zz <- file(paste("test10fb-",dist,".txt",sep=""), open="wt")
+	sink(zz)
+	print(retmat)
+	sink(type="message")
+	sink()
+	close(zz)
+	
+	postscript(paste("test10fb-",dist,".eps",sep=""), width = 12, height = 8)
+	par(mfrow=c(2,2))
+	for(i in 1:4){
+		boxplot(pars[,i], main = colnames(retmat)[i])
+		abline(h = retmat[1,i], col = "grey")
+	}
+	dev.off()
+	
 	toc = Sys.time()-tic
 	cat("Elapsed:", toc, "\n")
 	return(toc)

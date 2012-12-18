@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -21,29 +20,28 @@ TinY = 1.0e-8
 
 ##################################################################################
 # Helper Functions
-.makearfimafitmodel = function(f, data, T, m, timer, convergence, message, hess, garchenv)
+.makearfimafitmodel = function(f, T, m, timer, convergence, message, hess, arglist)
 {
 	# Need to turn off stationarity check:
-	fit.control = get("fit.control",  envir = garchenv)
-	fit.control$stationarity = 0
-	assign("fit.control", fit.control, , envir = garchenv)
-	
-	ipars = get("ipars", garchenv)
-	fit = vector(mode = "list")
-	model = get("model", garchenv)
-	estidx = get("estidx", garchenv)
+	fit.control = arglist$fit.control
+	fit.control$stationarity = arglist$fit.control$stationarity = 0
+	ipars = arglist$ipars
+	model = arglist$model
+	estidx = arglist$estidx
 	idx = model$pidx
-	assign(".llh",1, envir = garchenv)
+	data = arglist$data
+	arglist$returnType = "llh"
+	fit = list()
 	if(is.null(hess)){
 		#fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
-		fit$hessian = .hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)
+		fit$hessian = .hessian2sided(f, ipars[estidx, 1], arglist = arglist)
 	} else{
 		fit$hessian = hess
 	}
 	fit$cvar = try(solve(fit$hessian), silent = TRUE)
 	# (might also fail in which case user will see an error about the inversion failure)
 	if(inherits(fit$cvar, "try-error")){
-		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)), silent=TRUE)
+		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], arglist = arglist)), silent=TRUE)
 		if(inherits(zz, "try-error")) {
 			fit$cvar = NULL
 			warning("\nrugarch-->warning: failed to invert hessian\n")
@@ -51,12 +49,12 @@ TinY = 1.0e-8
 			fit$cvar = zz
 		}
 	}
-	temp = f(pars = ipars[estidx, 1], data = data, returnType="all", garchenv)
+	arglist$returnType = "all"
+	temp = f(pars = ipars[estidx, 1], arglist = arglist)
 	fit$z = temp$z
 	fit$LLH = -temp$llh
 	fit$log.likelihoods = temp$LHT
 	fit$residuals = temp$res
-	assign(".llh",1, envir = garchenv)
 	if(sum(ipars[,2])>0){
 		pall = ipars[estidx | as.logical(ipars[,2]==1), 1]
 		fixed = match(rownames(ipars[ipars[,2]==1, , drop = FALSE]), names(pall))
@@ -80,9 +78,10 @@ TinY = 1.0e-8
 			fit$robust.matcoef[fixed,] = cbind(fit$coef[fixed], fNA, fNA, fNA)
 			fit$hessian.message = "failed to invert hessian"
 		} else{
-			tmp = robustvcv(fun = f, pars = ipars[estidx, 1], nlag = 0, hess = fit$hessian, n = T, data = data, returnType = "LHT", garchenv)
+			arglist$returnType="LHT"
+			tmp = robustvcv(fun = f, pars = ipars[estidx, 1], nlag = 0, hess = fit$hessian, n = T, arglist = arglist)
 			fit$robust.cvar = tmp$vcv
-			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "LHT", garchenv) 
+			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist = arglist) 
 			colnames(fit$scores) = names(ipars[estidx, 1])
 			fit$se.coef = sqrt(diag(abs(fit$cvar)))
 			fit$tval = fit$coef[-fixed]/fit$se.coef
@@ -117,9 +116,10 @@ TinY = 1.0e-8
 		} else{
 			nlag=min(floor(1.2*(T)^(1/3)),(T))
 			# tmp = .robustSE(fun = f, pars = opt, hess = NULL, n = T-m, data = data, returnType = "LHT", garchenv)
-			tmp = robustvcv(fun = f, pars = ipars[estidx,1], nlag = nlag, hess = fit$hessian, n = T, data = data, returnType = "LHT", garchenv)
+			arglist$returnType = "LHT"
+			tmp = robustvcv(fun = f, pars = ipars[estidx,1], nlag = nlag, hess = fit$hessian, n = T, arglist = arglist)
 			fit$robust.cvar = tmp$vcv
-			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "LHT", garchenv) 
+			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist = arglist) 
 			colnames(fit$scores) = names(ipars[estidx, 1])
 			fit$se.coef = sqrt(diag(abs(fit$cvar)))
 			fit$tval = fit$coef/fit$se.coef
@@ -151,28 +151,34 @@ TinY = 1.0e-8
 }
 
 
-.makefitmodel = function(garchmodel, f, data, T, m, timer, convergence, message, hess, garchenv)
+.makefitmodel = function(garchmodel, f, T, m, timer, convergence, message, hess, arglist)
 {
 	# Turn Stationarity Off for numerical derivative calculation
-	fit.control = get("fit.control",  envir = garchenv)
-	fit.control$stationarity = 0
-	assign("fit.control", fit.control, envir = garchenv)
-	ipars = get("ipars", garchenv)
-	fit = vector(mode = "list")
-	model = get("model", garchenv)
-	estidx = get("estidx", garchenv)
+	fit.control = arglist$fit.control
+	fit.control$stationarity = arglist$fit.control$stationarity = 0
+	data = arglist$data
+	ipars = arglist$ipars
+	model = arglist$model
+	estidx = arglist$estidx
 	idx = model$pidx
-	assign(".llh",1, envir = garchenv)	
+	arglist$returnType = "llh"
+	fit = vector(mode = "list")
 	if(is.null(hess)){
-		#fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
-		fit$hessian = .hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)
+		# fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
+		# fit$hessian = .hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)
+		fit$hessian = .hessian2sidedcpp(f, ipars[estidx, 1], arglist = arglist)
+		E = eigen(fit$hessian)$values
+		# approx. number of decimal places lost to roundoff/numerical estimation error
+		condH = log10(max(E)/min(E))
 	} else{
 		fit$hessian = hess
+		E = eigen(fit$hessian)$values
+		condH = log10(max(E)/min(E))
 	}
 	fit$cvar = try(solve(fit$hessian), silent = TRUE)
 	# (might also fail in which case user will see an error about the inversion failure)
-	if(inherits(fit$cvar, "try-error")){
-		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)), silent=TRUE)
+	if(inherits(fit$cvar, "try-error")){		
+		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], arglist = arglist)), silent=TRUE)
 		if(inherits(zz, "try-error")) {
 			fit$cvar = NULL
 			warning("\nrugarch-->warning: failed to invert hessian\n")
@@ -183,8 +189,8 @@ TinY = 1.0e-8
 	#fit$grad = grad(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(eps=1e-4, d=0.001, 
 	#				zero.tol=sqrt(.Machine$double.eps/7e-7), r=6, v=2, show.details=FALSE), data = data, returnType = "llh", garchenv = garchenv)
 	# this is the sum of the scores: apply(fit$scores, 2, "sum")
-	
-	temp = f(pars = ipars[estidx, 1], data = data, returnType="all", garchenv)
+	arglist$returnType = "all"
+	temp = f(pars = ipars[estidx, 1],	arglist = arglist)
 	if(garchmodel == "fGARCH" || garchmodel == "apARCH"){
 		# apARCH and fGARCH are calculated in sigma rather than sigma^d (since d is a variable
 		# to be calculated, unlike sGARCH where it is fixed at 2)
@@ -195,11 +201,11 @@ TinY = 1.0e-8
 		fit$sigma = sqrt(abs(temp$h))
 	}
 	if(garchmodel == "csGARCH") fit$q = temp$q
+	fit$condH = condH
 	fit$z = temp$z
 	fit$LLH = -temp$llh
 	fit$log.likelihoods = temp$LHT
 	fit$residuals = temp$epsx
-	assign(".llh",1, envir = garchenv)
 	if(sum(ipars[,2])>0){
 		pall = ipars[estidx | as.logical(ipars[,2]==1), 1]
 		fixed = match(rownames(ipars[ipars[,2]==1, , drop = FALSE]), names(pall))
@@ -223,9 +229,10 @@ TinY = 1.0e-8
 			fit$robust.matcoef[fixed,] = cbind(fit$coef[fixed], fNA, fNA, fNA)
 			fit$hessian.message = "failed to invert hessian"
 		} else{
-			tmp = robustvcv(fun = f, pars = ipars[estidx, 1], nlag = 0, hess = fit$hessian, n = T, data = data, returnType = "LHT", garchenv)
+			arglist$returnType = "LHT"
+			tmp = robustvcv(fun = f, pars = ipars[estidx, 1], nlag = 0, hess = fit$hessian, n = T, arglist = arglist)
 			fit$robust.cvar = tmp$vcv
-			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "LHT", garchenv) 
+			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist = arglist) 
 			colnames(fit$scores) = names(ipars[estidx, 1])
 			fit$se.coef = sqrt(diag(abs(fit$cvar)))
 			fit$tval = fit$coef[-fixed]/fit$se.coef
@@ -259,10 +266,10 @@ TinY = 1.0e-8
 			fit$hessian.message = "failed to invert hessian"
 		} else{
 			nlag=min(floor(1.2*(T)^(1/3)),(T))
-			# tmp = .robustSE(fun = f, pars = opt, hess = NULL, n = T-m, data = data, returnType = "LHT", garchenv)
-			tmp = robustvcv(fun = f, pars = ipars[estidx,1], nlag = nlag, hess = fit$hessian, n = T, data = data, returnType = "LHT", garchenv)
+			arglist$returnType = "LHT"
+			tmp = robustvcv(fun = f, pars = ipars[estidx,1], nlag = nlag, hess = fit$hessian, n = T, arglist = arglist)
 			fit$robust.cvar = tmp$vcv
-			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "LHT", garchenv) 
+			fit$scores = jacobian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist = arglist) 
 			colnames(fit$scores) = names(ipars[estidx, 1])
 			fit$se.coef = sqrt(diag(abs(fit$cvar)))
 			fit$tval = fit$coef/fit$se.coef
@@ -452,12 +459,11 @@ TinY = 1.0e-8
 
 .custzdist = function(custom.dist, zmatrix, m.sim, n)
 {
-	if(is.na(custom.dist$name) | is.na(custom.dist$name)){
-		
+	if(is.na(custom.dist$name) | is.na(custom.dist$distfit)[1]){
 		z = matrix(apply(zmatrix, 1, FUN = function(x) .makeSample(as.character(x[1]), lambda = as.numeric(x[2]), 
 		skew = as.numeric(x[3]), shape = as.numeric(x[4]), n = as.numeric(x[5]), seed = as.integer(x[6]))), n, m.sim)
 	}
-	if(!is.na(custom.dist$name) && !is.na(custom.dist$distfit)){
+	if(!is.na(custom.dist$name) && !is.na(custom.dist$distfit)[1]){
 		
 		if(is.matrix(custom.dist$distfit))
 		{
@@ -659,4 +665,49 @@ newlagmatrix = function(x,nlags,xc)
 	nw[ , , 1:n1] = x[, , 1:n1]
 	nw[ , , (n1+1):(n1+n2)] = y[, , 1:n2]
 	nw
+}
+
+.checkrec = function(init, T){
+	if(is.null(init)){
+		type = 1
+		n = T
+	} else{
+		if(is.character(init)){
+			if(init == "all"){
+				type = 1
+				n = T
+			} else{
+				warning("\nugarchfit-->warning: unrecognized option in rec.init...using 'all' option instead.\n")
+				type = 1
+				n = T
+			}
+		} else{
+			if(init>=1){
+				type = 1
+				if(init<=T){
+					n = round(init, 0)
+				} else{
+					n = T
+					warning("\nugarchfit-->warning: rec.init value > n.obs (less out.sample)...setting value to n.obs instead.\n")
+				}
+			} else{
+				if(init>0){
+					type = 2
+					n = init
+				} else{
+					warning("\nugarchfit-->warning: unrecognized option in rec.init...using 'all' option instead \n")
+					type = 1
+					n = T
+				}
+			}
+		}
+	}
+	return(list(type = type, n = n))
+}
+
+# Exponential smoothing backcast
+backcastv = function(res, T, lambda, delta=2){
+	s = mean(res^delta)
+	v = (lambda^T)*s + (1-lambda)*sum(lambda^(0:(T-1))*(res^delta))
+	return(v)
 }

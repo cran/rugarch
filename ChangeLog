@@ -1,9 +1,59 @@
+2012-11-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-14.
+	* Removed use of custom function environments in the estimation. Passing
+	instead an argument list between functions (resolves various problems for
+	non-shared environments e.g. use of snow and certain solvers). 
+	* Parallel estimation now done entirely using the parallel package, given a
+	user supplied cluster object.
+	* ugarchroll and arfimaroll completely re-written and some functionality 
+	changed (see help files). as.uGARCHforecast and as.ARFIMAforecast methods 
+	removed, and access methods on the rolling objects simplified, as the object 
+	returns a much cleaner output. Additionally, a new method called resume will
+	allow the resumption of rolling objects which had non-converged windows using
+	different solver and control option combinations. All methods on objects
+	with non-converged windows will now stop and warn. A new option window.size
+	allows to control the amount of data used for the moving window estimation.
+	* ugarchspec now warns on misspelled options in the specification. Exact 
+	(not partial) matching is done on the options in the variance and mean model
+	lists [thanks to Pat Burns].
+	* variance.targeting option in GARCH specification now allows either logical 
+	or numeric value (in which case that is used instead of the unconditional 
+	variance of the conditional mean residuals) [user request].
+	* fit.control takes an extra option, 'rec.init' for the type of method used 
+	to initialize the GARCH recursion ("all" for all data, integer value >1 for
+	using the first n points, or positive numeric value <=1 for exponential
+	backcast method)
+	* The GARCH bootstrap method (ugarchboot) has been re-written and enhanced
+	to allow for sampling from both the raw residuals, kernel fitted residuals
+	or SPD (new dependency with spd package) fitted residuals. Returned objects
+	are also more simple to manipulate with extractor methods.
+	* Fix to GHST distribution density.
+	* Fix to arfima simulation initialization requirement (n.start>=MA order).
+	* Minor code fixes
+	* vignette updated
+	
+2012-10-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-13.
+	* Fix to hybrid solver default trace argument
+	* 2 sided Hessian now moved to C++
+	* Some enhancements/fixes to date identification utility for recognising
+	date formats
+	* Fix to external regressors in variance equation (bug when more than
+	2 regressors used) [thanks to Florian Ziel].
+	* Fix to starting and fixed parameters for high order models (>20).
+	* Ability to set upper and lower bounds via setbounds<- function on
+	a  uGARCHspec object.
+	* GARCH starting parameters functions cleanup/compacting.
+	* Some fixes to show method for very high dimensional models. Also, some 
+	changes to Box Test summary and Information Criteria.
+	* Fix to arfimadistribution function.
+
 2012-09-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-12.
 	* Added a hybrid strategy optimization method to sequentially try a list of 
 	alternative solvers in case of non-convergence.
 	* Added optional logical argument 'standardize' (default: FALSE)
-	to residuals method to return the stanardized residuals for both the
+	to residuals method to return the standardized residuals for both the
 	arfima and garch classes.
 
 2012-07-09  Alexios Ghalanos <alexios@4dscape.com>
@@ -11,15 +61,15 @@
 	* Added the Component GARCH model of Lee and Engle (1999)
 	with a complete set of methods.
 	* ugarchroll now only allows n.ahead=1 (alternative was too complicated).
-	* Change to ugarchboot to allow simulated external regressors input seperately 
-	from the forecast of the external regressors.
+	* Change to ugarchboot to allow simulated external regressors input 
+	separately from the forecast of the external regressors.
 	
 2012-06-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-10.
 	* Fix in ugarchboot (full method) for higher GARCH and ARMA orders.
 	* Numerous fixes to methods involving variance targeting.
-	* Fix to egarchsim when n.sim<100 and m.sim>100 (c++ code -- brackets in wrong
-	place!)
+	* Fix to egarchsim when n.sim<100 and m.sim>100 (c++ code -- brackets in 
+	wrong place!)
 	* Fix to ugarchroll using multicore, and correct f01density slot.
 
 2012-05-23  Alexios Ghalanos <alexios@4dscape.com>
@@ -29,9 +79,10 @@
 	the max AR and MA orders chosen.
 	* Fix to some .C calls to eliminate Null being passed (affected only filter 
 	method).
-	* Fix avoid error in uncertainty functions for arfima and garch (ugarchdistribution 
-	and arfimadistribution) when using spec rather than fit.
-	* Bounds for AR and MA increased to [-4,4] for models with orders higher than 1.
+	* Fix avoid error in uncertainty functions for arfima and garch 
+	(ugarchdistribution and arfimadistribution) when using spec rather than fit.
+	* Bounds for AR and MA increased to [-4,4] for models with orders higher 
+	than 1.
 	* Fix in ugarchroll to include external.regressors in forecast
 
 2012-02-03  Alexios Ghalanos <alexios@4dscape.com>
@@ -52,8 +103,7 @@
 	* Fix to eGARCH model in the presence of variance.targeting.
 	* Fix to ugarchspec when external.regressors in variance equation > 1.
 	* Vignette clarifications.
-	* Added (experimental) archex argument in mean.model (suggestion of 
-	Pooya Nazeran)
+	* Added (experimental) archex argument in mean.model [user request].
 	* Added vcov and convergence extractor methods to uGARCHfit object.
 
 2011-10-17  Alexios Ghalanos <alexios@4dscape.com>
@@ -72,8 +122,9 @@
 	test based on censored normal for testing fit of the tail using the 
 	probability integral transform (PIT).
 	* Added an example to the DACtest function (in documentation).
-	* Fixed a bug in rolling forecast when calling ghyp functions with variable length lambda
-	(changes to qdensity and scaledist to handle vector inputs of lambda).
+	* Fixed a bug in rolling forecast when calling ghyp functions with variable 
+	length lambda (changes to qdensity and scaledist to handle vector inputs of 
+	lambda).
 	
 2011-09-28  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-3.
@@ -87,26 +138,29 @@
 	* DESCRIPTION (Version): New version is 1.0-2.
 	* More minor changes to some show methods and ugarchbench.
 	* Changes to optimization limits for external regressors.
-	* Bug fix in rolling forecast with arfima (reported by John Kerpel 20-09-2011)
+	* Bug fix in rolling forecast with arfima [thanks to John Kerpel].
 
 2011-09-05  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-1.
 	* Some minor changes to reduce warnings on CRAN check.
 	* packageStartupMessage used for .onLoad
-	* Export of GARCHfilter, uGARCHfilter, GARCHroll and uGARCHroll classes (forgot them
-	on original release!).
-	* Optional use of multicore will still generate warnings (since not available
-	for Windows.
+	* Export of GARCHfilter, uGARCHfilter, GARCHroll and uGARCHroll classes 
+	(forgot them on original release!).
+	* Optional use of multicore will still generate warnings (since not 
+	available for Windows).
 	* Vignette pdf is pre-built (Rnw simply links to the pdf).
 		
 2011-08-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0.
-	* rugarch represents an almost complete re-write of the univariate GARCH models of the
-	rgarch package which is now being split into seperate univariate (rugarch) and multivariate (rmgarch) 
-	packages for easier maintenance.
+	* rugarch represents an almost complete re-write of the univariate GARCH 
+	models of the rgarch package which is now being split into seperate 
+	univariate (rugarch) and multivariate (rmgarch) packages for easier 
+	maintenance.
 	* Completed Vignette.
-	* Numerous corrections, elimination of redundant code, and some new functionality has been added.
+	* Numerous corrections, elimination of redundant code, and some new 
+	functionality has been added.
 	* ARFIMA simulation corrections and multiple checks.
-	* rugarch.tests folder now contains an almost comprehensive set of examples and tests which can be
-	run via a wrapper function found in the runtests.R file.
+	* rugarch.tests folder now contains an almost comprehensive set of examples 
+	and tests which can be run via a wrapper function found in the runtests.R 
+	file.
 	* First upload to CRAN.

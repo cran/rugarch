@@ -16,8 +16,7 @@ ugarchdistribution(fitORspec, n.sim = 2000, n.start = 1,
 m.sim = 100,  recursive = FALSE, recursive.length = 6000, recursive.window = 1000,
 presigma = NA, prereturns = NA, preresiduals = NA, rseed = NA,
 custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, vexsimdata = NULL, 
-fit.control = list(), solver = "solnp", solver.control = list(), parallel = FALSE, 
-parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+fit.control = list(), solver = "solnp", solver.control = list(), cluster = NULL, ...)
 }
 \arguments{
 \item{fitORspec}{
@@ -63,12 +62,11 @@ Control arguments list passed to optimizer.}
 \item{fit.control}{
 Control arguments passed to the fitting routine (as in the \code{ugarchfit}
 method).}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and 
-\sQuote{snowfall} for all O/S), and the number of cores to make use of.}
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation
+of the refits (remember to stop the cluster on completion).
+}
 \item{...}{ . }
 }
 \value{

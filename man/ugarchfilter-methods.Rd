@@ -9,7 +9,7 @@
 Method for filtering a variety of univariate GARCH models.
 }
 \usage{
-ugarchfilter(spec, data, out.sample = 0, n.old=NULL, ...)
+ugarchfilter(spec, data, out.sample = 0, n.old=NULL, rec.init = 'all', ...)
 }
 \arguments{
 \item{data}{
@@ -25,6 +25,8 @@ out of sample forecasting (as in \code{\link{ugarchfit}} function).}
 \item{n.old}{
 For comparison with uGARCHfit models using the out.sample argument, this is the 
 length of the original dataset (see details).}
+\item{rec.init}{ The recursion initialization method (see \code{\link{ugarchfit}}
+for explanation).}
 \item{...}{ . }
 }
 \value{

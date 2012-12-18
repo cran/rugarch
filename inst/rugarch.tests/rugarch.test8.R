@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -33,7 +32,7 @@ rugarch.seeds = function(n, test)
 }
 # non recursive, simple test
 
-rugarch.test8a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test8a = function(cluster=NULL)
 {
 	#cat("\nRuGARCH-->test8-1: Parameter Distribution Test - Non recursive (fGARCH/NAGARCH)\n")
 	tic = Sys.time()
@@ -45,20 +44,19 @@ rugarch.test8a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 			distribution.model = "std")
 	fit = ugarchfit(spec, data = dji30ret[,"XOM"], fit.control = list(scale = 1))
 	dist = ugarchdistribution(fit, n.sim = 2000, n.start = 50, m.sim = 100, 
-			solver = "solnp", 
-			fit.control = list(scale = 1), rseed  = rseed,
-			parallel = parallel, parallel.control = parallel.control)
+			solver = "solnp", fit.control = list(scale = 1), rseed  = rseed, 
+			cluster = cluster)
 	#.dist1 <<- dist
 	
-	postscript("test8a1.eps", width = 12, height = 8)
+	png("test8a1.png", width = 1000, height = 800)
 	plot(dist, which = 1)
 	dev.off()
 	
-	postscript("test8a2.eps", width = 12, height = 8)
+	png("test8a2.png", width = 1000, height = 800)
 	plot(dist, which = 2)
 	dev.off()
 	
-	postscript("test8a3.eps", width = 12, height = 8)
+	png("test8a3.png", width = 1000, height = 800)
 	plot(dist, which = 3)
 	dev.off()
 	
@@ -96,7 +94,7 @@ rugarch.test8a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 # recursive test and asymptotic consistency
-rugarch.test8b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test8b = function(cluster=NULL)
 {
 	#cat("\nrgarch-->test8-2: Parameter Distribution Test - recursive (fGARCH/NAGARCH)\n")
 	tic = Sys.time()
@@ -108,24 +106,23 @@ rugarch.test8b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	fit = ugarchfit(spec, data = dji30ret[,"XOM"], solver.control = list(scale = 0))
 	dist = ugarchdistribution(fit, n.sim = 1000, n.start = 50, m.sim = 100, 
 			recursive = TRUE, recursive.length = 8000, recursive.window = 1000,
-			solver.control = list(tol = 1e-5, delta = 1e-6), 
-			fit.control = list(scale = 0),
-			parallel = parallel, parallel.control = parallel.control)
+			solver.control = list(tol = 1e-8, delta = 1e-7), fit.control = list(scale = 0), 
+			cluster = cluster)
 	# save(dist, file = "dist.rda")
 	
-	postscript("test8b1.eps", width = 12, height = 8)
+	png("test8b1.png", width = 1000, height = 800)
 	plot(dist, which = 1, window = 8)
 	dev.off()
 	
-	postscript("test8b2.eps", width = 12, height = 8)
+	png("test8b2.png", width = 1000, height = 800)
 	plot(dist, which = 2, window = 6)
 	dev.off()
 	
-	postscript("test8b3.eps", width = 12, height = 8)
+	png("test8b3.png", width = 1000, height = 800)
 	plot(dist, which = 3)
 	dev.off()
 	
-	postscript("test8b4.eps", width = 12, height = 8)
+	png("test8b4.png", width = 1000, height = 800)
 	plot(dist, which = 4)
 	dev.off()
 	
@@ -170,7 +167,7 @@ rugarch.test8b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 
 # ARFIMA - GARCH benchmark
-rugarch.test8c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test8c = function(cluster=NULL)
 {
 	tic = Sys.time()
 	# change this for testing other models and change the truecoef
@@ -234,7 +231,7 @@ rugarch.test8c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	colnames(chk2) = c("rugarch", "true")
 	
 	# ARFIMA(0,d,2)-sGARCH(1,1)
-	truecoef3 = list(mu = 0.005, ma1 = 0.5, ma2 = 0.1, arfima = -0.3, 
+	truecoef3 = list(mu = 0.005, ma1 = 0.5, ma2 = 0.1, arfima = 0.3, 
 			omega = 2.5e-6, alpha1 = 0.03, beta1 = 0.94)
 	spec3 = ugarchspec(
 			mean.model = list(armaOrder = c(0,2), include.mean = TRUE, arfima = TRUE), 

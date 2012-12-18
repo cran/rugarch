@@ -10,7 +10,7 @@ Method for fitting a variety of univariate GARCH models.
 }
 \usage{
 ugarchfit(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), ...)
+fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = 'all'), ...)
 }
 \arguments{
 \item{data}{
@@ -30,9 +30,14 @@ Control arguments list passed to optimizer.}
 Control arguments passed to the fitting routine. Stationarity explicitly imposes 
 the variance stationarity constraint during optimization. The fixed.se argument 
 controls whether standard errors should be calculated for those parameters which 
-were fixed (through the fixed.pars argument of the \code{\link{ugarchspec} 
+were fixed (through the fixed.pars argument of the \code{\link{ugarchspec}}
 function). The scale parameter controls whether the data should be scaled before 
-being submitted to the optimizer.}}
+being submitted to the optimizer. The rec.init option determines the type of 
+initialization for the variance recursion. Valid options are \sQuote{all} which 
+uses all the values for the unconditional variance calculation, an integer 
+greater than or equal to 1 denoting the number of data points to use for the 
+calculation, or a positive numeric value less than one which determines the 
+weighting for use in an exponential smoothing backcast.}
 \item{...}{ . }
 }
 \value{
@@ -51,20 +56,20 @@ measures. In the \code{\link{ugarchforecast}} routine the n.ahead may also be
 greater than the out.sample number resulting in a combination of out of sample 
 data points matched against actual data and some without, which the forecast 
 performance tests will ignore.\cr
-The \dQuote{gosolnp} solver allows for the initialization of multiple restarts 
-of the solnp solver with randomly generated parameters (see documentation in the 
-Rsolnp-package for details of the strategy used). The solver.control list then 
-accepts the following additional (to the solnp) arguments: \dQuote{n.restarts} 
-is the number of solver restarts required (defaults to 1), \dQuote{parallel} and 
-\dQuote{parallel.control} for use of the parallel functionality, \dQuote{rseed} 
-is the seed to initialize the random number generator, and \dQuote{n.sim} is the 
-number of simulated parameter vectors to generate per n.restarts. The 
-\dQuote{hybrid} strategy solver first tries the \dQuote{solnp} solver, in failing
-to converge then tries then \dQuote{nlminb}, the \dQuote{gosolnp} and finally
-the \dQuote{nloptr} solvers. Solver control parameters can be passed for all the
-solver in the solver.control list as one long list which will be filtered for each
-solver's specific options as and when that solver is called during the hybrid
-strategy optimization.
+The \dQuote{gosolnp} solver allows for the initialization of multiple restarts of the solnp 
+solver with randomly generated parameters (see documentation in the Rsolnp-package 
+for details of the strategy used). The solver.control list then accepts the following 
+additional (to the solnp) arguments: \dQuote{n.restarts} is the number of solver restarts 
+required (defaults to 1), \dQuote{parallel} (logical), \dQuote{pkg} (either snowfall or 
+multicore) and \dQuote{cores} (the number of cores or workers to use) for use of 
+parallel functionality, \dQuote{rseed} is the seed to initialize the random number 
+generator, and \dQuote{n.sim} is the number of simulated parameter vectors to 
+generate per n.restarts. The \dQuote{hybrid} strategy solver first tries the 
+\dQuote{solnp} solver, in failing to converge then tries then \dQuote{nlminb}, 
+the \dQuote{gosolnp} and finally the \dQuote{nloptr} solvers. Solver control parameters 
+can be passed for all the solvers in the solver.control list as one long list which will be 
+filtered for each solver's specific options as and when that solver is called during the 
+hybrid strategy optimization.
 }
 \note{
 The nloptr solver takes the following options in the solver.control list:\cr

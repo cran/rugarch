@@ -13,8 +13,7 @@ Method for multiple filtering of a variety of univariate GARCH and ARFIMA models
 }
 \usage{
 multifilter(multifitORspec, data = NULL, out.sample = 0, n.old = NULL, 
-parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), 
-cores = 2), ...)
+cluster = NULL, ...)
 }
 \arguments{
 \item{multifitORspec}{
@@ -34,12 +33,10 @@ out of sample forecasting (as in \code{\link{ugarchfit}} function).}
 \item{n.old}{
 For comparison with uGARCHfit or ARFIMAfit models using the out.sample argument,
 this is the length of the original dataset (see details).}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and \sQuote{snowfall} 
-for all O/S), and the number of cores to make use of.}
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation.
+}
 \item{...}{ . }
 }
 \value{

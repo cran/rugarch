@@ -28,8 +28,8 @@ maintenance and use.
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.0-12\cr
-Date: \tab 2012-09-30\cr
+Version: \tab 1.0-14\cr
+Date: \tab 2012-12-18\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 2.10.0), Rcpp (>= 0.8.5), RcppArmadillo, numDeriv, chron, Rsolnp\cr }
@@ -72,7 +72,7 @@ Hyperbolic Distribution family.\cr
 The type of data handled by the package is quite varied, accepting \dQuote{timeSeries}, 
 \dQuote{xts}, \dQuote{zoo}, \dQuote{zooreg}, \dQuote{data.frame} with dates as 
 rownames, \dQuote{matrix} and \dQuote{numeric} vector with dates as names. 
-For the \dQuote{numeric} vector and \dQuote{data.frame} with characterdates in 
+For the \dQuote{numeric} vector and \dQuote{data.frame} with character dates in 
 names or rownames, the package tries a variety of methods to try to recognize 
 the type and format of the date else will index the data numerically. The 
 package holds dates internally as class \code{\link{Date}}. This mostly impacts 
@@ -89,7 +89,11 @@ folder of the source distribution also contains various tests which can be
 sourced and run by the user, also exposing some finer details of the 
 functionality of the package. The user should really consult the examples 
 supplied in this folder which are quite numerous and instructive with some 
-comments.
+comments.\cr
+Since version 1.0-14, all parallel estimation is carried out through a user-supplied
+cluster object, created from the parallel package, meaning that the user is now in 
+control of managing the cluster lifecycle. This greatly simplifies the parallel estimation 
+process and adds a layer of flexibility to the type of resources supported. 
 }
 \section{How to cite this package}{
   Whenever using this package, please cite as\cr
@@ -98,7 +102,7 @@ comments.
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2012},
- note 	      = {R package version 1.0-12.},}}
+ note 	      = {R package version 1.0-14.},}}
 \emph{}
 }
 \section{License}{

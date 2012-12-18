@@ -14,9 +14,8 @@ models.
 }
 \usage{
 multiforecast(multifitORspec, data = NULL, n.ahead = 1, n.roll = 0, 
-out.sample = 0, 
-external.forecasts = list(mregfor = NULL, vregfor = NULL), parallel = FALSE, 
-parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+out.sample = 0, external.forecasts = list(mregfor = NULL, vregfor = NULL), 
+cluster = NULL, ...)
 }
 \arguments{
 \item{multifitORspec}{
@@ -41,12 +40,11 @@ be of same length as the data column dimension.}
 \item{external.forecasts}{
 A list with forecasts for the external regressors in the mean and/or variance 
 equations if specified.}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and \sQuote{snowfall} 
-for all O/S), and the number of cores to make use of.}
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation
+of the refits (remember to stop the cluster on completion).
+}
 \item{...}{ . }
 }
 \value{

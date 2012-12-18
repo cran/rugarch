@@ -1,6 +1,6 @@
 /*################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2009, 2010, 2011, 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@ void sgarchfilter(int *model, double *pars, int *idx, double *vexdata, double *e
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			h[i] = h[i] + pars[idx[14]+j]*vexdata[i];
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	for( j=0; j<model[7]; j++ )
@@ -49,7 +49,7 @@ void gjrgarchfilter(int *model, double *pars, int *idx, double *vexdata, double 
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			h[i] = h[i] + pars[idx[14]+j]*vexdata[i];
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	for( j=0; j<model[7]; j++ )
@@ -71,7 +71,7 @@ void aparchfilter(int *model, double *pars, int *idx, double *vexdata, double *r
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			h[i] = h[i] + pars[idx[14]+j]*vexdata[i];
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	for( j=0; j<model[7]; j++ )
@@ -94,7 +94,7 @@ void egarchfilter(int *model, double *pars, int *idx, double meanz, double *z, d
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			h[i] = h[i] + pars[idx[14]+j]*vexdata[i];
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	for( j=0; j<model[7]; j++ )
@@ -118,7 +118,7 @@ void fgarchfilter(int *model, double *pars, int *idx, double kdelta, double *z, 
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			h[i] = h[i] + pars[idx[14]+j]*vexdata[i];
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	for( j=0; j<model[7]; j++ )
@@ -142,7 +142,7 @@ void csgarchfilter(int *model, double *pars, int *idx, double *e, double *vexdat
 		for( j=0; j<model[14]; j++ )
 		{
 			ind = i + ( T * j );
-			q[i] = q[i] + pars[idx[14]+j]*vexdata[i];
+			q[i] = q[i] + pars[idx[14]+j]*vexdata[ind];
 		}
 	}
 	h[i] = h[i] + q[i];

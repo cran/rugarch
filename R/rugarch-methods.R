@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -49,6 +48,10 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 # be multiplied by conditional variance. If used must be integer and represents the
 # number of series from the end of the supplied external regressors.
 
+# modelinc[20] = archex
+# modelinc[21] = distribution no
+# modelinc[22] = custom variance targeting no
+
 .ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1), 
 				submodel = NULL, external.regressors = NULL, variance.targeting = FALSE), 
 		mean.model = list(armaOrder = c(1,1), include.mean = TRUE, archm = FALSE, 
@@ -56,13 +59,31 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 		distribution.model = "norm", start.pars = list(), fixed.pars = list())
 {
 	# some checks and preparation to be passed on to specific models by switch
-	modelinc = rep(0, 21)
+	modelinc = rep(0, 22)
+	# set the custom variance target to NA
+	modelinc[22] = NA
 	names(modelinc) = c("mu", "ar", "ma", "arfima", "archm", "mxreg", "omega", "alpha",
 			"beta", "gamma", "eta1", "eta2", "delta", "lambda", "vxreg", "skew", "shape",
-			"ghlambda", "aux", "aux", "aux")
-	
+			"ghlambda", "aux", "aux", "aux", "aux")
 	modeldesc = list()
 	modeldata = list()
+	
+	# check the option parameters specified and stop on error
+	mm = match(names(mean.model), c("armaOrder", "include.mean", "archm", "archpow", "arfima", "external.regressors", "archex"))
+	if(any(is.na(mm))){
+		idx = which(is.na(mm))
+		enx = NULL
+		for(i in 1:length(idx)) enx = c(enx, names(mean.model)[idx[i]])
+		warning(paste(c("unidentified option(s) in mean.model:\n", enx), sep="", collapse=" "), call. = FALSE, domain = NULL)
+	}
+	vm = match(names(variance.model), c("model", "garchOrder", "submodel", "external.regressors", "variance.targeting"))
+	if(any(is.na(vm))){
+		idx = which(is.na(vm))
+		enx = NULL
+		for(i in 1:length(idx)) enx = c(enx, names(variance.model)[idx[i]])
+		warning(paste(c("unidentified option(s) in variance.model:\n", enx), sep="", collapse=" "), call. = FALSE, domain = NULL)
+	}
+
 	# distribution model
 	if(is.null(distribution.model)) modeldesc$distribution = "norm"
 	valid.distribution = c("norm", "snorm", "std", "sstd","ged", "sged", "nig", "ghyp", "jsu", "ghst")
@@ -150,14 +171,23 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	}
 	if( modeldesc$vmodel == "csGARCH" ){
 		modelinc[12] = modelinc[11] = 1
-		vmodel$variance.targeting = FALSE
+		variance.model$variance.targeting = vmodel$variance.targeting = FALSE
 	}
 	if( modeldesc$vmodel == "iGARCH" && modelinc[9] == 0 ) 	stop("\nugarchspec-->error: the iGARCH model requires the GARCH beta parameter.\n", call. = FALSE)
 	
 	modeldata$vexdata = variance.model$external.regressors
 	if( !is.null(variance.model$external.regressors) ) modelinc[15] = dim( variance.model$external.regressors )[2]
 	
-	if(is.null(variance.model$variance.targeting)) modelinc[7] = 1 else modelinc[7] = as.integer( 1 - as.logical(variance.model$variance.targeting) )
+	if(is.null(variance.model$variance.targeting)){
+		modelinc[7] = 1
+	} else{
+		if(is.logical(variance.model$variance.targeting)){
+			modelinc[7] = as.integer( 1 - variance.model$variance.targeting )
+		} else{
+			modelinc[7] = 0
+			modelinc[22] = as.numeric(variance.model$variance.targeting)
+		}
+	}
 	
 	# mean model:
 	if(is.null(mean.model$armaOrder)){
@@ -304,15 +334,15 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	pnames = c(pnames, "mu")
 	nx = 1
 	pn = 1
-	pidx[2,1] = 2	
+	pidx[2,1] = 2
 	if(pos.matrix[2,3] == 1){
 		pn = length( seq(pos.matrix[2,1], pos.matrix[2,2], by = 1) )
 		for(i in 1:pn){
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("ar", i, sep="")
-			# TODO: FIX "ar" now might conflict with "arfima" when using substr
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -329,7 +359,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("ma", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -368,7 +399,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("mxreg", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -396,7 +428,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("alpha", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -413,7 +446,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("beta", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 		#-------------------------------------------
@@ -441,7 +475,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("gamma", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -459,7 +494,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("eta1", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -477,7 +513,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("eta2", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -541,7 +578,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 			pars[(nx+i), 1] = 0
 			pars[(nx+i), 3] = 1
 			nnx = paste("vxreg", i, sep="")
-			if(any(substr(fixed.names, 1, nchar(nnx))==nnx)) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
+			sp = na.omit(match(fixed.names, nnx))
+			if(length(sp)>0) pars[(nx+i), 2] = 1 else pars[(nx+i), 4] = 1
 			pnames = c(pnames, nnx)
 		}
 	} else{
@@ -593,7 +631,8 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	
 	zf = match(fixed.names, rownames(pars))
 	if( length(zf)>0 ) pars[zf, 1] = unlist(fixed.pars)
-		
+	pars[,"LB"] = NA
+	pars[,"UB"] = NA
 	model = list(modelinc = modelinc, modeldesc = modeldesc, modeldata = modeldata, pars = pars, 
 			start.pars = start.pars, fixed.pars = fixed.pars, maxOrder = maxOrder, 
 			pos.matrix = pos.matrix, fmodel = fmodel, pidx = pidx)
@@ -672,10 +711,16 @@ setGeneric("setfixed<-", function(object, value){standardGeneric("setfixed<-")})
 	}
 	fixed.pars = pars[inc]
 	names(fixed.pars) = tolower(names(pars[inc]))
+	# check for variance.targeting
+	if(!is.na(model$modelinc[22])){
+		vt = model$modelinc[22]
+	} else{
+		vt = as.logical(1-model$modelinc[7])
+	}
 	# set parameter values
 	tmp = ugarchspec(variance.model = list(model = model$modeldesc$vmodel, garchOrder = c(model$modelinc[8], model$modelinc[9]), 
 					submodel = model$modeldesc$vsubmodel, external.regressors = model$modeldata$vexdata,
-					variance.targeting = ifelse(model$modelinc[7]==0, TRUE, FALSE)), 
+					variance.targeting = vt), 
 			mean.model = list(armaOrder = c(model$modelinc[2], model$modelinc[3]), 
 					include.mean = model$modelinc[1], 
 					archm = ifelse(model$modelinc[5]>0,TRUE,FALSE), archpow = model$modelinc[5], 
@@ -708,10 +753,17 @@ setGeneric("setstart<-", function(object, value){standardGeneric("setstart<-")})
 	}
 	start.pars = pars[inc]
 	names(start.pars) = tolower(names(pars[inc]))
+	# check for variance.targeting
+	if(!is.na(model$modelinc[22])){
+		vt = model$modelinc[22]
+	} else{
+		vt = as.logical(1-model$modelinc[7])
+	}
 	# set parameter values
+	
 	tmp = ugarchspec(variance.model = list(model = model$modeldesc$vmodel, garchOrder = c(model$modelinc[8], model$modelinc[9]), 
 					submodel = model$modeldesc$vsubmodel, external.regressors = model$modeldata$vexdata,
-					variance.targeting = ifelse(model$modelinc[7]==0, TRUE, FALSE)), 
+					variance.targeting = vt), 
 			mean.model = list(armaOrder = c(model$modelinc[2], model$modelinc[3]), 
 					include.mean = model$modelinc[1], 
 					archm = ifelse(model$modelinc[5]>0,TRUE,FALSE), archpow = model$modelinc[5], 
@@ -724,6 +776,7 @@ setGeneric("setstart<-", function(object, value){standardGeneric("setstart<-")})
 
 setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vector"), definition = .setstart)
 
+
 .checkallfixed = function( spec ){
 	# check that a given spec with fixed parameters
 	model = spec@model
@@ -733,12 +786,37 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 	return( estpars )
 	
 }
+
+setGeneric("setbounds<-", function(object, value){standardGeneric("setbounds<-")})
+
+# Set the lower and upper bounds
+# value is a list with names parameters taking 2 values (lower and upper)
+# e.g. value  = list(alpha1 = c(0, 0.1), beta1 = c(0.9, 0.99))
+.setbounds = function(object, value){
+	model = object@model
+	ipars = model$pars
+	parnames = tolower(names(value))
+	# included parameters in model
+	modelnames = rownames(ipars[which(ipars[,4] == 1), ])
+	sp = na.omit(match(parnames, modelnames))
+	if(length(sp)>0){
+		for(i in 1:length(sp)){
+			#if(length(value[[modelnames[sp[i]]]])!=2)
+			ipars[modelnames[sp[i]], 5] = as.numeric(value[[modelnames[sp[i]]]][1])
+			ipars[modelnames[sp[i]], 6] = as.numeric(value[[modelnames[sp[i]]]][2])
+		}
+	}
+	object@model$pars = ipars
+	return(object)
+}
+setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vector"), definition = .setbounds)
+
 #----------------------------------------------------------------------------------
 # univariate model dispatch methods
 #----------------------------------------------------------------------------------
 
 .ugarchfit = function(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), ...)
+		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = 'all'), ...)
 {
 	return( switch(spec@model$modeldesc$vmodel,
 					sGARCH = .sgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
@@ -757,16 +835,16 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 							solver.control = solver.control, fit.control = fit.control, ...)) )
 }
 
-.ugarchfilter = function(spec, data, out.sample = 0, n.old = NULL, ...)
+.ugarchfilter = function(spec, data, out.sample = 0, n.old = NULL, rec.init = 'all', ...)
 {
 	return( switch(spec@model$modeldesc$vmodel,
-					sGARCH = .sgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					iGARCH = .igarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					eGARCH = .egarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					gjrGARCH = .gjrgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					apARCH = .aparchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					fGARCH = .fgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...),
-					csGARCH = .csgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, ...)) )
+					sGARCH = .sgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					iGARCH = .igarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					eGARCH = .egarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					gjrGARCH = .gjrgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					apARCH = .aparchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					fGARCH = .fgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					csGARCH = .csgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...)) )
 }
 
 .ugarchforecast1 = function(fitORspec, data = NULL, n.ahead = 10, n.roll = 0, out.sample = 0, 
@@ -882,7 +960,7 @@ setReplaceMethod(f="setstart", signature= c(object = "uGARCHspec", value = "vect
 #----------------------------------------------------------------------------------
 # univariate filter method
 #----------------------------------------------------------------------------------
-ugarchfilter = function(spec, data, out.sample = 0, n.old = NULL, ...)
+ugarchfilter = function(spec, data, out.sample = 0, n.old = NULL, rec.init = 'all', ...)
 {
 	UseMethod("ugarchfilter")
 }
@@ -892,7 +970,7 @@ setMethod("ugarchfilter", signature(spec = "uGARCHspec"), .ugarchfilter)
 # univariate fit method
 #----------------------------------------------------------------------------------
 ugarchfit = function(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), ...)
+		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = 'all'), ...)
 {
 	UseMethod("ugarchfit")
 }
@@ -946,16 +1024,26 @@ ugarchpath = function(spec, n.sim = 1000, n.start = 0, m.sim = 1,
 
 setMethod("ugarchpath", signature(spec = "uGARCHspec"), .ugarchpath)
 #----------------------------------------------------------------------------------
+# resume method
+#----------------------------------------------------------------------------------
+resume = function(object, ...)
+{
+	UseMethod("resume")
+}
+
+setMethod("resume", signature(object = "uGARCHroll"),  definition = .resumeroll1)
+
+#----------------------------------------------------------------------------------
 # univariate garch roll
 #----------------------------------------------------------------------------------
 # methods to recursively predict/filter/compare with refitting at every N points.
-ugarchroll = function(spec,  data, n.ahead = 1, forecast.length = 500, 
-		refit.every = 25, refit.window = c("recursive", "moving"), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), 
-		solver = "solnp", fit.control = list(), solver.control = list() ,
-		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), ...)
+ugarchroll = function(spec, data, n.ahead = 1, forecast.length = 500, 
+		n.start = NULL, refit.every = 25, refit.window = c("recursive", "moving"), 
+		window.size = NULL, solver = "hybrid", fit.control = list(), solver.control = list(),
+		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), cluster = NULL,
+		keep.coef = TRUE, ...)
 {
-	setMethod("ugarchroll")
+	UseMethod("ugarchroll")
 }
 setMethod("ugarchroll", signature(spec = "uGARCHspec"),  definition = .rollfdensity)
 #----------------------------------------------------------------------------------
@@ -966,9 +1054,9 @@ ugarchdistribution = function(fitORspec, n.sim = 2000, n.start = 1,
 		presigma = NA, prereturns = NA, preresiduals = NA, rseed = NA, 
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, 
 		vexsimdata = NULL, fit.control = list(), solver = "solnp", 
-		solver.control = list(), parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		solver.control = list(), cluster = NULL, ...)
 {
-	setMethod("ugarchdistribution")
+	UseMethod("ugarchdistribution")
 }
 setMethod("ugarchdistribution", signature(fitORspec = "uGARCHfit"), .ugarchdistribution)
 setMethod("ugarchdistribution", signature(fitORspec = "uGARCHspec"), .ugarchdistribution)
@@ -977,13 +1065,15 @@ setMethod("ugarchdistribution", signature(fitORspec = "uGARCHspec"), .ugarchdist
 #----------------------------------------------------------------------------------
 # univariate garch bootstrap based forecast distribution
 #----------------------------------------------------------------------------------
-ugarchboot = function(fitORspec, data = NULL, method = c("Partial", "Full"), n.ahead = 10, 
-		n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
+ugarchboot = function(fitORspec, data = NULL, method = c("Partial", "Full"), 
+		sampling = c("raw", "kernel", "spd"), 
+		spd.options = list(upper = 0.9, lower = 0.1, type = "pwm", kernel = "normal"),
+		n.ahead = 10, n.bootfit = 100, n.bootpred = 500, out.sample = 0, rseed = NA, solver = "solnp", 
 		solver.control = list(), fit.control = list(), external.forecasts =  list(mregfor = NULL, 
-				vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, 
-		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+				vregfor = NULL), mexsimdata = NULL, vexsimdata = NULL, cluster = NULL,
+		verbose = FALSE)
 {
-	setMethod("ugarchboot")
+	UseMethod("ugarchboot")
 }
 
 setMethod("ugarchboot", signature(fitORspec = "uGARCHfit"), .ugarchbootfit)
@@ -1074,14 +1164,7 @@ setMethod("show",
 				}
 				cat("\nLogLikelihood :", object@fit$LLH, "\n")
 				stdresid = object@fit$residuals/object@fit$sigma
-				itest = .information.test(object@fit$LLH, nObs = object@model$modeldata$T, nPars = length(object@fit$coef))
-				itestm = matrix(0, ncol = 1, nrow = 4)
-				itestm[1,1] = itest$AIC
-				itestm[2,1] = itest$BIC
-				itestm[3,1] = itest$SIC
-				itestm[4,1] = itest$HQIC
-				colnames(itestm) = ""
-				rownames(itestm) = c("Akaike", "Bayes", "Shibata", "Hannan-Quinn")
+				itestm = infocriteria(object)
 				cat("\nInformation Criteria")
 				cat(paste("\n------------------------------------\n",sep=""))
 				print(itestm,digits=5)
@@ -1089,12 +1172,14 @@ setMethod("show",
 				cat(paste("\n------------------------------------\n",sep=""))
 				tmp1 = .box.test(stdresid, p = 1, df = sum(modelinc[2:3]))
 				print(tmp1, digits = 4)
+				cat(paste("d.o.f=", sum(modelinc[2:3]), sep=""))
 				cat("\nH0 : No serial correlation\n")
 				cat("\nQ-Statistics on Standardized Squared Residuals")
 				cat(paste("\n------------------------------------\n",sep=""))
-				tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[2:3]))
+				tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[8:9]))
 				print(tmp2, digits = 4)
-				cat("\nARCH LM Tests")
+				cat(paste("d.o.f=", sum(modelinc[8:9]), sep=""))
+				cat("\n\nARCH LM Tests")
 				cat(paste("\n------------------------------------\n",sep=""))
 				L2 = .archlmtest(stdresid, lags = 2)
 				L5 = .archlmtest(stdresid, lags = 5)
@@ -1107,16 +1192,28 @@ setMethod("show",
 				rownames(alm) = c("ARCH Lag[2]", "ARCH Lag[5]", "ARCH Lag[10]")
 				print(alm,digits = 4)
 				nyb = .nyblomTest(object)
-				colnames(nyb$IndividualStat)<-""
-				cat("\nNyblom stability test")
-				cat(paste("\n------------------------------------\n",sep=""))
-				cat("Joint Statistic: ",round(nyb$JointStat,4))
-				cat("\nIndividual Statistics:")
-				print(nyb$IndividualStat, digits = 4)
-				cat("\nAsymptotic Critical Values (10% 5% 1%)")
-				cat("\nJoint Statistic:     \t", round(nyb$JointCritical, 3))
-				cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
-				cat("\n\n")
+				if(is.character(nyb$JointCritical)){
+					colnames(nyb$IndividualStat)<-""
+					cat("\nNyblom stability test")
+					cat(paste("\n------------------------------------\n",sep=""))
+					cat("Joint Statistic: ", "no.parameters>20 (not available)")
+					cat("\nIndividual Statistics:")
+					print(nyb$IndividualStat, digits = 4)
+					cat("\nAsymptotic Critical Values (10% 5% 1%)")
+					cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
+					cat("\n\n")
+				} else{
+					colnames(nyb$IndividualStat)<-""
+					cat("\nNyblom stability test")
+					cat(paste("\n------------------------------------\n",sep=""))
+					cat("Joint Statistic: ", round(nyb$JointStat,4))
+					cat("\nIndividual Statistics:")
+					print(nyb$IndividualStat, digits = 4)
+					cat("\nAsymptotic Critical Values (10% 5% 1%)")
+					cat("\nJoint Statistic:     \t", round(nyb$JointCritical, 3))
+					cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
+					cat("\n\n")
+				}
 				cat("Sign Bias Test")
 				cat(paste("\n------------------------------------\n",sep=""))
 				sgtest = signbias(object)
@@ -1134,10 +1231,7 @@ setMethod("show",
 				
 			}
 			invisible(object)
-		})
-
-		
-		
+		})	
 # filter show
 setMethod("show",
 		signature(object = "uGARCHfilter"),
@@ -1161,14 +1255,7 @@ setMethod("show",
 			print(matrix(coef(object), ncol=1, dimnames = list(names(coef(object)), "")), digits = 5)
 			cat("\nLogLikelihood :", object@filter$LLH, "\n")
 			stdresid = object@filter$residuals/object@filter$sigma
-			itest = .information.test(object@filter$LLH, nObs = object@model$modeldata$T, nPars = length(coef(object)))
-			itestm = matrix(0, ncol = 1, nrow = 4)
-			itestm[1,1] = itest$AIC
-			itestm[2,1] = itest$BIC
-			itestm[3,1] = itest$SIC
-			itestm[4,1] = itest$HQIC
-			colnames(itestm) = ""
-			rownames(itestm) = c("Akaike", "Bayes", "Shibata", "Hannan-Quinn")
+			itestm = infocriteria(object)
 			cat("\nInformation Criteria")
 			cat(paste("\n---------------------------------------\n",sep=""))
 			print(itestm,digits=5)
@@ -1176,12 +1263,14 @@ setMethod("show",
 			cat(paste("\n---------------------------------------\n",sep=""))
 			tmp1 = .box.test(stdresid, p = 1, df = sum(modelinc[2:3]))
 			print(tmp1, digits = 4)
+			cat(paste("d.o.f=", sum(modelinc[2:3]), sep=""))
 			cat("\nH0 : No serial correlation\n")
 			cat("\nQ-Statistics on Standardized Squared Residuals")
 			cat(paste("\n---------------------------------------\n",sep=""))
-			tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[2:3]))
+			tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[8:9]))
 			print(tmp2, digits = 4)
-			cat("\nARCH LM Tests")
+			cat(paste("d.o.f=", sum(modelinc[8:9]), sep=""))
+			cat("\n\nARCH LM Tests")
 			cat(paste("\n---------------------------------------\n",sep=""))
 			L2 = .archlmtest(stdresid, lags = 2)
 			L5 = .archlmtest(stdresid, lags = 5)
@@ -1374,6 +1463,7 @@ setMethod("show",
 			}
 			cat(paste("\nn.ahead : ", object@model$n.ahead, sep = ""))
 			cat(paste("\nBootstrap method: ",object@model$type))
+			cat("\nDate (T):", as.character(object@model$dateT))
 			forc = object@forc@forecast$forecasts[[1]]
 			zs = rbind(as.data.frame(object, which = "sigma", type = "summary"),  forc[,"sigma"])
 			zr = rbind(as.data.frame(object, which = "series", type = "summary"), forc[,"series"])
@@ -1391,41 +1481,33 @@ setMethod("show",
 setMethod("show",
 		signature(object = "uGARCHroll"),
 		function(object){
-			cat(paste("\n*-------------------------------------*", sep = ""))
-			cat(paste("\n*              GARCH Roll             *", sep = ""))
-			cat(paste("\n*-------------------------------------*", sep = ""))
-			N = object@roll$n.refit
-			model = object@model
-			modelinc = model$modelinc
-			vmodel = object@model$modeldesc$vmodel
-			cat("\nNo.Refits\t\t:", N)
-			cat("\nRefit Horizon\t:", object@roll$refit.every)
-			cat("\nForecast Horizon:", object@roll$n.ahead)
-			cat(paste("\nGARCH Model\t\t: ", vmodel, "(",modelinc[8],",",modelinc[9],")\n", sep = ""))
-			if(vmodel == "fGARCH"){
-				cat(paste("\nfGARCH SubModel\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
-			}
-			cat("Distribution\t:", model$modeldesc$distribution,"\n")
-			mp = sum(model$modelinc[1:18])
-			# case of variance targeting
-			if(model$modelinc[7]==0) mp = mp+1
-			if(N>4){
-				cmat = matrix(NA, ncol = 4, nrow = mp)
-				colnames(cmat) = c(paste("refit-", 1:2, sep = ""), paste("refit", (N-1):N, sep = ""))
-				rownames(cmat) = rownames(object@roll$coefmat[[1]])
-				cmat[,1:2] = cbind(object@roll$coefmat[[1]][,1], object@roll$coefmat[[2]][,1])
-				cmat[,3:4] = cbind(object@roll$coefmat[[(N-1)]][,1], object@roll$coefmat[[N]][,1])
+			if(!is.null(object@model$noncidx)){
+				cat("\nObject containts non-converged estimation windows. Use resume method to re-estimate.\n")
+				invisible(object)
 			} else{
-				cmat = matrix(NA, ncol = N, nrow = mp)
-				colnames(cmat) = paste("refit-", 1:N, sep = "")
-				rownames(cmat) = rownames(object@roll$coefmat[[1]])
-				for(i in 1:N) cmat[,i] = object@roll$coefmat[[i]][,1]
+				cat(paste("\n*-------------------------------------*", sep = ""))
+				cat(paste("\n*              GARCH Roll             *", sep = ""))
+				cat(paste("\n*-------------------------------------*", sep = ""))
+				N = object@model$n.refits
+				model = object@model$spec@model
+				modelinc = model$modelinc
+				vmodel = model$modeldesc$vmodel
+				cat("\nNo.Refits\t\t:", N)
+				cat("\nRefit Horizon\t:", object@model$refit.every)
+				cat("\nNo.Forecasts\t:", NROW(object@forecast$density))
+				cat(paste("\nGARCH Model\t\t: ", vmodel, "(",modelinc[8],",",modelinc[9],")\n", sep = ""))
+				if(vmodel == "fGARCH"){
+					cat(paste("\nfGARCH SubModel\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
+				}
+				cat("Distribution\t:", model$modeldesc$distribution,"\n")
+				cat("\nForecast Density:\n")
+				print(round(head(object@forecast$density),4))
+				cat("\n..........................\n")
+				print(round(tail(object@forecast$density),4))
+				cat("\nElapsed:", format(object@model$elapsed))
+				cat("\n")				
+				invisible(object)
 			}
-
-			cat("\nCoefficients (first 2 , last 2):\n")
-			print(round(cmat,5), digit = 5)
-			cat("\n")
-			invisible(object)
 		})
 #-------------------------------------------------------------------------
 # multi-methods
@@ -1550,6 +1632,7 @@ report = function(object, ...)
 }
 
 setMethod("report", signature(object = "uGARCHroll"), .ugarchrollreport)
+
 #----------------------------------------------------------------------------------
 # univariate fit extractors
 #----------------------------------------------------------------------------------
@@ -1589,6 +1672,14 @@ setMethod("coef", signature(object = "uGARCHmultifit"), .ugarchmultifitcoef)
 
 setMethod("coef", signature(object = "uGARCHmultifilter"), .ugarchmultifiltercoef)
 
+
+.ugarchrollcoef = function(object)
+{
+	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	return(object@model$coef) 
+}
+
+setMethod("coef", signature(object = "uGARCHroll"), .ugarchrollcoef)
 #----------------------------------------------------------------------------------
 # as.data.frame method for fitted object
 .ugarchfitdf = function(x, row.names = NULL, optional = FALSE, ...)
@@ -1887,7 +1978,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		if(type == "q"){
 			if(all(is.numeric(qtile)) && (all(qtile<1.0) && all(qtile >0.0))){
 				sigma = x@fsigma
-				ans = apply(sigma, 2, FUN = function(x) quantile(x, qtile))
+				ans = apply(sigma, 2, FUN = function(x) quantile(x, qtile, na.rm=TRUE))
 				ans = as.data.frame(ans)
 				colnames(ans) = paste("t+", 1:n.ahead, sep="")
 				rownames(ans) = paste("q", qtile, sep = "")
@@ -1897,7 +1988,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		} 
 		if(type == "summary"){
 			sigma = x@fsigma
-			ans = apply(sigma, 2, FUN = function(x) c(min(x), quantile(x, 0.25), mean(x), quantile(x, 0.75), max(x) ))
+			ans = apply(sigma, 2, FUN = function(x) c(min(x, na.rm=TRUE), quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
 			ans = as.data.frame(ans)
 			colnames(ans) = paste("t+", 1:n.ahead, sep="")
 			rownames(ans) = c("min", "q0.25", "mean", "q0.75", "max")
@@ -1913,7 +2004,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		if(type == "q"){
 			if(all(is.numeric(qtile)) && (all(qtile<1.0) && all(qtile >0.0))){
 						series = x@fseries
-						ans = apply(series, 2, FUN = function(x) quantile(x, qtile))
+						ans = apply(series, 2, FUN = function(x) quantile(x, qtile, na.rm=TRUE))
 						ans = as.data.frame(ans)
 						colnames(ans) = paste("t+", 1:n.ahead, sep="")
 						rownames(ans) = paste("q", qtile, sep = "")
@@ -1923,7 +2014,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		}
 		if(type == "summary"){
 			series = x@fseries
-			ans = apply(series, 2, FUN = function(x) c(min(x), quantile(x, 0.25), mean(x), quantile(x, 0.75), max(x) ))
+			ans = apply(series, 2, FUN = function(x) c(min(x, na.rm=TRUE), quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
 			ans = as.data.frame(ans)
 			colnames(ans) = paste("t+", 1:n.ahead, sep="")
 			rownames(ans) = c("min", "q.25", "mean", "q.75", "max")
@@ -1937,82 +2028,13 @@ setMethod("as.data.frame", signature(x = "uGARCHboot"), .ugarchbootdf)
 #----------------------------------------------------------------------------------
 # as.data.frame method for roll object
 # valid which = density, fpm, coefs
-.ugarchrolldf = function(x, row.names = NULL, optional = FALSE, which = "density", n.ahead = 1, refit = 1, aligned = FALSE,
-		prepad = FALSE)
+.ugarchrolldf = function(x, row.names = NULL, optional = FALSE, which = "density")
 {
-	n = x@roll$n.ahead
-	if(n.ahead>1) warning("\nOnly n.ahead=1 is supported")
-	n.ahead = 1
-	if(n.ahead>n)
-		stop("n.ahead chosen exceeds roll object specification", call. = FALSE)
-	if(which == "sigma"){
-		if(refit == "all"){
-			nr = x@roll$n.refit
-			fn = NULL
-			dt = NULL
-			for(i in 1:nr){
-				fn = c(fn, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) y[n.ahead, 1]))
-				dt = c(dt, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) rownames(y[n.ahead, ])))
-			}
-			ans = data.frame(sigma = fn)
-			rownames(ans) = dt
-		} else{
-			ans = as.data.frame(x@forecast[[refit]], which = "sigma", rollframe = "all", aligned = aligned, prepad = prepad)
-		}
-	}
-	if(which == "series"){
-		if(refit == "all"){
-			nr = x@roll$n.refit
-			fn = NULL
-			dt = NULL
-			for(i in 1:nr){
-				fn = c(fn, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) y[n.ahead, 2]))
-				dt = c(dt, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) rownames(y[n.ahead, ])))
-			}
-			ans = data.frame(series = fn)
-			rownames(ans) = dt
-		} else{
-			ans = as.data.frame(x@forecast[[refit]], which = "series", rollframe = "all", aligned = aligned, prepad = prepad)
-		}
-	}
-	if(which == "coefs"){
-		ans = as.data.frame(x@roll$coefs)
-		rownames(ans) = paste("refit-", 1:dim(ans)[1], sep = "")
-	}
-	if(which == "density"){
-		ans =  as.data.frame(x@roll$fdensity[[n.ahead]])
-		rownames(ans) = paste("roll-", 1:dim(ans)[1], sep = "")
-	}
-	if(which == "coefmat"){
-		ans = as.data.frame(x@roll$coefmat[[refit]])
-	}
-	if(which == "LLH"){
-		ans = as.data.frame(x@roll$LLH)
-		rownames(ans) = paste("refit-", 1:dim(ans)[1], sep = "")
-		colnames(ans) = "LLH"
-	}
-	if(which == "VaR"){
-		ans = as.data.frame(x@roll$VaR.out[[n.ahead]])
-	}
+	if(!is.null(x@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(which == "density") ans =  x@forecast$density else ans = x@forecast$VaR
 	return(ans)
 }
 setMethod("as.data.frame", signature(x = "uGARCHroll"), .ugarchrolldf)
-
-as.uGARCHforecast = function(object, ...)
-{
-	setMethod("as.uGARCHforecast")
-}
-
-.roll2forc = function(object, refit = 1)
-{
-	n = object@roll$n.refit
-	if(refit>n)
-		stop("refit chosen exceeds roll object specification", call. = FALSE)
-	object@forecast[[refit]]
-}
-
-setMethod("as.uGARCHforecast", signature(object = "uGARCHroll"), .roll2forc)
-
 #----------------------------------------------------------------------------------
 # residuals method
 .ugarchfitresids = function(object, standardize = FALSE)
@@ -2127,7 +2149,9 @@ infocriteria = function(object)
 {
 	# indicator object@fit$ipars[,4] denotes the estimated parameters
 	if(is(object, "uGARCHfilter")){
-		np = sum(object@filter$ipars[,2]) 
+		# np = sum(object@filter$ipars[,2])
+		# all parameters fixed
+		np = 0
 	} else{
 		np = sum(object@fit$ipars[,4])
 	}
@@ -3417,8 +3441,9 @@ multispec = function( speclist )
 setMethod("multispec", signature(speclist = "vector"),  definition = .multispecall)
 
 
-multifit = function(multispec, data, out.sample = 0, solver = "solnp", solver.control = list(), fit.control = list(stationarity = 1, 
-				fixed.se = 0, scale = 0), parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+multifit = function(multispec, data, out.sample = 0, solver = "solnp", 
+		solver.control = list(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), 
+		cluster = NULL, ...)
 {
 	UseMethod("multifit")
 }
@@ -3427,7 +3452,7 @@ setMethod("multifit", signature(multispec = "uGARCHmultispec"),  definition = .m
 
 
 multifilter = function(multifitORspec, data = NULL, out.sample = 0, n.old = NULL, 
-		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		cluster = NULL, ...)
 {
 	UseMethod("multifilter")
 }
@@ -3438,7 +3463,7 @@ setMethod("multifilter", signature(multifitORspec = "uGARCHmultispec"),  definit
 
 multiforecast = function(multifitORspec, data = NULL, n.ahead = 1, n.roll = 0, out.sample = 0, 
 		external.forecasts = list(mregfor = NULL, vregfor = NULL), 
-		parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		cluster = NULL, ...)
 {
 	UseMethod("multiforecast")
 }
@@ -3516,7 +3541,6 @@ fpm = function( object, summary = TRUE, ...)
 					ans[,1] = (tmp[,1] - actd)^2
 					ans[,2] = abs(tmp[,1] - actd)
 					ans[,3] = apply(cbind(tmp[,1], actd), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-					ans[3,i] = mean(ans[,3])
 				}
 				sol[[i]] = ans
 			}
@@ -3526,49 +3550,44 @@ fpm = function( object, summary = TRUE, ...)
 	return( ans )
 }
 
+# VaR loss function used by Gonzalez-Rivera, Lee, and Mishra (2004)
+# which can be used with the MCS test of Hansen, Lunde and Nason (2011) to compare
+# models
+.varloss = function(alpha, actual, VaR){
+	loss = (alpha - (1 + exp(2500*(actual*100 - VaR*100)))^-1 ) * ( actual*100 - VaR*100)
+	return(loss)
+}
+
 
 .fpm2 = function(object, summary = TRUE)
 {
+	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
 	if(summary){
-		n.ahead = object@roll$n.ahead
-		Data = object@model$modeldata$data
-		Dates = object@model$modeldata$dates
-		ans = matrix(NA, ncol = n.ahead, nrow = 4)
-		rownames(ans) = c("MSE", "MAE", "DAC", "N")
-		colnames(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
-		dtx = vector(mode = "character", length = n.ahead)
-		for(i in 1:n.ahead){
-			forecast = as.data.frame(object, which = "series", refit = "all", n.ahead = i)
-			dt = rownames(forecast)
-			actual = Data[match(dt, as.character(Dates))]
-			DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-			tmp = c(colMeans( (forecast - actual)^2 ), colMeans(abs(forecast - actual)), mean(DAC), length(forecast[,1]))
-			ans[, i] = tmp
-			dtx[i] = paste(dt[1], " - ", dt[length(dt)], sep = "")
-		}
-		ans = data.frame(ans)
-		attr(ans, "dates") = dtx
+		forecast = object@forecast$density[,1]
+		actual = object@forecast$density[,"Realized"]
+		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+		tmp = c(mean( (forecast - actual)^2 ), mean(abs(forecast - actual)), mean(DAC))
+		names(tmp) = c("MSE", "MAE", "DAC")
+		tmp = data.frame(Stats = tmp)
 	} else{
-		n.ahead = object@roll$n.ahead
-		Data = object@model$modeldata$data
-		Dates = object@model$modeldata$dates
-		ans = NULL
-		#rownames(ans) = c("MSE", "MAE", "DAC", "N")
-		#colnames(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
-		dtx = vector(mode = "character", length = n.ahead)
-		for(i in 1:n.ahead){
-			forecast = as.data.frame(object, which = "series", refit = "all", n.ahead = i)
-			dt = rownames(forecast)
-			actual = Data[match(dt, as.character(Dates))]
-			DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-			tmp = cbind( (forecast - actual)^2 , abs(forecast - actual), DAC )
-			ans[[i]] = tmp
-			rownames(ans[[i]]) = dt
-			colnames(ans[[i]]) = c("SE", "AE", "DAC")
+		forecast = object@forecast$density[,1]
+		actual = object@forecast$density[,"Realized"]
+		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+		if(object@model$calculate.VaR){
+			m = NCOL(object@forecast$VaR)-1
+			V = NULL
+			for(i in 1:m) V = cbind(V, .varloss(object@model$VaR.alpha[i], as.numeric(actual), as.numeric(object@forecast$VaR[,i])))
+			colnames(V) = paste("VaRLoss(",object@model$VaR.alpha,")",sep="")
+			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC, V)
+			colnames(tmp)[1:3] = c("SE", "AE", "HIT")
+			rownames(tmp) = as.character(time(object@forecast$density))
+		} else{
+			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC)
+			colnames(tmp) = c("SE", "AE", "HIT")
+			rownames(tmp) = as.character(time(object@forecast$density))
 		}
-		names(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
 	}
-	return( ans )
+	return( tmp )
 }
 setMethod("fpm", signature(object = "uGARCHforecast"),  definition = .fpm1)
 setMethod("fpm", signature(object = "uGARCHroll"),  definition = .fpm2)
@@ -3590,3 +3609,7 @@ setMethod("convergence", signature(object = "uGARCHfit"),  definition = .converg
 }
 
 setMethod("vcov", signature(object = "uGARCHfit"),  definition = .vcov)
+
+
+
+

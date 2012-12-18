@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -20,7 +19,7 @@
 # Fitting tests
 #################################################################################
 
-rugarch.test3a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test3a = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -183,7 +182,7 @@ rugarch.test3a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 # incremental building strategy using the coefficients from previous fits
 # as starting parameters into more complicated models)
 
-rugarch.test3b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test3b = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -311,7 +310,7 @@ rugarch.test3b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 # ---------------------------------------------------------------------------------
 # apARCH
 # ---------------------------------------------------------------------------------
-rugarch.test3c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test3c = function(cluster=NULL)
 {
 	tic = Sys.time()
 	
@@ -435,7 +434,7 @@ rugarch.test3c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test3d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test3d = function(cluster=NULL)
 {
 	tic = Sys.time()
 	

@@ -8,11 +8,9 @@ Select best fitting ARFIMA models based on information criteria.
 }
 \usage{
 autoarfima(data, ar.max = 2, ma.max = 2, criterion = c("AIC","BIC","SIC","HQIC"),
-		method = c("partial", "full"), arfima = FALSE, include.mean = NULL, 
-		distribution.model = "norm",
-		parallel = FALSE, parallel.control = list(pkg = "snowfall", cores = 2), 
-		external.regressors = NULL, solver = "solnp", solver.control=list(), 
-		fit.control=list(), return.all = FALSE)
+method = c("partial", "full"), arfima = FALSE, include.mean = NULL, 
+distribution.model = "norm", cluster = NULL, external.regressors = NULL, 
+solver = "solnp", solver.control=list(), fit.control=list(), return.all = FALSE)
 }
 \arguments{
 \item{data}{ A univariate data object. Can be a numeric vector, matrix, 
@@ -33,12 +31,10 @@ of the MA and AR orders.
 Can be TRUE, FALSE or NULL in which case it is tested.}
 \item{include.mean}{
 Can be TRUE, FALSE or NULL in which case it is tested.}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and \sQuote{snowfall} 
-for all O/S), and the number of cores to make use of.}
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation.
+}
 \item{external.regressors}{A matrix object containing the external regressors to 
  include in the mean equation with as many rows as will be included in the
  data (which is passed in the fit function).}

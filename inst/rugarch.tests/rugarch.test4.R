@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -21,7 +20,7 @@
 #################################################################################
 
 
-rugarch.test4a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test4a = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test4-1: Forecast Test (sGARCH)\n")
 	tic = Sys.time()
@@ -90,7 +89,7 @@ rugarch.test4a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test4b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test4b = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test4-2: Forecast Test (sGARCH)\n")
 	tic = Sys.time()
@@ -233,7 +232,7 @@ rugarch.test4b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 }
 
 
-rugarch.test4c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test4c = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test4-3: Forecast Test (gjrGARCH)\n")
 	tic = Sys.time()
@@ -393,7 +392,7 @@ rugarch.test4c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test4d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test4d = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test4-4: Forecast Performance Measures Test (sGARCH)\n")
 	tic = Sys.time()

@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -33,7 +32,7 @@ rugarch.seeds = function(n, test)
 	return(rseed)
 }
 
-rugarch.test5a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test5a = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test5-1: Simulation Test (sGARCH)\n")
 	tic = Sys.time()
@@ -123,7 +122,7 @@ rugarch.test5a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test5b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test5b = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test5-2: Simulation Test (eGARCH)\n")
 	tic = Sys.time()
@@ -220,7 +219,7 @@ rugarch.test5b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	return(toc)
 }
 
-rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("snowfall", "multicore"), cores = 2))
+rugarch.test5c = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test5-3: Simulation Test (sGARCH w/th ARFIMA)\n")
 	tic = Sys.time()
@@ -242,49 +241,17 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 	sim = ugarchsim(fit, n.sim = 5000, n.start = 100, m.sim = 100)
 	simdf = as.data.frame(sim, which="series")
 	setstart(spec) <- as.list(coef(fit))
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) 
-				parallel.control$pkg = "snowfall" 
-			else 
-				parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) 
-				stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) 
-				stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) 
-				parallel.control$cores = 2 
-			else 
-				parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist = multicore::mclapply(1:100, FUN = function(i) 
-						ugarchfit(spec = spec, data = simdf[,i]), 
-					mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel=TRUE, cpus = parallel.control$cores)
-			sfExport("spec", "simdf", local = TRUE)
-			fitlist = sfLapply(as.list(1:100), fun = function(i) 
-						rugarch::ugarchfit(spec = spec, data = simdf[,i]))
-			sfStop()
-		}
+	if( !is.null(cluster) ){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("spec", "simdf"), envir = environment())
+		fitlist = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					try(ugarchfit(spec = spec, data = simdf[,i]))
+				})
 	} else{
-		fitlist = lapply(simdf, FUN = function(x) ugarchfit(data = x, spec = spec))
+		fitlist = lapply(simdf, FUN = function(x) try(ugarchfit(data = x, spec = spec)))
 	}
 	
-	coefl = t(sapply(fitlist, FUN = function(x) 
-						if(is.null(coef(x))) rep(NA, 7) else coef(x)))
+	coefl = t(sapply(fitlist, FUN = function(x) if(is.null(coef(x))) rep(NA, 7) else coef(x)))
 	
 	options(width=150)
 	zz <- file("test5c1.txt", open="wt")
@@ -329,7 +296,8 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 			distribution.model="norm")
 	
 	fit2 = ugarchfit(data = sp500ret[,1,drop=FALSE], spec = spec2, 
-			solver = "solnp")
+			solver = "solnp", fit.control=list(scale=1))
+	
 	tc = coef(fit2)
 	sim2 = ugarchsim(fit2, n.sim = 5000, n.start = 100, m.sim = 100, 
 			rseed = rseed)
@@ -337,52 +305,20 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 	setstart(spec2)<-as.list(coef(fit2))
 	
 	
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) 
-				parallel.control$pkg = "snowfall" 
-			else 
-				parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) 
-				stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) 
-				stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) 
-				parallel.control$cores = 2 
-			else 
-				parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist2 = multicore::mclapply(1:100, FUN = function(i) 
-						ugarchfit(spec = spec2, data = simdf2[,i]), 
-					mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel=TRUE, cpus = parallel.control$cores)
-			sfExport("spec2", "simdf2", local = TRUE)
-			fitlist2 = sfLapply(as.list(1:100), fun = function(i) 
-						rugarch::ugarchfit(spec = spec2, data = simdf2[,i]))
-			sfStop()
-		}
+	if( !is.null(cluster) ){
+		# already evaluated, but in case it is not run as one file.
+		parallel::clusterEvalQ(cluster,require(rugarch))
+		parallel::clusterExport(cluster, c("spec2", "simdf2"), envir = environment())
+		fitlist2 = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					try(ugarchfit(spec = spec2, data = simdf2[,i], fit.control=list(scale=1)))
+				})
 	} else{
-		fitlist2 = lapply(simdf2, FUN = function(x) ugarchfit(data = x, spec = spec2))
+		fitlist2 = lapply(simdf2, FUN = function(x) try(ugarchfit(data = x, spec = spec2)))
 	}
 	
 	
-	# Add parallel
 	coefl2 = matrix(NA, ncol = 8, nrow = 100)
-	for(i in 1:100) if(fitlist2[[i]]@fit$convergence==0) 
-			coefl2[i,] = coef(fitlist2[[i]])
+	for(i in 1:100) if(fitlist2[[i]]@fit$convergence==0) coefl2[i,] = coef(fitlist2[[i]])
 	
 	options(width = 150)
 	zz <- file("test5c2.txt", open="wt")
@@ -430,7 +366,7 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 			distribution.model="norm")
 	
 	fit3 = ugarchfit(data = sp500ret[, 1, drop = FALSE], spec = spec3, 
-			solver="solnp")
+			solver="solnp", solver.control=list(tol=1e-10, trace=1))
 	sim3 = ugarchsim(fit3, n.sim = 5000, n.start = 100, m.sim = 100, 
 			rseed = rseed)
 	simdf3 = as.data.frame(sim3, which = "series")
@@ -438,46 +374,17 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 	tc = coef(fit3)
 	
 	# Add parallel
-	if( parallel ){
-		os = .Platform$OS.type
-		if(is.null(parallel.control$pkg)){
-			if( os == "windows" ) 
-				parallel.control$pkg = "snowfall" 
-			else 
-				parallel.control$pkg = "multicore"
-			if( is.null(parallel.control$cores) ) parallel.control$cores = 2
-		} else{
-			mtype = match(tolower(parallel.control$pkg[1]), c("multicore", "snowfall"))
-			if(is.na(mtype)) 
-				stop("\nParallel Package type not recognized in parallel.control\n")
-			parallel.control$pkg = tolower(parallel.control$pkg[1])
-			if( os == "windows" && parallel.control$pkg == "multicore" ) 
-				stop("\nmulticore not supported on windows O/S\n")
-			if( is.null(parallel.control$cores) ) 
-				parallel.control$cores = 2 
-			else 
-				parallel.control$cores = as.integer(parallel.control$cores[1])
-		}
-		if( parallel.control$pkg == "multicore" ){
-			if(!exists("mclapply")){
-				require('multicore')
-			}
-			fitlist3 = multicore::mclapply(1:100, FUN = function(i) 
-						ugarchfit(spec = spec3, data = simdf3[,i]), 
-					mc.cores = parallel.control$cores)
-		} else{
-			if(!exists("sfLapply")){
-				require('snowfall')
-			}
-			sfInit(parallel=TRUE, cpus = parallel.control$cores)
-			sfExport("spec3", "simdf3", local = TRUE)
-			fitlist3 = sfLapply(as.list(1:100), fun = function(i) 
-						rugarch::ugarchfit(spec = spec3, data = simdf3[,i]))
-			sfStop()
-		}
+	if( !is.null(cluster) ){
+		# already evaluated, but in case it is not run as one file.
+		parallel::clusterEvalQ(cluster,require(rugarch))
+		parallel::clusterExport(cluster, c("spec3", "simdf3"), envir = environment())
+		fitlist3 = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(spec = spec3, data = simdf3[,i])
+				})
 	} else{
 		fitlist3 = lapply(simdf3, FUN = function(x) ugarchfit(data = x, spec = spec3))
 	}
+
 	coefl3 = matrix(NA, ncol = 8, nrow = 100)
 	for(i in 1:100) if(fitlist3[[i]]@fit$convergence==0) 
 			coefl3[i,] = coef(fitlist3[[i]])
@@ -496,7 +403,7 @@ rugarch.test5c = function(parallel = FALSE, parallel.control = list(pkg = c("sno
 	par(mfrow = c(3,3))
 	plot(density(coefl3[-exc,1]), 
 			main = paste("ARFIMA: mu parameter\n true parameter=", 
-					round(uncmean(fit),5), sep=""))
+					round(uncmean(fit3),5), sep=""))
 	plot(density(coefl3[-exc,2]), 
 			main = paste("ARFIMA: ar1 parameter\n true parameter=", 
 					round(tc["ar1"],3), sep=""))

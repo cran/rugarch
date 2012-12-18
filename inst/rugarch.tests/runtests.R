@@ -1,6 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -14,10 +14,12 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
+
+# Not all test appear here yet.
 .testattr = function(test = 1, subtest = "a"){
 	
 	if(is.na(match(test, 1:9))) stop("\nInvalid test number (valid range is 1:9)")
-	alp = c("a", "b", "c", "d", "e", "f", "g", "h")
+	alp = c("title", "a", "b", "c", "d", "e", "f", "g", "h")
 	zt = match(subtest, alp)
 	if(is.na(zt)) stop("\nInvalid subtest number (valid range is a:h)")
 	
@@ -67,21 +69,20 @@
 	testdesc[[6]][8] = "fGARCH/AVGARCH"
 	
 	testdesc[[7]][1] = "Roll Tests"
-	testdesc[[7]][2] = "apARCH (n.ahead=1)"
-	testdesc[[7]][3] = "apARCH (n.ahead=5)"
+	testdesc[[7]][2] = "Roll Test (apARCH)"
+	testdesc[[7]][3] = "Roll and Resume Test"
 
 	testdesc[[8]][1] = "Parameter Distribution Tests"
 	testdesc[[8]][2] = "fGARCH/NAGARCH (Non recursive)"
 	testdesc[[8]][3] = "fGARCH/NAGARCH (recursive)"
 	testdesc[[8]][4] = "ARFIMA-GARCH Simulation/Fitting Checks"
 	
-	if(is.na(testdesc[[test]][zt+1])) stop(paste("\nInvalid subtest number (valid range is a:", alp[length(testdesc[[test]])-1], ")", sep="")) 
-	ans = paste(testdesc[[test]][1],": ", testdesc[[test]][zt+1], sep = "")
+	if(is.na(testdesc[[test]][zt])) stop(paste("\nInvalid subtest number (valid range is a:", alp[length(testdesc[[test]])], ")", sep=""))
+	ans = paste(testdesc[[test]][1],": ", testdesc[[test]][zt], sep = "")
 	return(ans)
 }
 
-rugarch.runtests = function(test = 1, subtest = "a", wdir = getwd(), parallel = FALSE, 
-		parallel.control = list(pkg  = c("snowfall", "multicore"), cores = 2))
+rugarch.runtests = function(test = 1, subtest = "a", wdir = getwd(), cluster = NULL)
 {
 	tmp = try(setwd(wdir), silent = TRUE)
 	if(inherits(tmp, "try-error")) stop("\nInvalid wdir...")
@@ -89,8 +90,7 @@ rugarch.runtests = function(test = 1, subtest = "a", wdir = getwd(), parallel = 
 	cat("\n")
 	cat(tat)
 	cat("\n")
-	tstname = paste("rugarch.test", test, subtest,"(parallel =", parallel,", parallel.control=list(pkg='", parallel.control$pkg,"', cores = ",
-			parallel.control$cores,"))", sep="")
+	tstname = paste("rugarch.test", test, subtest,"(cluster)", sep="")
 	ans = eval(parse(text=tstname))
 	return(ans)
 }

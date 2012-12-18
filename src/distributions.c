@@ -1,6 +1,6 @@
 /*################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2009, 2010, 2011, 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
 double* paramghskt(const double betabar, const double nu)
 {
 	double *param = malloc(4*sizeof(double));
-	double delta = 	sqrt(1/( ((2 * betabar*betabar)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) ));
+	double delta = sqrt(1/( ((2 * betabar*betabar)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) ));
 	double beta = betabar/delta;
 	double mu = -( (beta * (delta*delta))/(nu-2));
 	param[0]=(double) nu;
@@ -39,14 +39,30 @@ double dghsktstd(const double x, const double betabar, const double nu)
 {
 	double *param;
 	param = paramghskt(betabar, nu);
-	double alpha = fabs(param[1])+1e-12;
 	double beta = param[1];
 	double delta = param[2];
 	double mu = param[3];
-	double lambda = -nu/2.0;
-	double pdf = dgh(x, alpha, beta, delta, mu, lambda, 0);
+	double pdf = ((1 - nu)/2) * log(2) + nu * log(delta) + ((nu + 1)/2) * log(fabs(beta)) 
+	+ log(bessel_k(sqrt(beta*beta * (delta*delta + (x - mu)*(x - mu))), (nu + 1)/2, 2)) - sqrt(beta*beta * (delta*delta 
+	+ (x - mu)*(x - mu))) + beta * (x - mu) - lgammafn(nu/2) - log(PI)/2 - ((nu + 1)/2) * log(delta*delta + (x - mu)*(x - mu))/2;
 	free(param);
+	pdf = exp(pdf);
 	return pdf;
+}
+
+double rsghst(const double betabar, const double nu)
+{
+	double *param;
+	param = paramghskt(betabar, nu);
+	double beta = param[1];
+	double delta = param[2];
+	double mu = param[3];
+	double y = 1/rgamma(nu/2, 2/(delta*delta));
+	double sigma = sqrt(y);
+	double z = rnorm(0,1);
+	double ans =  mu + beta * sigma*sigma + sigma * z;
+	free(param);
+	return ans;
 }
 
 double rghyp(const double zeta, const double rho, const double lambda)
@@ -252,6 +268,7 @@ double* paramgh(const double zeta, const double rho, const double lambda)
 	param[3]=(double) mu;
 	return param;
 }
+
 double dnormstd(const double x)
 {
   double pdf;
@@ -432,6 +449,7 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 			 8 - Generalized Hyperbolic (GHYP)
 			 9 - JSU
 			 10 - GH Skew Student
+			 11 - Truncated Normal (skew = lower, shape = upper)
 	distEq: [0]: Skew, [1]: Shape, ... additionally can be used for normal mixture
 	(not yet implemented)
 	*/

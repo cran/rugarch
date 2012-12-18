@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -21,6 +20,7 @@
 # Model path Tests
 #################################################################################
 
+# ToDo: need to update it to take advantage of parallel...
 
 # ---------------------------------------------------------------------------------
 
@@ -48,7 +48,7 @@ rugarch.seeds = function(n, test)
 # The sGARCH model
 # ---------------------------------------------------------------------------------
 
-rugarch.test6a = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6a = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-1: Path Test (sGARCH)\n")
 	tic = Sys.time()
@@ -82,8 +82,10 @@ rugarch.test6a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.s = matrix(NA, ncol = 8, nrow = 100)
 	path.df = as.data.frame(sgarch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x) ugarchfit(data = x, spec = spec, 
-						solver = "solnp", fit.control = list(scale = 1)))
+	fit = lapply(path.df, FUN = function(x){
+				ugarchfit(data = x, spec = spec, solver = "solnp", 
+						fit.control = list(scale = 1))
+			})
 		
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.s[i,] = coef(fit[[i]])
@@ -129,7 +131,7 @@ rugarch.test6a = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 # ---------------------------------------------------------------------------------
 # The gjrGARCH model
-rugarch.test6b = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6b = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-2: Path Test (gjrGARCH)\n")
 	tic = Sys.time()
@@ -156,10 +158,19 @@ rugarch.test6b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	#setup coefficient matrix
 	simcoef.gjr = matrix(NA, ncol = 9, nrow = 100)
 	path.df = as.data.frame(gjrgarch.path, which = "series")
-	fit = lapply(path.df, FUN = function(x) 
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
 				ugarchfit(data = x, spec = spec, solver = "solnp",
-						fit.control = list(scale = 1)))
-	
+						fit.control = list(scale = 1))
+			})
+	}
 	#as.numeric(sapply(fit, FUN=function(x) x@fit$convergence))
 	
 	for(i in 1:100){
@@ -208,7 +219,7 @@ rugarch.test6b = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 # ---------------------------------------------------------------------------------
 # The eGARCH model
 # we generate a realistic parameter set by fitting from a dataset
-rugarch.test6c = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6c = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-3: Path Test (eGARCH)\n")
 	tic = Sys.time()
@@ -243,9 +254,19 @@ rugarch.test6c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.e = matrix(NA, ncol = 9, nrow = 100)
 	path.df = as.data.frame(egarch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x) 
-				ugarchfit(data = x, spec = spec, solver = "solnp"))
-	
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
+					ugarchfit(data = x, spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	}	
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.e[i,] = coef(fit[[i]])
 	}
@@ -291,7 +312,7 @@ rugarch.test6c = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 # ---------------------------------------------------------------------------------
 # The apARCH model
-rugarch.test6d = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6d = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-4: Path Test (apARCH)\n")
 	tic = Sys.time()
@@ -319,9 +340,20 @@ rugarch.test6d = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.a = matrix(NA, ncol = 10, nrow = 100)
 	path.df = as.data.frame(aparch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x) 
-				ugarchfit(data = x, spec = spec, solver = "solnp", 
-						fit.control = list(scale = 1)))	
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
+					ugarchfit(data = x, spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	}
+	
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.a[i,] = coef(fit[[i]])
 	}
@@ -368,7 +400,7 @@ rugarch.test6d = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 # ---------------------------------------------------------------------------------
 # The fGARCH model - NAGARCH
-rugarch.test6e = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6e = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-5: Path Test (fGARCH/NAGARCH)\n")
 	tic = Sys.time()
@@ -396,9 +428,19 @@ rugarch.test6e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.fna = matrix(NA, ncol = 8, nrow = 100)
 	path.df = as.data.frame(fgarch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x)
-				ugarchfit(data = x, spec = spec, solver = "solnp",
-						fit.control = list(scale = 1)))	
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
+					ugarchfit(data = x, spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	}
 	
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.fna[i,] = coef(fit[[i]])
@@ -442,7 +484,7 @@ rugarch.test6e = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 # ---------------------------------------------------------------------------------
 # The fGARCH model - NGARCH
-rugarch.test6f = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6f = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-6: Path Test (fGARCH/NGARCH)\n")
 	tic = Sys.time()
@@ -472,9 +514,19 @@ rugarch.test6f = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.fn = matrix(NA, ncol = 8, nrow = 100)
 	path.df = as.data.frame(fgarch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x) 
-				ugarchfit(data = x, spec = spec, solver = "solnp",
-						fit.control = list(scale = 1)))
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
+					ugarchfit(data = x, spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	}
 	
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.fn[i,] = coef(fit[[i]])
@@ -482,7 +534,7 @@ rugarch.test6f = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	# remove those which did not converge
 	exc = which(is.na(simcoef.fn[,1]))
 	if(length(exc) > 0) exc = exc else exc = -1:-100
-	postscript("test6e.eps", width = 12, height = 8)
+	postscript("test6f.eps", width = 12, height = 8)
 	par(mfrow=c(3,3))
 	plot(density(simcoef.fn[-exc,1]), 
 			main = "ARMA: mu parameter\n true parameter=0.001")
@@ -518,7 +570,7 @@ rugarch.test6f = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 
 # ---------------------------------------------------------------------------------
 # The fGARCH model - AVGARCH
-rugarch.test6g = function(parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2))
+rugarch.test6g = function(cluster=NULL)
 {
 	#cat("\nrugarch-->test6-7: Path Test (fGARCH/AVGARCH)\n")
 	tic = Sys.time()
@@ -547,9 +599,20 @@ rugarch.test6g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	simcoef.av = matrix(NA, ncol = 9, nrow = 100)
 	path.df = as.data.frame(fgarch.path, which = "series")
 	
-	fit = lapply(path.df, FUN = function(x) 
-				ugarchfit(data = x, spec = spec, solver = "solnp",
-						fit.control = list(scale = 1)))
+	if(!is.null(cluster)){
+		parallel::clusterEvalQ(cluster, require(rugarch))
+		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
+		fit = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
+					ugarchfit(data = path.df[,i], spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	} else{
+		fit = lapply(path.df, FUN = function(x){
+					ugarchfit(data = x, spec = spec, solver = "solnp",
+							fit.control = list(scale = 1))
+				})
+	}
+	
 	for(i in 1:100){
 		if(fit[[i]]@fit$convergence == 0) simcoef.av[i,] = coef(fit[[i]])
 	}
@@ -557,7 +620,7 @@ rugarch.test6g = function(parallel = FALSE, parallel.control = list(pkg = c("mul
 	# remove those which did not converge
 	exc = which(is.na(simcoef.av[,1]))
 	if(length(exc) > 0) exc = exc else exc = -1:-100
-	postscript("test6f.eps", width = 12, height = 8)
+	postscript("test6g.eps", width = 12, height = 8)
 	par(mfrow=c(3,3))
 	plot(density(simcoef.av[-exc,1]), 
 			main = "ARMA: mu parameter\n true parameter=0.001")

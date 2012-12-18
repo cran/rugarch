@@ -16,8 +16,7 @@ recursive = FALSE, recursive.length = 6000, recursive.window = 1000,
 prereturns = NA, preresiduals = NA, rseed = NA, 
 custom.dist = list(name = NA,  distfit = NA, type = "z"), mexsimdata = NULL, 
 fit.control = list(), solver = "solnp", solver.control = list(), 
-parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), 
-cores = 2), ...)
+cluster = NULL, ...)
 }
 \arguments{
 \item{fitORspec}{ Either an ARFIMA fit object of class 
@@ -46,13 +45,9 @@ provided.}
 \item{solver.control}{Control arguments list passed to optimizer.}
 \item{fit.control}{Control arguments passed to the fitting routine (as in the 
 \code{arfimafit} method).}
-\item{parallel}{
-Whether to make use of parallel processing on multicore systems.
-}
-\item{parallel.control}{
-The parallel control options including the type of package for performing the 
-parallel calculations (\sQuote{multicore} for non-windows O/S and 
-\sQuote{snowfall} for all O/S), and the number of cores to make use of.
+\item{cluster}{
+A cluster object created by calling \code{makeCluster} from the parallel 
+package. If it is not NULL, then this will be used for parallel estimation.
 }
 \item{...}{ . }
 }
@@ -121,7 +116,7 @@ for(i in 1:6){
 	lines(seq(3000,10000,by=1000), expexcted.rmsegr, col = 2)
 	legend("topright", legend = c("Actual", "Expected"), col = 1:2, bty = "m", 
 	lty = c(2,1))
-	}
+}
 }
 }
 \author{Alexios Ghalanos}

@@ -48,10 +48,11 @@ The \dQuote{gosolnp} solver allows for the initialization of multiple restarts
 of the solnp solver with randomly generated parameters (see documentation in 
 the Rsolnp-package for details of the strategy used). The solver.control list 
 then accepts the following additional (to the solnp) arguments: \dQuote{n.restarts} 
-is the number of solver restarts required (defaults to 1), \dQuote{parallel} and 
-\dQuote{parallel.control} for use of the parallel functionality, \dQuote{rseed} 
-is the seed to initialize the random number generator, and \dQuote{n.sim} is the 
-number of simulated parameter vectors to generate per n.restarts.
+is the number of solver restarts required (defaults to 1), \dQuote{parallel} (logical), 
+\dQuote{pkg} (either snowfall or multicore) and \dQuote{cores} (the number of cores 
+or workers to use) for use of parallel functionality, \dQuote{rseed} is the seed to initialize 
+the random number generator, and \dQuote{n.sim} is the number of simulated 
+parameter vectors to generate per n.restarts.
 }
 \examples{
 \dontrun{

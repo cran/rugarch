@@ -27,8 +27,15 @@ List containing the variance model specification:\cr
 \code{external.regressors} A matrix object containing the external regressors to 
 include in the variance equation with as many rows as will be included in the
 data (which is passed in the fit function).
-\code{variance.targeting} Indicates whether to use variance targeting for the 
-sigma intercept \dQuote{omega}.).
+\code{variance.targeting} (Logical or Numeric) If logical, indicates whether to use 
+variance targeting for the conditional variance intercept \dQuote{omega}, else
+if numeric, the value provided is used instead of the unconditional variance for 
+the calculation of the intercept (in combination with the persistence value). 
+Care should be taken if using the numeric option for apARCH and fGARCH models 
+since the intercept is not the variance but sigma raised to the power of some 
+positive value. Finally, if scaling is used (from the fit.control option 
+in \code{\link{ugarchfit}}), the value provided is adjusted accordingly by the
+routine.
 }
 \item{mean.model}{
 List containing the mean model specification:\cr

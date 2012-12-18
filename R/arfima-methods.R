@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -42,6 +41,13 @@ arfimaspec = function( mean.model = list(armaOrder = c(1,1), include.mean = TRUE
 	if(!is.null(start.pars$sigma)){
 		start.pars$omega = start.pars$sigma
 		start.pars$sigma = NULL
+	}
+	mm = match(names(mean.model), c("armaOrder", "include.mean", "arfima", "external.regressors"))
+	if(any(is.na(mm))){
+		idx = which(is.na(mm))
+		enx = NULL
+		for(i in 1:length(idx)) enx = c(enx, names(mean.model)[idx[i]])
+		warning(paste(c("unidentified option(s) in mean.model:\n", enx), sep="", collapse=" "), call. = FALSE, domain = NULL)
 	}
 	ans = ugarchspec(mean.model = list(armaOrder = mmodel$armaOrder, include.mean = mmodel$include.mean,
 					arfima = mmodel$arfima, external.regressors = mmodel$external.regressors, archm = FALSE,
@@ -119,12 +125,9 @@ setMethod(f = "arfimaspec", definition = .xarfimaspec)
 			fixed.pars = object@model$fixed.pars)
 	return(spec)
 }
-
 setMethod(f = "getspec", signature(object = "ARFIMAfit"), definition = .getarfimaspec)
 
-
-
-.setfixed = function(object, value){
+.setfixedarfima = function(object, value){
 	# get parameter values
 	model = object@model
 	ipars = model$pars
@@ -150,9 +153,9 @@ setMethod(f = "getspec", signature(object = "ARFIMAfit"), definition = .getarfim
 			fixed.pars = as.list(fixed.pars))
 	return(tmp)
 }
-setReplaceMethod(f="setfixed", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setfixed)
+setReplaceMethod(f="setfixed", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setfixedarfima)
 
-.setstart = function(object, value){
+.setstartarfima = function(object, value){
 	# get parameter values
 	model = object@model
 	ipars = model$pars
@@ -179,7 +182,9 @@ setReplaceMethod(f="setfixed", signature= c(object = "ARFIMAspec", value = "vect
 	return(tmp)
 }
 
-setReplaceMethod(f="setstart", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setstart)
+setReplaceMethod(f="setstart", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setstartarfima)
+
+setReplaceMethod(f="setbounds", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setbounds)
 
 arfimafit = function(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
 		fit.control = list(fixed.se = 0, scale = 0), ...)
@@ -227,23 +232,26 @@ arfimapath = function(spec, n.sim = 1000, n.start = 0, m.sim = 1, prereturns = N
 setMethod("arfimapath", signature(spec = "ARFIMAspec"), .arfimapath)
 
 
-arfimaroll = function(spec,  data, n.ahead = 1, forecast.length = 500, 
-		refit.every = 25, refit.window = c("recursive", "moving"), parallel = FALSE, 
-		parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), 
-		solver = "solnp", fit.control = list(), solver.control = list() ,
-		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), ...)
+arfimaroll = function(spec, data, n.ahead = 1, forecast.length = 500, 
+		n.start = NULL, refit.every = 25, refit.window = c("recursive", "moving"), 
+		window.size = NULL, solver = "hybrid", fit.control = list(), 
+		solver.control = list(), calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), 
+		cluster = NULL, keep.coef = TRUE, ...)
 {
 	setMethod("arfimaroll")
 }
 
 setMethod("arfimaroll", signature(spec = "ARFIMAspec"),  definition = .arfimaroll)
 
+setMethod("resume", signature(object = "ARFIMAroll"),  definition = .resumeroll2)
+
 
 arfimadistribution = function(fitORspec, n.sim = 2000, n.start = 1, 
 		m.sim = 100, recursive = FALSE, recursive.length = 6000, recursive.window = 1000, 
-		prereturns = NA, preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA, type = "z"), 
+		prereturns = NA, preresiduals = NA, rseed = NA, 
+		custom.dist = list(name = NA, distfit = NA, type = "z"), 
 		mexsimdata = NULL, fit.control = list(), solver = "solnp", 
-		solver.control = list(), parallel = FALSE, parallel.control = list(pkg = c("multicore", "snowfall"), cores = 2), ...)
+		solver.control = list(), cluster = NULL, ...)
 {
 	setMethod("arfimadistribution")
 }
@@ -295,14 +303,7 @@ setMethod("show",
 				}
 				cat("\nLogLikelihood :", object@fit$LLH, "\n")
 				stdresid = object@fit$residuals/coef(object)["sigma"]
-				itest = .information.test(object@fit$LLH, nObs = object@model$modeldata$T, nPars = length(object@fit$coef))
-				itestm = matrix(0, ncol = 1, nrow = 4)
-				itestm[1,1] = itest$AIC
-				itestm[2,1] = itest$BIC
-				itestm[3,1] = itest$SIC
-				itestm[4,1] = itest$HQIC
-				colnames(itestm) = ""
-				rownames(itestm) = c("Akaike", "Bayes", "Shibata", "Hannan-Quinn")
+				itestm = infocriteria(object)
 				cat("\nInformation Criteria")
 				cat(paste("\n------------------------------------\n",sep=""))
 				print(itestm,digits=5)
@@ -328,15 +329,28 @@ setMethod("show",
 				rownames(alm) = c("ARCH Lag[2]", "ARCH Lag[5]", "ARCH Lag[10]")
 				print(alm,digits = 4)
 				nyb = .nyblomTest(object)
-				colnames(nyb$IndividualStat)<-""
-				cat("\nNyblom stability test")
-				cat(paste("\n------------------------------------\n",sep=""))
-				cat("Joint Statistic: ",round(nyb$JointStat,4))
-				cat("\nIndividual Statistics:")
-				print(nyb$IndividualStat, digits = 4)
-				cat("\nAsymptotic Critical Values (10% 5% 1%)")
-				cat("\nJoint Statistic:     \t", round(nyb$JointCritical, 3))
-				cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
+				if(is.character(nyb$JointCritical)){
+					colnames(nyb$IndividualStat)<-""
+					cat("\nNyblom stability test")
+					cat(paste("\n------------------------------------\n",sep=""))
+					cat("Joint Statistic: ", "no.parameters>20 (not available)")
+					cat("\nIndividual Statistics:")
+					print(nyb$IndividualStat, digits = 4)
+					cat("\nAsymptotic Critical Values (10% 5% 1%)")
+					cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
+					cat("\n\n")
+				} else{
+					colnames(nyb$IndividualStat)<-""
+					cat("\nNyblom stability test")
+					cat(paste("\n------------------------------------\n",sep=""))
+					cat("Joint Statistic: ", round(nyb$JointStat,4))
+					cat("\nIndividual Statistics:")
+					print(nyb$IndividualStat, digits = 4)
+					cat("\nAsymptotic Critical Values (10% 5% 1%)")
+					cat("\nJoint Statistic:     \t", round(nyb$JointCritical, 3))
+					cat("\nIndividual Statistic:\t", round(nyb$IndividualCritical, 2))
+					cat("\n\n")
+				}
 				cat("\nElapsed time :", object@fit$timer,"\n\n")
 			} else{
 				cat("\nConvergence Problem:")
@@ -345,7 +359,6 @@ setMethod("show",
 			}
 			invisible(object)
 		})
-
 # filter show
 setMethod("show",
 		signature(object = "ARFIMAfilter"),
@@ -362,14 +375,7 @@ setMethod("show",
 			print(matrix(coef(object), ncol=1, dimnames = list(names(coef(object)), "")), digits = 5)
 			cat("\nLogLikelihood :", object@filter$LLH, "\n")
 			stdresid = object@filter$residuals/object@model$pars["sigma", 1]
-			itest = .information.test(object@filter$LLH, nObs = object@model$modeldata$T, nPars = length(coef(object)))
-			itestm = matrix(0, ncol = 1, nrow = 4)
-			itestm[1,1] = itest$AIC
-			itestm[2,1] = itest$BIC
-			itestm[3,1] = itest$SIC
-			itestm[4,1] = itest$HQIC
-			colnames(itestm) = ""
-			rownames(itestm) = c("Akaike", "Bayes", "Shibata", "Hannan-Quinn")
+			itestm = infocriteria(object)
 			cat("\nInformation Criteria")
 			cat(paste("\n---------------------------------------\n",sep=""))
 			print(itestm,digits=5)
@@ -481,6 +487,31 @@ setMethod("show",
 			cat("\n\n")
 		})
 
+setMethod("show",
+		signature(object = "ARFIMAroll"),
+		function(object){
+			if(!is.null(object@model$noncidx)){
+				cat("\nObject containts non-converged estimation windows. Use resume method to re-estimate.\n")
+				invisible(object)
+			} else{
+				cat(paste("\n*--------------------------------------*", sep = ""))
+				cat(paste("\n*              ARFIMA Roll             *", sep = ""))
+				cat(paste("\n*--------------------------------------*", sep = ""))
+				N = object@model$n.refits
+				model = object@model$spec@model
+				modelinc = model$modelinc
+				cat("\nNo.Refits\t\t:", N)
+				cat("\nRefit Horizon\t:", object@model$refit.every)
+				cat("\nNo.Forecasts\t:", NROW(object@forecast$density))
+				cat("Distribution\t:", model$modeldesc$distribution,"\n")
+				cat("\nForecast Density:\n")
+				print(round(head(object@forecast$density),4))
+				cat("\n..........................\n")
+				print(round(tail(object@forecast$density),4))
+				cat("\n")
+				invisible(object)
+			}
+		})
 # distribution show
 # distribution show
 setMethod("show",
@@ -675,6 +706,15 @@ setMethod("coef", signature(object = "ARFIMAmultifit"), .arfimamultifitcoef)
 }
 
 setMethod("coef", signature(object = "ARFIMAmultifilter"), .arfimamultifiltercoef)
+
+
+.arfimarollcoef = function(object)
+{
+	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	return(object@model$coef) 
+}
+
+setMethod("coef", signature(object = "ARFIMAroll"), .arfimarollcoef)
 
 
 # as.data.frame method for fitted object
@@ -975,67 +1015,13 @@ setMethod("as.data.frame", signature(x = "ARFIMApath"), .arfimapathdf)
 
 #----------------------------------------------------------------------------------
 # as.data.frame method for roll object
-# valid which = density, fpm, coefs
-.arfimarolldf = function(x, row.names = NULL, optional = FALSE, which = "density", n.ahead = 1, refit = 1, aligned = FALSE,
-		prepad = FALSE)
+.arfimarolldf = function(x, row.names = NULL, optional = FALSE, which = "density")
 {
-	n = x@roll$n.ahead
-	if(n.ahead>n)
-		stop("n.ahead chosen exceeds roll object specification", call. = FALSE)
-	if(which == "series"){
-		if(refit == "all"){
-			nr = x@roll$n.refit
-			fn = NULL
-			dt = NULL
-			for(i in 1:nr){
-				fn = c(fn, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) y[n.ahead,1]))
-				dt = c(dt, sapply(x@forecast[[i]]@forecast$forecasts, FUN = function(y) rownames(y[n.ahead, 1, drop = FALSE])))
-			}
-			ans = data.frame(series = fn)
-			rownames(ans) = dt
-		} else{
-			ans = as.data.frame(x@forecast[[refit]], rollframe = "all", aligned = aligned, prepad = prepad)
-		}
-	}
-	else if(which == "coefs"){
-		ans = as.data.frame(x@roll$coefs)
-		rownames(ans) = paste("refit-", 1:dim(ans)[1], sep = "")
-	}
-	else if(which == "density"){
-		ans =  as.data.frame(x@roll$fdensity[[n.ahead]])
-		rownames(ans) = paste("roll-", 1:dim(ans)[1], sep = "")
-	}
-	else if(which == "coefmat"){
-		ans = as.data.frame(x@roll$coefmat[[refit]])
-	}
-	else if(which == "LLH"){
-		ans = as.data.frame(x@roll$LLH)
-		rownames(ans) = paste("refit-", 1:dim(ans)[1], sep = "")
-		colnames(ans) = "LLH"
-	}
-	else if(which == "VaR"){
-		ans = as.data.frame(x@roll$VaR.out[[n.ahead]])
-	} else{
-		ans = NA
-	}
+	if(!is.null(x@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(which == "density") ans =  x@forecast$density else ans = x@forecast$VaR
 	return(ans)
 }
 setMethod("as.data.frame", signature(x = "ARFIMAroll"), .arfimarolldf)
-
-as.ARFIMAforecast = function(object, ...)
-{
-	setMethod("as.ARFIMAforecast")
-}
-
-.roll2arfimaforc = function(object, refit = 1)
-{
-	n = object@roll$n.refit
-	if(refit>n)
-		stop("refit chosen exceeds roll object specification", call. = FALSE)
-	object@forecast[[refit]]
-}
-
-setMethod("as.ARFIMAforecast", signature(object = "ARFIMAroll"), .roll2arfimaforc)
 
 #----------------------------------------------------------------------------------
 # residuals method
@@ -1371,46 +1357,33 @@ setMethod("uncmean", signature(object = "ARFIMAspec"),   definition = .unconditi
 
 .fpm21 = function(object, summary = TRUE)
 {
+	
 	if(summary){
-		n.ahead = object@roll$n.ahead
-		Data = object@model$modeldata$data
-		Dates = object@model$modeldata$dates
-		ans = matrix(NA, ncol = n.ahead, nrow = 4)
-		rownames(ans) = c("MSE", "MAE", "DAC", "N")
-		colnames(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
-		dtx = vector(mode = "character", length = n.ahead)
-		for(i in 1:n.ahead){
-			forecast = as.data.frame(object, which = "series", refit = "all", n.ahead = i)
-			dt = rownames(forecast)
-			actual = Data[match(dt, as.character(Dates))]
-			DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-			tmp = c(mean( (forecast - actual)^2 ), mean(abs(forecast - actual)), mean(DAC), length(forecast[,1]))
-			ans[, i] = tmp
-			dtx[i] = paste(dt[1], " - ", dt[length(dt)], sep = "")
-		}
-		ans = data.frame(ans)
-		attr(ans, "dates") = dtx
+		forecast = object@forecast$density[,1]
+		actual = object@forecast$density[,"Realized"]
+		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+		tmp = c(mean( (forecast - actual)^2 ), mean(abs(forecast - actual)), mean(DAC))
+		names(tmp) = c("MSE", "MAE", "DAC")
+		tmp = data.frame(Stats = tmp)
 	} else{
-		n.ahead = object@roll$n.ahead
-		Data = object@model$modeldata$data
-		Dates = object@model$modeldata$dates
-		ans = NULL
-		#rownames(ans) = c("MSE", "MAE", "DAC", "N")
-		#colnames(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
-		dtx = vector(mode = "character", length = n.ahead)
-		for(i in 1:n.ahead){
-			forecast = as.data.frame(object,  which = "series", refit = "all", n.ahead = i)
-			dt = rownames(forecast)
-			actual = Data[match(dt, as.character(Dates))]
-			DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-			tmp = cbind( (forecast - actual)^2 , abs(forecast - actual), DAC )
-			ans[[i]] = tmp
-			rownames(ans[[i]]) = dt
-			colnames(ans[[i]]) = c("SE", "AE", "DAC")
+		forecast = object@forecast$density[,1]
+		actual = object@forecast$density[,"Realized"]
+		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+		if(object@model$calculate.VaR){
+			m = NCOL(object@forecast$VaR)-1
+			V = NULL
+			for(i in 1:m) V = cbind(V, .varloss(object@model$VaR.alpha[i], as.numeric(actual), as.numeric(object@forecast$VaR[,i])))
+			colnames(V) = paste("VaRLoss(",object@model$VaR.alpha,")",sep="")
+			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC, V)
+			colnames(tmp)[1:3] = c("SE", "AE", "HIT")
+			rownames(tmp) = as.character(time(object@forecast$density))
+		} else{
+			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC)
+			colnames(tmp) = c("SE", "AE", "HIT")
+			rownames(tmp) = as.character(time(object@forecast$density))
 		}
-		names(ans) = paste("n.ahead-", 1:n.ahead, sep = "")
 	}
-	return( ans )
+	return( tmp )
 }
 
 setMethod("fpm", signature(object = "ARFIMAforecast"),  definition = .fpm11)
@@ -1418,49 +1391,47 @@ setMethod("fpm", signature(object = "ARFIMAroll"),  definition = .fpm21)
 
 
 # forecast performance measures
-.arfimarollreport = function(object, type = "VaR", n.ahead = 1, VaR.alpha = 0.01, conf.level = 0.95)
+.arfimarollreport = function(object, type = "VaR", VaR.alpha = 0.01, conf.level = 0.95)
 {
+	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
 	switch(type,
-			VaR = .rollVaRreport1(object, n.ahead, VaR.alpha, conf.level),
-			fpm = .rollfpmreport1(object))
+			VaR = .rollVaRreport2(object, VaR.alpha, conf.level),
+			fpm = .rollfpmreport2(object))
 	invisible(object)
 }
 
-.rollfpmreport1 = function(object)
+setMethod("report", signature(object = "ARFIMAroll"), .arfimarollreport)
+
+.rollfpmreport2 = function(object)
 {
+	vmodel = object@model$spec@model$modeldesc$vmodel
+	vsubmodel = object@model$spec@model$modeldesc$vsubmodel
 	cat(paste("\nARFIMA Roll Mean Forecast Performance Measures", sep = ""))
 	cat(paste("\n---------------------------------------------", sep = ""))
-	cat(paste("\nno.refits : ", object@roll$n.refit, sep = ""))
-	cat(paste("\nn.ahead   : ", object@roll$n.ahead, sep = ""))
-	cat(paste("\nn.rolls   : ", object@roll$n.refit*object@roll$refit.every, sep = ""))
+	cat(paste("\nNo.Refits\t: ", object@model$n.refits, sep = ""))
+	cat(paste("\nNo.Forecasts: ", NROW(object@forecast$density), sep = ""))
 	cat("\n\n")
 	tmp = fpm(object)
 	print(signif(tmp, 4))
 	cat("\n\n")
 }
 
-.rollVaRreport1 = function(object, n.ahead = 1, VaR.alpha = 0.01, conf.level = 0.95)
+.rollVaRreport2 = function(object, VaR.alpha = 0.01, conf.level = 0.95)
 {
-	n = object@roll$n.ahead
-	v.a = object@roll$VaR.alpha
-	
-	if(is.null(object@roll$VaR.out)) stop("\nplot-->error: VaR was not calculated for this object\n", call.=FALSE)
-	if(n.ahead > n) stop("\nplot-->error: n.ahead chosen is not valid for object\n", call.=FALSE)
-	if(!is.null(v.a) && !any(v.a==VaR.alpha[1])) stop("\nplot-->error: VaR.alpha chosen is invalid for the object\n", call.=FALSE)
-	if(is.list(object@roll$VaR.out)){
-		dvar = object@roll$VaR.out[[n.ahead]]
-		m = dim(dvar)[2]
-		idx = which(colnames(dvar) == paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""))
-		.VaRreport(object@model$modeldata$datanames, object@model$modeldesc$vmodel, object@model$modeldesc$distribution, p = VaR.alpha, actual=dvar[,m], VaR = dvar[, idx], 
-				conf.level = conf.level)
-	} else{
-		dvar = object@roll$VaR.out
-		m = dim(dvar)[2]
-		idx = which(colnames(dvar) == paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""))
-		.VaRreport(object@model$modeldata$datanames, object@model$modeldesc$vmodel, object@model$modeldesc$distribution, p = VaR.alpha, actual=dvar[,m], VaR = dvar[, idx], 
-				conf.level = conf.level)
-	}
+	VaR.alpha = VaR.alpha[1]
+	v.a = object@model$VaR.alpha
+	if(!object@model$calculate.VaR) stop("\nplot-->error: VaR was not calculated for this object\n", call.=FALSE)
+	if(!any(v.a==VaR.alpha[1])) stop("\nplot-->error: VaR.alpha chosen is invalid for the object\n", call.=FALSE)
+	dvar = object@forecast$VaR
+	m = NROW(dvar)
+	idx = match(VaR.alpha, v.a)
+	.VaRreport(if(is.null(object@model$datanames)) "" else object@model$datanames, "ARFIMA", 
+			object@model$spec@model$modeldesc$distribution, 
+			p = VaR.alpha, actual = as.numeric(dvar[,"realized"]), 
+			VaR = dvar[, idx], 
+			conf.level = conf.level)
 	invisible(object)
 }
 
-setMethod("report", signature(object = "ARFIMAroll"), .arfimarollreport)
+setMethod("convergence", signature(object = "ARFIMAfit"),  definition = .convergence)
+setMethod("vcov", signature(object = "ARFIMAfit"),  definition = .vcov)

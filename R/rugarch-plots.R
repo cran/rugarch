@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -843,7 +842,7 @@
 			ylab = "Sigma", xlab = "Time/Horizon", ylim = ylim, cex.main = 0.8)
 	abline(h = 0, col = "grey", lty = 3)
 	abline(v = nx, col = "red", lty = 3)
-	lines(c(xdates[(Ns-nx):Ns], fwddates), as.numeric(simsigma), col = 2)
+	lines(c(xdates[(Ns-nx):Ns], fwddates), as.numeric(simsigma), col = "tomato1")
 	mtext(paste("GARCH model : ", vmodel), side = 4, adj = 0, padj=0, col = "gray", cex = 0.5)
 	if(vmodel == "fGARCH"){
 		mtext(paste("fGARCH submodel: ", x@model$modeldesc$vsubmodel, sep = ""), side = 4, adj = 0, padj = 1.5, col = "gray", cex = 0.5)
@@ -852,7 +851,7 @@
 		mtext(paste("seed: ", xseed, sep = ""), side = 3, adj = 0, padj=0, col = "gray", cex = 0.5)
 	}
 	lg.txt = c("Actual", "Simulated")
-	legend("topleft", legend = lg.txt, col = c("steelblue", "red"), y.intersp = 1.5, pch = 21, cex = 0.7)
+	legend("topleft", legend = lg.txt, col = c("steelblue", "tomato1"), y.intersp = 1.5, pch = 21, cex = 0.7)
 	box()
 	grid()
 }
@@ -873,7 +872,7 @@
 	simseries = c(series[(Ns-nx):Ns], simseries)
 	series = c(series[(Ns-nx):Ns], rep(NA, N2))
 	ylim = c(0.95*min(simseries,na.rm=TRUE), 1.05*max(simseries,na.rm=TRUE))
-	plot(c(xdates[(Ns-nx):Ns],fwddates), simseries, type = "l", col = "red", main = "Simulated Series", 
+	plot(c(xdates[(Ns-nx):Ns],fwddates), simseries, type = "l", col = "tomato1", main = "Simulated Series", 
 			ylab = "Series", xlab = "Time/Horizon", ylim = ylim, cex.main = 0.8)
 	abline(h = 0, col = "grey", lty = 3)
 	abline(v = nx+1, col = "red", lty = 3)
@@ -886,7 +885,7 @@
 		mtext(paste("seed: ", xseed, sep = ""), side = 3, adj = 0, padj=0, col = "gray", cex = 0.5)
 	}
 	lg.txt = c("Actual", "Simulated")
-	legend("topleft", legend = lg.txt, col = c("steelblue", "red"), y.intersp = 1.5, pch = 21, cex = 0.7)
+	legend("topleft", legend = lg.txt, col = c("steelblue", "tomato1"), y.intersp = 1.5, pch = 21, cex = 0.7)
 	box()
 	grid()
 }
@@ -905,17 +904,18 @@
 	s2y = s2$y/length(s2$y)
 	ylim = c(0, max(s1y,s2y))
 	plot(s1x, s1y, ylim = ylim, main = "Conditional Sigma\n Kernel Density", type = "l", 
-			ylab = "Probability", xlab = "Sigma", cex.main = 0.8)
-	lines(s2x, s2y, col = "steelblue")
+			ylab = "Probability", xlab = "Sigma", cex.main = 0.8, col = "steelblue")
+	lines(s2x, s2y, col = "tomato1")
 	mtext(paste("GARCH model : ", vmodel), side = 4, adj = 0, padj=0, col = "gray", cex = 0.5)
 	if(vmodel == "fGARCH"){
-		mtext(paste("fGARCH submodel: ", x@model$modeldesc$vsubmodel, sep = ""), side = 4, adj = 0, padj = 1.5, col = "gray", cex = 0.5)
+		mtext(paste("fGARCH submodel: ", x@model$modeldesc$vsubmodel, sep = ""), 
+				side = 4, adj = 0, padj = 1.5, col = "gray", cex = 0.5)
 		mtext(paste("seed: ", xseed, sep = ""), side = 3, adj = 0, padj=0, col = "gray", cex = 0.5)
 	} else{
 		mtext(paste("seed: ", xseed, sep = ""), side = 3, adj = 0, padj=0, col = "gray", cex = 0.5)
 	}
 	lg.txt = c("Actual", "Simulated")
-	legend("topleft", legend = lg.txt, col = c("steelblue", "red"), y.intersp = 1.5, pch = 21, cex = 0.7)
+	legend("topleft", legend = lg.txt, col = c("steelblue", "tomato1"), y.intersp = 1.5, pch = 21, cex = 0.7)
 	box()
 	grid()
 }
@@ -938,8 +938,8 @@
 	s2y = s2$y/length(s2$y)
 	ylim = c(0, max(s1y,s2y))
 	plot(s1x, s1y, ylim = ylim, main = "Time Series\n Kernel Density", type = "l", 
-			ylab = "Probability", xlab = "Returns", cex.main = 0.8)
-	lines(s2x, s2y, col = "steelblue")
+			ylab = "Probability", xlab = "Returns", cex.main = 0.8, col = "steelblue")
+	lines(s2x, s2y, col = "tomato1")
 	mtext(paste("GARCH model : ", vmodel), side = 4, adj = 0, padj=0, col = "gray", cex = 0.5)
 	if(vmodel == "fGARCH"){
 		mtext(paste("fGARCH submodel: ", x@model$modeldesc$vsubmodel, sep = ""), side = 4, adj = 0, padj = 1.5, col = "gray", cex = 0.5)
@@ -948,7 +948,7 @@
 		mtext(paste("seed: ", xseed, sep = ""), side = 3, adj = 0, padj=0, col = "gray", cex = 0.5)
 	}
 	lg.txt = c("Actual", "Simulated")
-	legend("topleft", legend = lg.txt, col = c("steelblue", "red"), y.intersp = 1.5, pch = 21, cex = 0.7)
+	legend("topleft", legend = lg.txt, col = c("steelblue", "tomato1"), y.intersp = 1.5, pch = 21, cex = 0.7)
 	box()
 	grid()
 }
@@ -1239,10 +1239,9 @@
 #-------------------------------------------------------------------------------
 # SECTION GARCH roll plots
 #-------------------------------------------------------------------------------
-.plotgarchroll = function(x, which="ask", n.ahead = 1, VaR.alpha = 0.01, 
-		density.support=c(-0.15, 0.15), ...)
+.plotgarchroll = function(x, which="ask", VaR.alpha = 0.01, density.support=c(-0.15, 0.15), ...)
 {
-	
+	if(!is.null(x@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
 	choices = c(
 			"Density Forecast",
 			"Sigma Forecast",
@@ -1250,40 +1249,37 @@
 			"VaR Forecast",
 			"Fit Coefficients (with s.e. bands)")
 	.intergarchrollPlot(x, choices=choices, plotFUN = paste(".plot.garchroll", 1:5, sep = "."), 
-			which = which, n.ahead = n.ahead, VaR.alpha = VaR.alpha, 
-			density.support = density.support, ...)
+			which = which, VaR.alpha = VaR.alpha, density.support = density.support, ...)
 	# Return Value:
 	invisible(x)
 }
 
-.intergarchrollPlot = function(x, choices, plotFUN, which, n.ahead = 1, VaR.alpha = 0.01, 
+.intergarchrollPlot = function(x, choices, plotFUN, which, VaR.alpha = 0.01, 
 		density.support=c(-0.15, 0.15), ...)
 {
 	if (is.numeric(which)) {
 		if(which>length(choices)) stop("Not a valid choice. Plots choices are 1-5.\n", call. = FALSE)
 		FUN = match.fun(plotFUN[which])
-		FUN(x, n.ahead = n.ahead, VaR.alpha = VaR.alpha, density.support = density.support, ...)
+		FUN(x, VaR.alpha = VaR.alpha, density.support = density.support, ...)
 	}
 	if(is.character(which))
 	{
 		if(which!="all" && which!="ask") stop("Not a valid choice.\n", call. = FALSE)
 		if (which[1] == "all") {
 			par(mfrow=c(2,2))
-			.plot.garchroll.1(x, n.ahead = n.ahead, density.support = density.support, ...)
-			.plot.garchroll.2(x, n.ahead = n.ahead, ...)
-			.plot.garchroll.3(x, n.ahead = n.ahead, ...)
-			.plot.garchroll.4(x, n.ahead = n.ahead, VaR.alpha = VaR.alpha, ...)
+			.plot.garchroll.1(x, density.support = density.support, ...)
+			.plot.garchroll.2(x, ...)
+			.plot.garchroll.3(x, ...)
+			.plot.garchroll.4(x, VaR.alpha = VaR.alpha, ...)
 		}
 		if (which[1] == "ask") {
-			.multgarchrollPlot(x, choices, n.ahead, VaR.alpha, 
-					density.support,...)
+			.multgarchrollPlot(x, choices, VaR.alpha, density.support,...)
 		}
 	}
 	invisible(x)
 }
 
-.multgarchrollPlot = function(x, choices, n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+.multgarchrollPlot = function(x, choices, VaR.alpha = 0.01, density.support = c(-0.15, 0.15), ...)
 {
 	pick = 1
 	while (pick > 0) {
@@ -1291,147 +1287,112 @@
 				choices = paste(" ", choices),
 				title = "\nMake a plot selection (or 0 to exit):")
 		switch (pick,
-				.plot.garchroll.1(x, n.ahead, VaR.alpha, density.support,...),  
-				.plot.garchroll.2(x, n.ahead, VaR.alpha, density.support,...),  
-				.plot.garchroll.3(x, n.ahead, VaR.alpha, density.support,...),
-				.plot.garchroll.4(x, n.ahead, VaR.alpha, density.support,...),
-				.plot.garchroll.5(x, n.ahead, VaR.alpha, density.support,...))
+				.plot.garchroll.1(x, density.support,...),  
+				.plot.garchroll.2(x,...),  
+				.plot.garchroll.3(x,...),
+				.plot.garchroll.4(x,...),
+				.plot.garchroll.5(x, VaR.alpha,...))
 	}
 }
 
 # rolling sigma forecast comparison plot
-.plot.garchroll.1 = function(x,  n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+.plot.garchroll.1 = function(x, density.support = c(-0.15, 0.15), ...)
 {
-	n = x@roll$n.ahead
-	fdensity = x@roll$fdensity
-	distribution = x@model$modeldesc$distribution
-	forecast.length = x@roll$forecast.length
+	density = x@forecast$density
+	distribution = x@model$spec@model$modeldesc$distribution
+	T = NROW(density)
 	# we plot a maximum of 500 forecasts
-	esd = floor(seq(1,forecast.length, length.out = min(500, forecast.length)))
+	esd = floor(seq(1,T, length.out = min(500, T)))
 	nesd = length(esd)
 	colr = topo.colors(nesd, alpha = 1)
-	if(is.vector(fdensity)){
-		xden = fdensity[[n.ahead]][,-1]
-		xdate =  as.Date(as.character(fdensity[[n.ahead]][,"fdate"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"fdate"])
-	} else{
-		xden = fdensity[,-1]
-		xdate =  as.Date(as.character(fdensity[,"fdate"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate = as.character(fdensity[,"fdate"])
-	}
+	xdate = rownames(density)
 	xseq = seq(density.support[1], density.support[2], length.out=1000)
 	yseq = apply(as.data.frame(2:nesd), 1, FUN=function(i)  
-				.ddensity(xseq, mu = xden[esd[i],"fmu"], sigma = xden[esd[i],"fsigma"], 
-						lambda = xden[esd[i],"fdlambda"], skew = xden[esd[i],"fskew"], shape = xden[esd[i],"fshape"], 
-						distribution = distribution))
-	plot(xseq, .ddensity(xseq, mu = xden[1,"fmu"], sigma = xden[1,"fsigma"], 
-					lambda = xden[1,"fdlambda"], skew = xden[1,"fskew"], shape = xden[1,"fshape"], 
-					distribution = distribution), type="l", col = "steelblue", 
-			main = paste("n.ahead-", n.ahead," Forecast Density (time varying)",sep=""), ylab="", cex.main = 0.7)
+				ddist(xseq, mu = density[esd[i],1], sigma = density[esd[i],2], 
+						lambda = density[esd[i],5], skew = density[esd[i],3], 
+						shape = density[esd[i],4], distribution = distribution))
+	plot(xseq, ddist(xseq, mu = density[esd[1],1], sigma = density[esd[1],2], 
+					lambda = density[esd[1],5], skew = density[esd[1],3], 
+					shape = density[esd[1],4], distribution = distribution), type="l", col = "steelblue", 
+			main = paste("n.ahead-", 1," Forecast Density (time varying)",sep=""), ylab="", xlab = "", 
+			cex.main = 0.7, ...)
 	for(i in 1:(nesd-1)){
 		lines(xseq, yseq[,i], col = colr[i+1])
 	}
 	xesd = floor(seq(1,length(esd), length.out = 5))
-	legend("topright", legend = as.character(xdate[esd[xesd]]), fill = colr[xesd], col = colr[xesd], bty = "n")
+	legend("topright", legend = as.character(xdate[esd[xesd]]), fill = colr[xesd], col = colr[xesd], bty = "n")	
 	invisible(x)
 }
 
 # rolling sigma forecast comparison plot
-.plot.garchroll.2= function(x,  n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+.plot.garchroll.2 = function(x, ...)
 {
-	n = x@roll$n.ahead	
-	fdensity = x@roll$f01density
-	if(n.ahead > n) stop("\nplot-->error: n.ahead chosen is not valid for object\n", call.=FALSE)
-	if(is.vector(fdensity)){
-		xsig = fdensity[[n.ahead]][,"f01sigma"]
-		xdate = as.Date(as.character(fdensity[[n.ahead]][,"f01date"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"f01date"])
-		
-	} else{
-		xsig = fdensity[,"f01sigma"]
-		xdate =  as.Date(as.character(fdensity[,"f01date"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate =as.character(fdensity[,"f01date"])
-		
-	}
-	plot(xdate, xsig, type="l", col = "steelblue", main = paste("n.ahead-", n.ahead," Sigma Forecast", sep = ""), 
-			ylab = "forecast sigma", cex.main = 0.7)
+	density = x@forecast$density
+	plot(as.Date(rownames(density)), abs(density[,6]), type="l", col = "grey", 
+			main = paste("Sigma Forecast vs Absolute Realized Returns", sep = ""), 
+			ylab = "", xlab  = "", cex.main = 0.7)
+	lines(as.Date(rownames(density)), density[,2], col = "steelblue", lwd = 1.5)
+	grid()
 	invisible(x)
 }
 
-# rolling sigma forecast comparison plot
-.plot.garchroll.3 = function(x,  n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+# rolling series forecast comparison plot
+.plot.garchroll.3 = function(x, ...)
 {
-	n = x@roll$n.ahead	
-	fdensity = x@roll$f01density
-	if(n.ahead > n) stop("\nplot-->error: n.ahead chosen is not valid for object\n", call. = FALSE)
-	if(is.vector(fdensity)){
-		xmu = fdensity[[n.ahead]][,"f01mu"]
-		xdate =  as.Date(as.character(fdensity[[n.ahead]][,"f01date"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate = as.character(fdensity[[n.ahead]][,"f01date"])
-	} else{
-		xmu = fdensity[,"f01mu"]
-		xdate =  as.Date(as.character(fdensity[,"f01date"]), format = "%Y-%m-%d")
-		if(is.na(xdate[1])) xdate =as.character(fdensity[,"f01date"])
-	}
-	actseries = x@model$modeldata$filterseries
-	plot(xdate, xmu, type="l", col = "steelblue", main = paste("n.ahead-",n.ahead," Series Forecast",sep=""), ylab="return", ylim=c(min(min(actseries),min(xmu)), max(max(actseries),max(xmu))), cex.main = 0.7)
-	points(xdate, actseries, cex=0.5, col=2)
-	legend("topleft", legend=c("Forecast", "Actual"), fill = c("steelblue", "red"), col = c("steelblue", "red"), bty = "n" )
+	density = x@forecast$density
+	plot(as.Date(rownames(density)), density[,6], type="l", col = "grey", 
+			main = paste("Series Forecast vs Realized Returns", sep = ""), 
+			ylab = "", xlab  = "", cex.main = 0.7)
+	lines(as.Date(rownames(density)), density[,1], col = "tomato1", lwd = 1.5)
+	grid()
 	invisible(x)
 }
 
 # rolling VaR backtest plot
-.plot.garchroll.4 = function(x,  n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+.plot.garchroll.4 = function(x,  VaR.alpha = 0.01, ...)
 {
-	n = x@roll$n.ahead
-	v.a = x@roll$VaR.alpha
+	vmodel = x@model$spec@model$modeldesc$vmodel
 	
-	if(is.null(x@roll$VaR.out)) stop("\nplot-->error: VaR was not calculated for this object\n", call.=FALSE)
-	if(n.ahead > n) stop("\nplot-->error: n.ahead chosen is not valid for object\n", call.=FALSE)
+	v.a = x@model$VaR.alpha	
+	if(!x@model$calculate.VaR) stop("\nplot-->error: VaR was not calculated for this object\n", call.=FALSE)
 	if(!is.null(v.a) && !any(v.a==VaR.alpha[1])) stop("\nplot-->error: VaR.alpha chosen is invalid for the object\n", call.=FALSE)
-	if(is.list(x@roll$VaR.out)){
-		dvar = x@roll$VaR.out[[n.ahead]]
-		dates = rownames(dvar)
-		m = dim(dvar)[2]
-		idx = which(colnames(dvar) == paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""))
-		.VaRplot(x@roll$dataname, p = VaR.alpha, actual = dvar[, m], dates = dates, VaR = dvar[, idx])		
-	} else{
-		dvar = x@roll$VaR.out
-		dates = rownames(dvar)
-		m = dim(dvar)[2]
-		idx = which(colnames(dvar) == paste("alpha(", round(VaR.alpha,2)*100, "%)",sep=""))
-		.VaRplot(x@roll$dataname, p = VaR.alpha, actual = dvar[, m], dates = dates, VaR = dvar[, idx])		
-	}
-	invisible(x)	
+	V = x@forecast$VaR
+	idx = match(VaR.alpha, v.a)
+	.VaRplot(paste(vmodel, " model", sep = ""), p = VaR.alpha[1], 
+			actual = V[, "realized"], dates = rownames(V), VaR = V[, idx])
+	invisible(x)
 }
 
-.plot.garchroll.5 = function(x,  n.ahead = 1, VaR.alpha = 0.01, 
-		density.support = c(-0.15, 0.15), ...)
+.plot.garchroll.5 = function(x, ...)
 {
 	# get the no. of coef of a fit
-	coefs = x@roll$coefs
-	coefmat = x@roll$coefmat
-	N = dim(coefs)[1]
-	if(N<2){
-		stop("\n 1 refit does not a coef evolution plot make!\n", call.=FALSE)
+	vmodel = x@model$spec@model$modeldesc$vmodel
+	if(!x@model$keep.coef) stop("\n\nplot-->error: keep.coef set to FALSE in estimation\n")
+	coefs = x@model$coef
+	m = dim(coefs[[1]]$coef)[1]
+	N = length(coefs)
+	Z = matrix(NA, ncol = m, nrow = N)
+	Zup = matrix(NA, ncol = m, nrow = N)
+	Zdn = matrix(NA, ncol = m, nrow = N)
+	for(i in 1:m){
+		Z[,i] = sapply(coefs, FUN = function(y) y$coef[i,1])
+		Zup[,i] = Z[,i]+sapply(coefs, FUN = function(y) y$coef[i,2])
+		Zdn[,i] = Z[,i]-sapply(coefs, FUN = function(y) y$coef[i,2])
 	}
-	n = dim(coefs)[2]
-	cnames = colnames(coefs)
-	np = .divisortable(n)
+	dt = sapply(coefs, FUN = function(y) as.character(y$date))
+	
+	cnames = rownames(coefs[[1]]$coef)
+	np = .divisortable(m)
 	par(mfrow = c(np[1], np[2]))
-	for(i in 1:n){
-	cse = sapply(coefmat, FUN = function(x) x[i,2], simplify = TRUE)
-	plot(coefs[,i], type="l", ylim = c(min(coefs[,i]-cse), max(coefs[,i] + cse)), 
-			ylab = "value" , xlab = "", main = "")
-	lines(coefs[,i] + cse, col=2)
-	lines(coefs[,i] - cse, col=2)
-	title(cnames[i], line = 0.4, cex = 0.9)
+	for(i in 1:m){
+		plot(as.Date(dt), Z[,i], type="l", ylim = c(min(Zdn[,i]), max(Zup[,i])), 
+				ylab = "value" , xlab = "", main = "")
+		lines(as.Date(dt), Zdn[,i], col=2)
+		lines(as.Date(dt), Zup[,i], col=2)
+		title(cnames[i], line = 0.4, cex = 0.9)
+		grid()
 	}
-	title(main = list(paste("uGARCH fit coefficients (across ",N," refits) with s.e. bands",sep=""), 
+	title(main = list(paste(vmodel," fit coefficients (across ",N," refits) with robust s.e. bands",sep=""), 
 					cex = 1.5, col = "steelblue", font=2), outer = TRUE, line = -1.4)
 	invisible(x)
 }

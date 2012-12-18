@@ -1,7 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008, 2009, 2010, 2011, 
-##	 2012
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -35,41 +34,160 @@
 dsghst = function(x, mean=0, sd=1, skew=1, shape=8, log = FALSE){
 	z = (x - mean)/sd
 	params = .paramGHST(skew, shape)
-	f = dgh(z, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
-			mu = params[1], lambda = -shape/2, log = FALSE)/sd
+	beta = params[3]
+	delta = params[2]
+	mu = params[1]
+	nu = shape
+	f = 2^(0.5*(1-nu))*(delta^nu)*abs(beta)^(0.5*(nu+1))*besselK(sqrt(beta^2*(delta^2+(z-mu)^2)), 0.5*(nu+1))*exp(beta*(z-mu))
+	f = f/(gamma(nu/2)*sqrt(pi)*(sqrt(delta^2+(z-mu)^2)^(0.5*(nu+1))))
+	f = f/sd
 	if(log) f = log(f)
 	return(f)
 }
-
-psghst = function(q, mean=0, sd=1, skew=1, shape=8){
-	z = (q - mean)/sd
-	params = .paramGHST(skew, shape)
-	f = pgh(z, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
-			mu = params[1], lambda = -shape/2)
-	return(f)
-}
-
-qsghst = function(p, mean=0, sd=1, skew=1, shape=8){
-	params = .paramGHST(skew, shape)
-	f = qgh(p, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2],
-			mu = params[1], lambda = -shape/2)*sd + mean
-	return(f)
-}
-
 rsghst = function(n, mean=0, sd=1, skew=1, shape=8){
 	params = .paramGHST(skew, shape)
-	ans = rgh(n, alpha = abs(params[3])+1e-12, beta = params[3], delta = params[2], mu = params[1], lambda = -shape/2)*sd + mean
+	beta = params[3]
+	delta = params[2]
+	mu = params[1]
+	nu = shape
+	y <- 1/rgamma(n, shape = nu/2, scale = 2/(delta*sd)^2)
+	sigma <- sqrt(y)
+	z <- rnorm(n)
+	f <- mean+(mu*sd) + beta/sd * sigma^2 + sigma * z
+	return(f)
+}
+
+####################################################
+# functions adapted/imported from the SkewHyperbolic of Scott
+
+.skewhypStepSize = function(dist, delta, beta, nu, side = c("right", "left")) 
+{
+	side <- match.arg(side)
+	if (beta > 0) {
+		step = ifelse(side == "left", delta, delta * abs(beta) * 
+						(nu * dist)^(-2/nu))
+	}
+	if (beta < 0) {
+		step = ifelse(side == "right", delta, delta * abs(beta) * 
+						(nu * dist)^(-2/nu))
+	}
+	if (isTRUE(all.equal(beta, 0))) {
+		step = exp(dist/nu)
+	}
+	return(step)
+}
+
+modeghst = function(mean = 0, sd = 1, skew = 1, shape = 8){
+	modeFun <- function(x) {
+		dsghst(x, mean, sd, skew, shape, log = TRUE)
+	}
+	start <- 0
+	options(warn = -1)
+	opt <- optim(start, modeFun, control = list(fnscale = -1, 
+					maxit = 1000, method = "BFGS"))
+	ifelse(opt$convergence == 0, distMode <- opt$par, distMode <- NA)
+	return(distMode)
+}
+
+psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
+	distMode = modeghst(mean, sd, skew, shape)
+	qLess = which((q <= distMode) & (is.finite(q)))
+	qGreater = which((q > distMode) & (is.finite(q)))
+	prob = rep(NA, length(q))
+	err = rep(NA, length(q))
+	prob[q == -Inf] = 0
+	prob[q == Inf]  = 0
+	err[q %in% c(-Inf, Inf)] = 0
+	dskewhypInt = function(q) {
+		dsghst(q, mean, sd, skew, shape)
+	}
+	for (i in qLess) {
+		intRes <- integrate(dskewhypInt, -Inf, q[i], ...)
+		prob[i] = intRes$value
+		err[i]  = intRes$abs.error
+	}
+	for (i in qGreater) {
+		intRes = integrate(dskewhypInt, q[i], Inf, ...)
+		prob[i] = intRes$value
+		err[i]  = intRes$abs.error
+	}
+	if (lower.tail == TRUE) {
+		if (length(q > distMode) > 0) {
+			prob[q > distMode] = 1 - prob[q > distMode]
+		}
+	}
+	else {
+		if (length(q <= distMode) > 0) {
+			prob[q <= distMode] = 1 - prob[q <= distMode]
+		}
+	}
+	if(log) prob = log(prob)
+	return(prob)
+}
+
+qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, ...){
+	if (!lower.tail) {
+		p <- 1 - p
+		lower.tail == TRUE
+	}
+	params = .paramGHST(skew, shape)
+	# scale the parameters
+	beta = params[3]/sd
+	delta = params[2]*sd
+	mu = params[1]*sd + mean
+	distMode = modeghst(mean, sd, skew, shape)
+	pModeDist <- psghst(distMode, mean, sd, skew, shape)
+	ans = rep(NA, length(p))
+	invalid = which(p < 0 | p > 1)
+	pFinite = which((p > 0) & (p < 1))
+	ans[p == 0] = -Inf
+	ans[p == 1] =  Inf
+	less <- which((p <= pModeDist) & (p > 0))
+	if (length(less) > 0) {
+		pLow = min(p[less])
+		xLow = distMode - .skewhypStepSize(delta, delta, beta, shape, "left")
+		while(psghst(xLow, mean, sd, skew, shape, ...) >= pLow){
+			xLow = xLow - .skewhypStepSize(distMode - xLow, delta, beta, shape, "left")
+		}
+		xRange = c(xLow, distMode)
+		zeroFn = function(x, mean, sd, skew, shape, p, ...){
+			return(psghst(x, mean, sd, skew, shape, ...) - p)
+		}
+		for(i in less){
+			ans[i] = uniroot(zeroFn, mean = mean, sd = sd, skew = skew, 
+					shape = shape, p = p[i], interval = xRange, ...)$root
+		}
+	}
+	greater = which((p > pModeDist) & (p < 1))
+	p[greater] = 1 - p[greater]
+	if(length(greater) > 0) {
+		pHigh = min(p[greater])
+		xHigh = distMode + .skewhypStepSize(delta, delta, beta, shape, "right")
+		while(psghst(xHigh, mean, sd, skew, shape, lower.tail = FALSE, ...) >= pHigh){
+			xHigh <- xHigh + .skewhypStepSize(xHigh - distMode, delta, beta, shape, "right")
+		}
+		xRange = c(distMode, xHigh)
+		zeroFn = function(x, mean, sd, skew, shape, p, ...){
+			return(psghst(x, mean, sd, skew, shape, lower.tail = FALSE, ...) - p)
+		}
+		for(i in greater){
+			ans[i] = uniroot(zeroFn, mean = mean, sd = sd, skew = skew, 
+					shape = shape, p = p[i], interval = xRange, ...)$root
+		}
+	}
 	return(ans)
 }
+####################################################
+
 
 ghstFit = function(x, control){
 	
 	f = function(pars, x){
-		return(-sum(dsghst(x, mean=pars[1], sd=pars[2], skew=pars[3], shape=pars[4], log = TRUE)))
+		return(sum(-dsghst(x, mean=pars[1], sd=pars[2], skew=pars[3], shape=pars[4], log = TRUE)))
 	}
 	x = as.numeric(x)
-	x0 = c(mean(x), sd(x), 0.2, 5)
-	fit = try(solnp(x0, fun = f, LB = c(-5, 1e-10, -80, 4.00001), UB = c(5, 10, 80, 80), control = control, x = x), 
+	x0 = c(mean(x), sd(x), 0.2, 8)
+	fit = try(solnp(x0, fun = f, LB = c(-5, 1e-10, -10, 4.001), UB = c(5, 10, 10, 25), control = control, x = x), 
 			silent = TRUE)
 	
 	# Add Names to $par
@@ -1520,18 +1638,18 @@ sghFit = function (x, zeta = 1, rho = 0, lambda = 1, include.lambda = TRUE,
 	} else {
 		
 		# LLH Function:
-		esghmle = function(x, y = x, lambda) {
-			f = -sum(log(dsgh(y, x[1], x[2], lambda, log = FALSE)))
+		esghmle = function(x, y = x, ghlambda) {
+			f = -sum(log(dsgh(y, x[1], x[2], ghlambda, log = FALSE)))
 			f
 		}
 		# LLH Optimization:
 		fit = solnp(
 				pars = c(zeta, rho), 
-				Jfun = esghmle, 
+				fun = esghmle, 
 				LB = c(eps, -0.9999), 
 				UB = c(BIG, +0.9999), 
 				y = x, 
-				lambda = lambda)
+				ghlambda = lambda)
 		fit$par = c(fit$par, lambda)
 		names(fit$par) <- c("zeta", "rho", "fix.lambda")
 		
@@ -1765,8 +1883,7 @@ rsnig <-function(n, zeta = 1, rho = 0)
 	.qnigC(p, param[1], param[2], param[3], param[4])
 }
 
-snigFit =
-		function (x, zeta = 1, rho = 0, scale = TRUE, doplot = TRUE, 
+snigFit = function (x, zeta = 1, rho = 0, scale = TRUE, doplot = TRUE, 
 				span = "auto", trace = 0, title = NULL, description = NULL, ...) 
 {   
 	
@@ -1951,7 +2068,7 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 		skew 	= 0
 		skew.LB	= -80
 		skew.UB	= 80
-		shape 	= 8
+		shape 	= 8.2
 		shape.LB = 4.1
 		shape.UB = 25
 	}
@@ -2458,13 +2575,8 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 							mu = x[2], sigma = x[3], nu = x[4], tau = x[5]))
 	}
 	if(distribution == "ghst") {
-		if(length(lambda)>1){
-			ans = apply(cbind(z, mu, sigma, shape, skew, lambda), 1, FUN=function(x) qgh(p = x[1],
-								alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = x[6]))
-		} else{
-			ans = apply(cbind(z, mu, sigma, shape, skew), 1, FUN=function(x) qgh(p = x[1],
-								alpha = x[4], beta = x[5], delta = x[3], mu = x[2], lambda = lambda))
-		}
+		ans = apply(cbind(z, mu, sigma, shape, skew), 1, FUN=function(x) qsghst(p = x[1],
+								mean = x[2], sd = x[3], skew = x[4], shape = x[5]))
 	}
 	return(ans)
 }
@@ -2508,7 +2620,7 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 		ans = djsu(y = z, mu = mu, sigma = sigma, nu = skew, tau = shape)
 	}
 	if(distribution == "ghst") {
-		ans = dgh(z, alpha = shape, beta = skew, delta = sigma, mu = mu, lambda = lambda)
+		ans = dsghst(z, mean = mu, sd = sigma, skew = skew, shape = shape)
 	}
 	return(ans)
 }
@@ -2567,15 +2679,6 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
-	if( distribution == "ghst" ){
-		pars = .paramGHST(nu = shape, betabar = skew)
-		#return(c(mu, delta, beta, nu))
-		xmu = pars[1]*sigma + mu
-		delta = pars[2]*sigma
-		beta = pars[3]/sigma
-		alpha = (abs(pars[3])+1e-12)/sigma
-		lambda = -pars[4]/2
-	}
 	ans = switch(distribution,
 		norm = dnorm(y, mean = mu, sd = sigma, log = FALSE),
 		snorm = dsnorm(y, mean = mu, sd = sigma, xi = skew),
@@ -2586,7 +2689,7 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 		nig = dnig(y, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 		ghyp = dgh(y, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 		jsu = djsu(y, mu = mu, sigma = sigma, nu = skew, tau = shape),
-		ghst = dgh(y, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
+		ghst = dsghst(y, mean = mu, sd = sigma, skew = skew, shape = shape)
 		)
 	return(ans)
 }
@@ -2609,15 +2712,6 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
-	if( distribution == "ghst" ){
-		pars = .paramGHST(nu = shape, betabar = skew)
-		#return(c(mu, delta, beta, nu))
-		xmu = pars[1]*sigma + mu
-		delta = pars[2]*sigma
-		beta = pars[3]/sigma
-		alpha = (abs(pars[3])+1e-12)/sigma
-		lambda = -pars[4]/2
-	}
 	ans = switch(distribution,
 			norm = pnorm(q, mean = mu, sd = sigma, log.p = FALSE),
 			snorm = psnorm(q, mean = mu, sd = sigma, xi = skew),
@@ -2628,7 +2722,7 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 			nig = pnig(q, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = pgh(q, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 			jsu = pjsu(q, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = pgh(q, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda)
+			ghst = psghst(q, mean = mu, sd = sigma, skew = skew, shape = shape)
 	)
 	return(ans)
 }
@@ -2651,15 +2745,6 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
-	if( distribution == "ghst" ){
-		pars = .paramGHST(nu = shape, betabar = skew)
-		#return(c(mu, delta, beta, nu))
-		xmu = pars[1]*sigma + mu
-		delta = pars[2]*sigma
-		beta = pars[3]/sigma
-		alpha = (abs(pars[3])+1e-12)/sigma
-		lambda = -pars[4]/2
-	}
 	ans = switch(distribution,
 			norm = qnorm(p, mean = mu, sd = sigma, log.p = FALSE),
 			snorm = qsnorm(p, mean = mu, sd = sigma, xi = skew),
@@ -2670,7 +2755,7 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 			nig = qnig(p, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = qgh(p, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 			jsu = qjsu(p, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = qgh(p, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
+			ghst = qsghst(p, mean = mu, sd = sigma, skew = skew, shape = shape),
 	)
 	return(ans)
 }
@@ -2693,15 +2778,6 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 		delta = pars[3]
 		xmu = pars[4]
 	}
-	if( distribution == "ghst" ){
-		pars = .paramGHST(nu = shape, betabar = skew)
-		#return(c(mu, delta, beta, nu))
-		xmu = pars[1]*sigma + mu
-		delta = pars[2]*sigma
-		beta = pars[3]/sigma
-		alpha = (abs(pars[3])+1e-12)/sigma
-		lambda = -pars[4]/2
-	}
 	ans = switch(distribution,
 			norm = rnorm(n, mean = mu, sd = sigma),
 			snorm = rsnorm(n, mean = mu, sd = sigma, xi = skew),
@@ -2712,7 +2788,7 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 			nig = rnig(n, alpha = alpha, beta = beta, delta = delta, mu = xmu),
 			ghyp = rgh(n, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda),
 			jsu = rjsu(n, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = rgh(n, alpha = alpha, beta = beta, delta = delta, mu = xmu, lambda = lambda)
+			ghst = rsghst(n, mean = mu, sd = sigma, skew = skew, shape = shape)
 	)
 	return(ans)
 }
