@@ -249,7 +249,7 @@ rugarch.test9d = function(cluster=NULL)
 		}
 	}
 	
-	z4 <- file("test9c.txt", open="wt")
+	z4 <- file("test9d.txt", open="wt")
 	sink(z4)
 	cat("\nCoefs:\n")
 	tmp1 = cbind(c(1, 0.001,0.55,0.4), colMeans(Ncoefs, na.rm = TRUE))

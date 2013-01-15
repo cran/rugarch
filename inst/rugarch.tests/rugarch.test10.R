@@ -505,7 +505,7 @@ rugarch.test10e = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 }
 
 
-rugarch.test10ef= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
+rugarch.test10f= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
 {
 	tic = Sys.time()
 	set.seed(100)

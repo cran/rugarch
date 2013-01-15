@@ -172,6 +172,8 @@
 		model$VaR.alpha = VaR.alpha
 		model$keep.coef = keep.coef
 		model$noncidx = noncidx
+		model$rollind = rollind
+		model$out.sample = out.sample
 		forecast = tmp
 		toc = Sys.time()-tic
 		model$elapsed = toc
@@ -221,6 +223,8 @@
 		model$keep.coef = keep.coef
 		model$noncidx = noncidx
 		model$coef = cf
+		model$rollind = rollind
+		model$out.sample = out.sample
 		forecast = list(VaR = VaR.matrix, density = forc)
 	}
 	toc = Sys.time()-tic
@@ -399,6 +403,8 @@
 			model$VaR.alpha = VaR.alpha
 			model$keep.coef = keep.coef
 			model$noncidx = noncidx
+			model$rollind = rollind
+			model$out.sample = out.sample
 			forecast = forecast
 			toc = Sys.time()-tic
 			model$elapsed = toc
@@ -447,6 +453,8 @@
 			model$VaR.alpha = VaR.alpha
 			model$keep.coef = keep.coef
 			model$noncidx = noncidx
+			model$rollind = rollind
+			model$out.sample = out.sample
 			model$coef = cf
 			forecast = list(VaR = VaR.matrix, density = forc)
 		}
@@ -466,7 +474,7 @@
 # forecast performance measures
 .ugarchrollreport = function(object, type = "VaR", VaR.alpha = 0.01, conf.level = 0.95)
 {
-	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(!is.null(object@model$noncidx)) stop("\nObject contains non-converged estimation windows.")
 	switch(type,
 			VaR = .rollVaRreport1(object, VaR.alpha, conf.level),
 			fpm = .rollfpmreport1(object))

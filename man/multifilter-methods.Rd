@@ -13,7 +13,7 @@ Method for multiple filtering of a variety of univariate GARCH and ARFIMA models
 }
 \usage{
 multifilter(multifitORspec, data = NULL, out.sample = 0, n.old = NULL, 
-cluster = NULL, ...)
+rec.init = "all", cluster = NULL, ...)
 }
 \arguments{
 \item{multifitORspec}{
@@ -33,6 +33,10 @@ out of sample forecasting (as in \code{\link{ugarchfit}} function).}
 \item{n.old}{
 For comparison with uGARCHfit or ARFIMAfit models using the out.sample argument,
 this is the length of the original dataset (see details).}
+\item{rec.init}{
+Recursion initialization method (as in \code{\link{ugarchfit}} function), valid
+only for GARCH models, and can be a vector of length equal to the number of 
+assets being modelled.}
 \item{cluster}{
 A cluster object created by calling \code{makeCluster} from the parallel 
 package. If it is not NULL, then this will be used for parallel estimation.

@@ -59,7 +59,7 @@
 }
 
 .multifilterarfima1 = function(multifitORspec, data = NULL, out.sample = 0, 
-		n.old = NULL, cluster = NULL, ...)
+		n.old = NULL, rec.init = "all", cluster = NULL, ...)
 {
 	fitlist = multifitORspec
 	n = length(fitlist@fit)
@@ -104,7 +104,7 @@
 }
 
 .multifilterarfima2 = function(multifitORspec, data = NULL, out.sample = 0, 
-		n.old = NULL, cluster = NULL, ...)
+		n.old = NULL, rec.init = "all", cluster = NULL, ...)
 {
 	speclist = multifitORspec
 	n = length(speclist@spec)

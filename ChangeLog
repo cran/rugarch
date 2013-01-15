@@ -1,3 +1,15 @@
+2012-01-15  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.0-16.
+	* Fix to bug in autoarfima for method partial (convergence check
+	failed)
+	* Change initialization of arfima process for values < armaOrder to a
+	constant.
+	* Added extra M(1,2) and M(2,1) to the Hong and Li test (HLTest) report 
+	which are related to ARCH in mean and leverage effects respectively.
+	* Fix in some methods in the presence of variance targeting.
+	* Fix to some simulation methods when using external regressors in variance
+	equation and unconditional choice for starting the recursion.
+
 2012-11-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-14.
 	* Removed use of custom function environments in the estimation. Passing

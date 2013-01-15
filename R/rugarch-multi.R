@@ -59,8 +59,8 @@
 # a multifit function possible utilizing parallel execution returning a fitlist
 # object
 .multifitgarch = function(multispec, data, out.sample = 0, solver = "solnp", 
-		solver.control = list(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), 
-		cluster = NULL, ...)
+		solver.control = list(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, 
+				rec.init = "all"), cluster = NULL, ...)
 {
 	n = length(multispec@spec)
 	if(is.null(data)) stop("\nmultifit GARCH-->error: multifit requires a data object", call. = FALSE)
@@ -164,7 +164,7 @@
 	
 	if( !is.null(cluster) ){
 		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("speclist", "data", "out.sample", "n.old", "rec.init"), envir = environment())			
+		parallel::clusterExport(cluster, c("speclist", "data", "out.sample", "n.old", "rec.init"), envir = environment())
 		filterlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
 					ugarchfilter(data = data[, i, drop = FALSE], spec = speclist@spec[[i]], 
 							out.sample =  out.sample[i], n.old = n.old, rec.init = rec.init[i])

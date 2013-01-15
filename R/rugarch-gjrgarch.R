@@ -154,13 +154,23 @@
 		sol = solution$sol
 		hess = solution$hess
 		timer = Sys.time()-tic
-		if(!is.null(sol$par)) ipars[estidx, 1] = sol$par else ipars[estidx, 1] = NA
-		if(sum(ipars[,2]) == 0){
-			if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
-			if(modelinc[6] > 0){
-				ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+		if(!is.null(sol$par)){
+			ipars[estidx, 1] = sol$par
+			if(modelinc[7]==0){
+				# call it once more to get omega
+				tmpx = .gjrgarchLLH(sol$par, arglist)
+				ipars[pidx["omega",1], 1] = get("omega", garchenv)
 			}
-			ipars[pidx["omega",1],1] = ipars[pidx["omega",1],1] * dscale^2
+			if(sum(ipars[,2]) == 0){
+				if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
+				if(modelinc[6] > 0){
+					ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+				}
+				ipars[pidx["omega",1],1] = ipars[pidx["omega",1],1] * dscale^2
+			}
+			
+		} else{
+			ipars[estidx, 1] = NA
 		}
 		arglist$ipars = ipars
 		convergence = sol$convergence
@@ -197,6 +207,9 @@
 		fit$ipars[, 4] = ipars2[, 4]
 		fit$ipars[, 2] = ipars2[, 2]
 		fit$ipars[, 5:6] = ipars2[,5:6]
+		# make sure omega is now included (for working with object post-estimation)
+		fit$ipars["omega", 3] = 1
+		model$pars["omega", 3] = 1
 	} else{
 		fit$message = sol$message
 		fit$convergence = 1
@@ -270,6 +283,7 @@
 	} else{
 		mvar2 = ifelse(!is.na(modelinc[22]), modelinc[22]/dscale, mvar)
 		ipars[idx["omega",1],1] = mvar2 * (1 - persist) - mv
+		assign("omega", ipars[idx["omega",1],1], garchenv)
 	}
 	if(is.na(hEst) | !is.finite(hEst) | is.nan(hEst)) hEst = var(data) * (1 - persist)
 	# if we have external regressors in variance equation we cannot have
@@ -731,7 +745,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, fit@model$ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	
@@ -774,8 +788,8 @@
 	}
 	if(is.na(presigma[1])){
 		if(startMethod[1] == "unconditional"){
-			persist = persistence(fit)
-			hEst = (ipars[idx["omega",1],1]/abs(1-persist))^(1/2)
+			#persist = persistence(fit)
+			hEst = uncvariance(fit)^(1/2)
 			presigma = as.numeric(rep(hEst, times = m))}
 		else{
 			presigma = tail(sigma, m)
@@ -936,8 +950,8 @@
 	}
 	if(is.na(presigma[1])){
 		if(startMethod[1] == "unconditional"){
-			persist = persistence(fit)
-			hEst = sqrt(ipars[idx["omega",1],1]/abs(1-persist))
+			#persist = persistence(fit)
+			hEst = uncvariance(fit)^(1/2)
 			presigma = as.numeric(rep(hEst, times = m))}
 		else{
 			presigma = tail(sigma, m)
@@ -1158,7 +1172,7 @@
 		preres = matrix(preresiduals, nrow = m)
 	}
 	if(is.na(presigma[1])){
-		hEst = (ipars[idx["omega",1],1]/abs(1-persist))^(1/2)
+		hEst = uncvariance(spec)^(1/2)
 		presigma = as.numeric(rep(hEst, times = m))
 	}
 
@@ -1323,7 +1337,7 @@
 		preres = matrix(preresiduals[1:m], nrow = m, ncol = m.sim)
 	}
 	if(is.na(presigma[1])){
-		hEst = (ipars[idx["omega",1],1]/abs(1-persist))^(1/2)
+		hEst = uncvariance(spec)^(1/2)
 		presigma = as.numeric(rep(hEst, times = m))
 	}
 	

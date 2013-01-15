@@ -203,6 +203,8 @@
 		fit$ipars[, 4] = ipars2[, 4]
 		fit$ipars[, 2] = ipars2[, 2]
 		fit$ipars[, 5:6] = ipars2[,5:6]
+		fit$ipars["omega", 3] = 1
+		model$pars["omega", 3] = 1
 	} else{
 		fit$message = sol$message
 		fit$convergence = 1
@@ -744,7 +746,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, fit@model$ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	
@@ -942,8 +944,8 @@
 	if(is.na(presigma[1])){
 		if(startMethod[1] == "unconditional"){
 			kappa = 1
-			persist = (sum(ipars[idx["alpha",1]:idx["alpha",2], 1])*kappa + sum(ipars[idx["beta",1]:idx["beta",2], 1]))
-			hEst = (ipars[idx["omega",1],1]/abs(1-persist))^(1/2)
+			#persist = (sum(ipars[idx["alpha",1]:idx["alpha",2], 1])*kappa + sum(ipars[idx["beta",1]:idx["beta",2], 1]))
+			hEst = uncvariance(fit)^(1/2)
 			presigma = as.numeric(rep(hEst, m))}
 		else{
 			presigma  = tail(sigma, m)

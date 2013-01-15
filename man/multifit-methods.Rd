@@ -11,7 +11,8 @@ Method for multiple fitting a variety of univariate GARCH and ARFIMA models.
 }
 \usage{
 multifit(multispec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), cluster = NULL, ...)
+fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = "all"), 
+cluster = NULL, ...)
 }
 \arguments{
 \item{multispec}{
@@ -34,7 +35,8 @@ optimization. The fixed.se argument controls whether standard errors should be
 calculated for those parameters which were fixed (through the fixed.pars 
 argument of the \code{\link{ugarchspec}} or \code{\link{arfimaspec}} functions). 
 The scale parameter controls whether the data should be scaled before being 
-submitted to the optimizer.}
+submitted to the optimizer, while the rec.init option controls the recursion
+initialization method and only valid for GARCH models.}
 \item{cluster}{
 A cluster object created by calling \code{makeCluster} from the parallel 
 package. If it is not NULL, then this will be used for parallel estimation.

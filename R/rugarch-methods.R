@@ -3442,8 +3442,8 @@ setMethod("multispec", signature(speclist = "vector"),  definition = .multispeca
 
 
 multifit = function(multispec, data, out.sample = 0, solver = "solnp", 
-		solver.control = list(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0), 
-		cluster = NULL, ...)
+		solver.control = list(), fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, 
+				rec.init = "all"), cluster = NULL, ...)
 {
 	UseMethod("multifit")
 }
@@ -3452,7 +3452,7 @@ setMethod("multifit", signature(multispec = "uGARCHmultispec"),  definition = .m
 
 
 multifilter = function(multifitORspec, data = NULL, out.sample = 0, n.old = NULL, 
-		cluster = NULL, ...)
+		rec.init = 'all', cluster = NULL, ...)
 {
 	UseMethod("multifilter")
 }

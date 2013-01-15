@@ -824,7 +824,7 @@ rugarch.test1h = function(cluster=NULL){
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
 		parallel::clusterEvalQ(cluster, require(fracdiff))
-		parallel::clusterExport(cluster, c("Data", "spec"))
+		parallel::clusterExport(cluster, c("Data", "spec"), envir = environment())
 		sol = parallel::parLapply(cluster, as.list(1:50), fun = function(i){
 					fit = arfimafit(spec, data = Data[,i], solver="hybrid")
 					if(fit@fit$convergence == 0) coefx = coef(fit) else coefx = rep(NA, 6)
@@ -888,7 +888,7 @@ rugarch.test1h = function(cluster=NULL){
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
 		parallel::clusterEvalQ(cluster, require(fracdiff))
-		parallel::clusterExport(cluster, c("Data", "spec"))
+		parallel::clusterExport(cluster, c("Data", "spec"), envir = environment())
 		sol = parallel::parLapply(cluster, as.list(1:50), fun = function(i){
 					fit = arfimafit(spec, data = Data[,i], solver="hybrid")
 					if(fit@fit$convergence == 0) coefx = coef(fit) else coefx = rep(NA, 6)

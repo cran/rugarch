@@ -211,11 +211,7 @@ void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 	//ARMA initialization
 	if(model[1]>0 || model[2]>0)
 	{
-		if(i<model[1])
-		{
-			condm[i]=x[i];
-		}
-		else
+		if(i>=model[1])
 		{
 			if(model[1]>0)
 			{

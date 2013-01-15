@@ -680,7 +680,7 @@
 .sigmat = function(spec, origdata, m)
 {
 	flt = ugarchfilter(data = origdata, spec = spec)
-	st = tail(flt@filter$sigma, m)
+	st = tail(sigma(flt), m)
 	return(st)
 }
 

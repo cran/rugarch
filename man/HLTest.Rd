@@ -31,9 +31,10 @@ i.i.d and uniformity for a series of PIT transformed data. To achieve this, it
 tests for misspecification in the conditional moments of the model transformed 
 standardized residuals, and is distributed as N(0, 1) under the Null of 
 a correctly specified model. These moment tests are reported as \sQuote{M(1,1)} 
-to \sQuote{M(4,4)} in the output, while \sQuote{W} is the Portmanteu type test 
-statistic for general misspecification (using p lags) and also distributed as 
-N(0, 1) under the Null of a correctly specified model. Only upper tail critical 
+to \sQuote{M(4,4)} in the output, with \sQuote{M(1,2)} related to ARCH-in-mean
+effects, and \sQuote{M(2,1)} to leverage, while \sQuote{W} is the Portmanteu type 
+test statistic for general misspecification (using p lags) and also distributed 
+as N(0, 1) under the Null of a correctly specified model. Only upper tail critical 
 values are used in this test. The interested reader is referred to the paper 
 for more details.
 }

@@ -255,6 +255,7 @@ lossfn.ret = function(realized, forecast)
 	return(lossdf)
 }
 
+
 .meanlossfn = function(lossdf)
 {
 	n = dim(lossdf)[1]
@@ -574,11 +575,13 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 
 # currenly only quartic kernel implemented
 # Hong and Li Test
+# M(1,2) test for ARCH-in-Mean 
+# M(2,1) tests for leverage
 HLTest = function(PIT, lags = 4, kernel = "quartic", conf.level = 0.95){
 	p = lags
 	Vcon = 2*(50/49 - 300/294 + 1950/1960 - 900/1568 + 450/2304)^2
 	Qhatvector = matrix(0, p,1)
-	res = rep(0, 5)
+	res = rep(0, 7)
 	Acon2 = integrate(funb, 0, 1)$value
 	T = length(PIT)
 	hpit = sd(PIT) * T^(-1/6)
@@ -588,26 +591,34 @@ HLTest = function(PIT, lags = 4, kernel = "quartic", conf.level = 0.95){
 		Mhat1 = gauss_legendre2D(f = ghat, 0,1,0,1, pit = PIT, i = i, T = T, hpit = hpit) 			
 		Qhatvector[i,1] = ( (T-i)*hpit*Mhat1 - hpit*Acon_1 )/sqrt(Vcon)
 	}
-	res[5] = sum(Qhatvector[,1])/sqrt(p)
+	res[7] = sum(Qhatvector[,1])/sqrt(p)
+	
 	res[1] = Momstat(1,1, p, PIT, T)
 	res[2] = Momstat(2,2, p, PIT, T)
 	res[3] = Momstat(3,3, p, PIT, T)
 	res[4] = Momstat(4,4, p, PIT, T)
-	names(res) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "W")
+	res[5] = Momstat(1,2, p, PIT, T)
+	res[6] = Momstat(2,1, p, PIT, T)
+	
+	names(res) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "M(1,2)", "M(2,1)", "W")
 	Decision = NULL
-	RejectH0 = as.logical( res>rep( qnorm(conf.level), 5 ))
+	RejectH0 = as.logical( res>rep( qnorm(conf.level), 7 ))
 	Decision[1] = ifelse(RejectH0[1], "Reject H0", "Fail to Reject H0")
 	Decision[2] = ifelse(RejectH0[2], "Reject H0", "Fail to Reject H0")
 	Decision[3] = ifelse(RejectH0[3], "Reject H0", "Fail to Reject H0")
 	Decision[4] = ifelse(RejectH0[4], "Reject H0", "Fail to Reject H0")
 	Decision[5] = ifelse(RejectH0[5], "Reject H0", "Fail to Reject H0")
-	names(Decision) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "W")
+	Decision[6] = ifelse(RejectH0[6], "Reject H0", "Fail to Reject H0")
+	Decision[7] = ifelse(RejectH0[7], "Reject H0", "Fail to Reject H0")
+	names(Decision) = c("M(1,1)", "M(2,2)", "M(3,3)", "M(4,4)", "M(1,2)", "M(2,1)", "W")
 	H0 = NULL
-	H0[1] = "M(1) Correctly Specified"
-	H0[2] = "M(2) Correctly Specified"
-	H0[3] = "M(3) Correctly Specified"
-	H0[4] = "M(4) Correctly Specified"
-	H0[5] = "Model Correctly Specified"
+	H0[1] = "M(1,1) Correctly Specified"
+	H0[2] = "M(2,2) Correctly Specified"
+	H0[3] = "M(3,3) Correctly Specified"
+	H0[4] = "M(4,4) Correctly Specified"
+	H0[5] = "M(1,2) Correctly Specified"
+	H0[6] = "M(2,1) Correctly Specified"
+	H0[7] = "Model Correctly Specified"
 	return(list(statistic = res, H0 = H0, Decision = Decision))
 }
 
@@ -682,14 +693,12 @@ Rcc1 = function(j, m, ll, pit, T){
 gauss_legendre2D_helper <- function(f, x, a2,b2, nodes, weights, ...) {
 	C <- (b2 - a2) / 2
 	D <- (b2 + a2) / 2
-	
 	sum <- 0.0
 	for (i in 1:length(nodes))
 	{
 		y <- nodes[i]*C + D
 		sum <- sum + weights[i] * f(c(x,y), ...)
 	}
-	
 	return(C * sum)
 }
 
@@ -716,19 +725,7 @@ gauss_legendre2D <- function(f, a1,b1, a2,b2, ...) {
 }
 #####################################################################################
 
-lossfn.ret = function(realized, forecast)
-{
-	x = cbind(realized, forecast)
-	#exc = which(is.na(x), arr.ind = TRUE)
-	#if(length(exc)>0) x = x[-exc[,1],]
-	mse  = (x[,1] - x[,2])^2
-	mad = abs(x[,1] - x[,2])
-	#hmse = (x[,1]*(1/x[,2]))^2
-	# we count zero as positive for investment purposes
-	dac = as.integer(.signpluszero(x[,1])==.signpluszero(x[,2]))
-	lossdf = data.frame(cbind(mse, mad, dac))
-	return(lossdf)
-}
+
 
 .meanlossfn = function(lossdf)
 {
@@ -881,4 +878,143 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 	ans = log(x)
 	if(!is.finite(ans)) ans = sign(ans) * 1e10
 	ans
+}
+
+###############################################################################
+# MCS Test of Hansen, Lunde and Nason
+# Partially transalted from Kevin Sheppard's mcs matlab function
+mcs = function(losses, alpha, nboot = 100, nblock = 1, boot = c("stationary", "block"))
+{
+	n = NROW(losses)
+	m = NCOL(losses)
+	bsdat = bootstrap(1:n, nboot, nblock, type = boot[1])$B
+	dijbar = matrix(0, m, m)
+	for(j in 1:m) dijbar[j, ] = colMeans(losses - losses[,j])
+	dijbarstar = array(0, dim = c(m, m, nboot))
+	for(i in 1:nboot){
+		tmp = colMeans(losses[bsdat[,i],,drop = FALSE])
+		for(j in 1:m){
+			dijbarstar[j,,i] = tmp - tmp[j]
+		}
+	}
+	
+	tmp = array(NA, dim = c(m, m, nboot))
+	for(i in 1:nboot) tmp[,,i] = dijbar
+	xtmp = ((dijbarstar - tmp)^2)
+	vardijbar = matrix(0, m, m)
+	for(i in 1:nboot) vardijbar = vardijbar + xtmp[,,i]
+	vardijbar = vardijbar/nboot
+	vardijbar = vardijbar + diag(m)
+	tmp2 = array(NA, dim = c(m, m, nboot))
+	for(i in 1:nboot) tmp2[,,i] = sqrt(vardijbar)
+	z0=(dijbarstar-tmp)/tmp2
+	zdata0=dijbar/sqrt(vardijbar)
+	excludedR = matrix(0, m,1)
+	pvalsR = matrix(1,m,1)
+	for(i in 1:(m-1)){
+		included = setdiff(1:m,excludedR)
+		mx = length(included)
+		z = z0[included, included,]
+		empdistTR = apply(abs(z), 3, function(x) max(x))
+		zdata = zdata0[included,included]
+		TR = max(.Call("colMaxRcpp", zdata, PACKAGE = "rugarch"))
+		pvalsR[i] = mean(empdistTR>TR)
+		dibar = colMeans(dijbar[included,included])*(mx/(mx-1))
+		dibstar = apply(dijbarstar[included,included,,drop=FALSE], 3, function(x) colMeans(x))*(mx/(mx-1))
+		vardi=colMeans((t(dibstar)-matrix(dibar, nrow = nboot, ncol = mx, byrow = TRUE))^2)
+		tx=dibar/sqrt(vardi)
+		temp = max(tx)
+		modeltoremove = which(tx == max(tx))[1]
+		excludedR[i]=included[modeltoremove]
+	}
+	maxpval=pvalsR[1]
+	for(i in 2:m){
+		if(pvalsR[i]<maxpval){
+			pvalsR[i] = maxpval
+		} else{
+			maxpval = pvalsR[i]
+		}
+	}
+	excludedR[NROW(excludedR)] = setdiff(1:m,excludedR)
+	pl = which(pvalsR >= alpha)[1]
+	includedR = excludedR[pl:m]
+	if(pl==1) excludedR = NULL else excludedR = excludedR[1:(pl-1)]
+	excludedSQ = matrix(0,m,1)
+	pvalsSQ = matrix(1,m,1)
+	for(i in 1:(m-1)){
+		included = setdiff(1:m,excludedSQ)
+		mx = length(included)
+		z = z0[included,included,]
+		empdistTSQ = apply(z^2, 3, function(x) sum(x))/2
+		zdata = zdata0[included,included]
+		TSQ = sum(colSums(zdata^2))/2
+		pvalsSQ[i] = mean(empdistTSQ>TSQ)
+		dibar = colMeans(dijbar[included,included])*(mx/(mx-1))
+		dibstar = apply(dijbarstar[included,included,,drop=FALSE], 3, function(x) colMeans(x))*(mx/(mx-1))
+		vardi = colMeans((t(dibstar)-matrix(dibar, nrow = nboot, ncol = mx, byrow = TRUE))^2)
+		tx = dibar/sqrt(vardi)
+		temp = max(tx)
+		modeltoremove = which(tx == max(tx))[1] 
+		excludedSQ[i]=included[modeltoremove]
+	}
+	maxpval = pvalsSQ[1]
+	for( i in 2:m){
+		if(pvalsSQ[i]<maxpval){
+			pvalsSQ[i] = maxpval
+		} else{
+			maxpval = pvalsSQ[i]
+		}
+	}
+	excludedSQ[NROW(excludedSQ)] = setdiff(1:m,as.numeric(excludedSQ))
+	pl=which(pvalsSQ>=alpha)[1]
+	includedSQ = excludedSQ[pl:m]
+	if(pl==1) excludedSQ = NULL else excludedSQ = excludedSQ[1:(pl-1)]	
+	return(list(includedR = includedR, pvalsR = pvalsR, excludedR = excludedR, 
+					includedSQ = includedSQ, pvalsSQ = pvalsSQ, excludedSQ = excludedSQ))
+}
+
+bootstrap = function(data, nboot = 10, nblock = 5, type = c("stationary", "block"))
+{
+	type = match.arg(type[1], c("stationary", "block"))
+	ans = switch(type,
+			stationary = .stationary_bootstrap(data, nboot, nblock),
+			block = .block_bootstrap(data, nboot, nblock))
+	return(ans)
+}
+
+.stationary_bootstrap = function(data, nboot = 100, nblock = 1){
+	n = length(data)
+	p = 1/nblock
+	idx = matrix(0, n, nboot)
+	idx[1, ] = ceiling(n * matrix(runif(1*nboot), 1, nboot))
+	sel_idx = matrix(runif(n*nboot), n, nboot)<p
+	cn = sum(colSums(sel_idx))
+	idx[sel_idx] = ceiling(matrix(runif(1*cn), 1, cn)*n)
+	for(i in 2:n){
+		idx[i,!sel_idx[i,]] = idx[i-1,!sel_idx[i,]]+1
+	}
+	data = c(data, data)
+	B = apply(idx, 2, FUN = function(x) data[x])
+	return(list(B = B, idx = idx))
+}
+
+.block_bootstrap = function(data, nboot, nblock){
+	n = length(data)
+	data = c(data, data[1:(nblock-1)])
+	s = ceiling(n/nblock)
+	S = floor(matrix(runif(s*nboot), s, nboot)*n)+1
+	idx = matrix(0, s*nblock, nboot)
+	A = repmat( 0:(nblock-1), 1, nboot)
+	iter=1
+	for(i in seq(1, n, by = nblock)){
+		idx[i:(i+nblock-1),] = repmat(S[iter, ,drop = FALSE], nblock, 1) + A
+		iter = iter + 1
+	}
+	idx = idx[1:n, ,drop = FALSE]
+	B = apply(idx, 2, FUN = function(x) data[x])
+	return(list(B = B, idx = idx))
+}
+
+repmat = function(a,n,m){
+	kronecker(matrix(1,n,m),a)
 }

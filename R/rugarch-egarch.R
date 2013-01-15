@@ -152,14 +152,24 @@
 		sol = solution$sol
 		hess = solution$hess
 		timer = Sys.time()-tic
-		if(!is.null(sol$par)) ipars[estidx, 1] = sol$par else ipars[estidx, 1] = NA
-		if(sum(ipars[,2]) == 0){
-			if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
-			if(modelinc[6] > 0){
-				ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+		if(!is.null(sol$par)){
+			ipars[estidx, 1] = sol$par
+			if(modelinc[7]==0){
+				# call it once more to get omega
+				tmpx = .egarchLLH(sol$par, arglist)
+				ipars[pidx["omega",1], 1] = get("omega", garchenv)
 			}
-			ipars[pidx["omega",1], 1] = ipars[pidx["omega",1],1] * dscale^2
+			if(sum(ipars[,2]) == 0){
+				if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
+				if(modelinc[6] > 0){
+					ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+				}
+				ipars[pidx["omega",1], 1] = ipars[pidx["omega",1],1] * dscale^2
+			}
+		} else{
+			ipars[estidx, 1] = NA
 		}
+
 		arglist$ipars = ipars
 		convergence = sol$convergence
 		if(convergence != 0) warning("\nugarchfit-->warning: solver failer to converge.")
@@ -196,6 +206,9 @@
 		fit$ipars[, 4] = ipars2[, 4]
 		fit$ipars[, 2] = ipars2[, 2]
 		fit$ipars[, 5:6] = ipars2[,5:6]
+		# make sure omega is now included (for working with object post-estimation)
+		fit$ipars["omega", 3] = 1
+		model$pars["omega", 3] = 1
 	} else{
 		fit$message = sol$message
 		fit$convergence = 1
@@ -263,6 +276,7 @@
 	if(modelinc[7]==0){
 		mvar2 = ifelse(!is.na(modelinc[22]), modelinc[22]/dscale, mvar)
 		ipars[idx["omega",1],1] = log(mvar2)*max(1-persist, 0.001) - mv
+		assign("omega", ipars[idx["omega",1],1], garchenv)
 	}
 	if(is.na(hEst) | !is.finite(hEst) | is.nan(hEst)) hEst = var(data)
 	# if we have external regressors in variance equation we cannot have
@@ -716,7 +730,7 @@
 	distribution = model$modeldesc$distribution
 	
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, fit@model$ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	kappa = egarchKappa(ipars[idx["ghlambda",1],1], ipars[idx["shape",1],1], ipars[idx["skew",1],1], distribution)

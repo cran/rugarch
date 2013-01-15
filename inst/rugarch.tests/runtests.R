@@ -74,7 +74,7 @@
 
 	testdesc[[8]][1] = "Parameter Distribution Tests"
 	testdesc[[8]][2] = "fGARCH/NAGARCH (Non recursive)"
-	testdesc[[8]][3] = "fGARCH/NAGARCH (recursive)"
+	testdesc[[8]][3] = "fGARCH/ALLGARCH (recursive)"
 	testdesc[[8]][4] = "ARFIMA-GARCH Simulation/Fitting Checks"
 	
 	if(is.na(testdesc[[test]][zt])) stop(paste("\nInvalid subtest number (valid range is a:", alp[length(testdesc[[test]])], ")", sep=""))

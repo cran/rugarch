@@ -110,14 +110,14 @@
 	zrf = as.double(zrf)
 	data = as.double(data)	
 	# flatten exogenous matrix	
-	if(model[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = 0	
-	z = as.vector(rep(0, T), mode="numeric")
-	h = as.vector(rep(0, T), mode="numeric")
+	if(model[6]>0) mexdata = as.double(as.vector(mexdata)) else mexdata = as.double(0)	
+	z = double(T)
+	h = double(T)
 	res = as.double(res)
-	constm = as.double(as.vector(rep(0, T)))
-	condm = as.double(as.vector(rep(0, T)))
-	llh = as.double(rep(0, 1))
-	LHT = as.vector(rep(0, T), mode="numeric")
+	constm = double(T)
+	condm = double(T)
+	llh = double(1)
+	LHT = double(T)
 	
 	ans = try(.C("arfimafitC", model = as.integer(model), pars = as.double(pars), 
 					idx = as.integer(idx), sigma = sigma, x = data, res = res, 

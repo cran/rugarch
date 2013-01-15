@@ -14,13 +14,6 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
-.onLoad <- function(lib, pkg) {
-	if(interactive() || getOption("verbose"))
-		packageStartupMessage(sprintf(
-						"Package %s (%s) loaded.  To cite, see citation(\"%s\")\n",
-						pkg, utils::packageDescription(pkg)$Version, pkg))
-}
-
 .onUnload<-function(libpath)
 {
     library.dynam.unload("rugarch", libpath)

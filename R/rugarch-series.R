@@ -52,7 +52,7 @@
 	x = unclass(data)
 	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
 	xdata = as.numeric(x)
-	rdates = .makedate(as.character(index(data)))
+	rdates = .makedate(as.character(zoo::index(data)))
 	if(rdates$status){
 		xdates = rdates$dates
 		dformat = rdates$dformat
@@ -67,7 +67,7 @@
 	x = unclass(data)
 	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
 	xdata = as.numeric(x)
-	rdates = .makedate(as.character(index(data)))
+	rdates = .makedate(as.character(zoo::index(data)))
 	if(rdates$status){
 		xdates = rdates$dates
 		dformat = rdates$dformat

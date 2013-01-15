@@ -155,19 +155,28 @@
 		sol = solution$sol
 		hess = solution$hess
 		timer = Sys.time()-tic
-		if(!is.null(sol$par)) ipars[estidx, 1] = sol$par else ipars[estidx, 1] = NA
-		if(sum(ipars[,2]) == 0){
-			if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
-			if(modelinc[6] > 0){
-				ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+		if(!is.null(sol$par)){
+			ipars[estidx, 1] = sol$par
+			if(modelinc[7]==0){
+				# call it once more to get omega
+				tmpx = .sgarchLLH(sol$par, arglist)
+				ipars[pidx["omega",1], 1] = get("omega", garchenv)
 			}
-			ipars[pidx["omega",1],1] = ipars[pidx["omega",1],1] * dscale^2
-		}
-		# make sure to add last beta to ipars
-		if(modelinc[9] == 1){
-			ipars[pidx["beta", 2], 1] = 1 - sum(ipars[pidx["alpha", 1]:pidx["alpha", 2], 1])
+			if(sum(ipars[,2]) == 0){
+				if(modelinc[1] > 0) ipars[pidx["mu",1]:pidx["mu",2], 1] = ipars[pidx["mu",1]:pidx["mu",2], 1] * dscale
+				if(modelinc[6] > 0){
+					ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] = ipars[pidx["mxreg", 1]:pidx["mxreg", 2], 1] * dscale
+				}
+				ipars[pidx["omega",1],1] = ipars[pidx["omega",1],1] * dscale^2
+			}
+			# make sure to add last beta to ipars
+			if(modelinc[9] == 1){
+				ipars[pidx["beta", 2], 1] = 1 - sum(ipars[pidx["alpha", 1]:pidx["alpha", 2], 1])
+			} else{
+				ipars[pidx["beta", 2], 1] = 1 - sum(ipars[pidx["alpha", 1]:pidx["alpha", 2], 1]) - sum(ipars[pidx["beta", 1]:(pidx["beta", 2]-1), 1])
+			}
 		} else{
-			ipars[pidx["beta", 2], 1] = 1 - sum(ipars[pidx["alpha", 1]:pidx["alpha", 2], 1]) - sum(ipars[pidx["beta", 1]:(pidx["beta", 2]-1), 1])
+			ipars[estidx, 1] = NA
 		}
 		arglist$ipars = ipars
 		convergence = sol$convergence
@@ -207,6 +216,8 @@
 		fit$ipars[, 4] = ipars2[, 4]
 		fit$ipars[, 2] = ipars2[, 2]
 		fit$ipars[, 5:6] = ipars2[,5:6]
+		fit$ipars["omega", 3] = 1
+		model$pars["omega", 3] = 1
 	} else{
 		fit$message = sol$message
 		fit$convergence = 1
@@ -278,6 +289,7 @@
 	} else{
 		mvar2 = ifelse(!is.na(modelinc[22]), modelinc[22]/dscale, mvar)
 		ipars[idx["omega",1],1] = mvar2 * (1 - persist) - mv
+		assign("omega", ipars[idx["omega",1],1], garchenv)
 	}
 	
 	if(is.na(hEst) | !is.finite(hEst) | is.nan(hEst)) hEst = var(data) * (1 - persist)
@@ -727,7 +739,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, fit@model$ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	

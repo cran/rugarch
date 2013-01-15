@@ -60,3 +60,14 @@ SEXP hessian2sided(SEXP fun, SEXP x, SEXP H, SEXP deps, SEXP gminus, SEXP gplus)
 	 }
 	 return R_NilValue;
 }
+
+SEXP colMaxRcpp(SEXP X_){
+	Rcpp::NumericMatrix X(X_);
+	int n = X.ncol();
+	Rcpp::NumericVector V(n);
+	for (int i=0; i<n; i++) {
+	Rcpp::NumericVector W = X.column(i);
+	V[i] = *std::max_element(W.begin(), W.end());
+	}
+	return(V);
+}

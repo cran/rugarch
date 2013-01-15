@@ -238,14 +238,7 @@ void arfimafitC(int *model, double *pars, int *idx, double *x, double *res, doub
 	int i;
 	double lk=0;
 	double hm = 0;
-	for(i=0; i<*m; i++)
-	{
-		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, hm, *m, i, *T);
-		z[i] = res[i]/fabs(pars[idx[6]]);
-		LHT[i] = log(garchdistribution(z[i], fabs(pars[idx[6]]), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
-		lk = lk - LHT[i];
-	}
-	for (i=*m; i<*T; i++)
+	for (i=0; i<*T; i++)
 	{
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, hm, *m, i, *T);
 		z[i] = res[i]/fabs(pars[idx[6]]);

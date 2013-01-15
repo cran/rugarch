@@ -603,7 +603,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, NULL, fit@model$ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, NULL, ipars, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	Sigma = ipars[idx["sigma", 1], 1]
 	if(N < n.start){
@@ -1412,7 +1412,7 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	if( !is.null(cluster) ){
 		parallel::clusterEvalQ(cluster, library(rugarch))
 		parallel::clusterExport(cluster, c("d", "Data", "n", "solver", "solver.control", 
-						"fit.control"), envir = environment)
+						"fit.control"), envir = environment())
 		fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
 						spec = arfimaspec(
 								mean.model = list(armaOrder = c(d[i,1], d[i,2]),
@@ -1423,7 +1423,7 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 						fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
 										solver.control = solver.control, fit.control = fit.control), 
 								silent = TRUE)
-						if( !is(fit, "try-error") && fit$convergence!=0 && solver == "solnp" ){
+						if( !is(fit, "try-error") && fit@fit$convergence!=0 && solver == "solnp" ){
 							fit = try(arfimafit(spec = spec, data = Data, 
 											solver = "nlminb", solver.control = list(trace=0), 
 											fit.control = fit.control), silent = TRUE)
@@ -1441,7 +1441,7 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 					fit = try(arfimafit(spec = spec, data = Data, solver = solver, 
 									solver.control = solver.control, fit.control = fit.control), 
 							silent = TRUE)
-					if( !is(fit, "try-error") && fit$convergence!=0 && solver == "solnp" ){
+					if( !is(fit, "try-error") && fit@fit$convergence!=0 && solver == "solnp" ){
 						fit = try(arfimafit(spec = spec, data = Data, 
 										solver = "nlminb", solver.control = list(trace=0), 
 										fit.control = fit.control), silent = TRUE)

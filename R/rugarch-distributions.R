@@ -1764,13 +1764,13 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 	
 	# Evaluate NIG cdf by calling C function
 	retValues <- .C("qNIG",
-			.CArrange(p,1,1,n),
-			as.double(mu),
-			as.double(delta),
-			as.double(alpha),
-			as.double(beta),
-			as.integer(n),
-			.CArrange(q, 1, 1, n), PACKAGE="rugarch")
+			p = as.double(.CArrange(p,1,1,n)),
+			i_mu = as.double(mu),
+			i_delta = as.double(delta),
+			i_alpha = as.double(alpha),
+			i_beta = as.double(beta),
+			i_n = as.integer(n),
+			q = as.double(.CArrange(q, 1, 1, n)), PACKAGE="rugarch")
 	quantiles <- retValues[[7]]
 	quantiles[quantiles <= -1.78e+308] <- -Inf
 	quantiles[quantiles >= 1.78e+308] <- Inf
@@ -1814,7 +1814,7 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 	}
 	
 	# Return Value:
-	out 
+	return(out) 
 }
 ################################################################################
 # FUNCTION:            DESCRIPTION:
@@ -1880,26 +1880,20 @@ rsnig <-function(n, zeta = 1, rho = 0)
 	
 	# Compute Quantiles:
 	param = .paramGH(zeta, rho, lambda = -0.5)
-	.qnigC(p, param[1], param[2], param[3], param[4])
+	return(.qnigC(p, param[1], param[2], param[3], param[4]))
 }
 
 snigFit = function (x, zeta = 1, rho = 0, scale = TRUE, doplot = TRUE, 
 				span = "auto", trace = 0, title = NULL, description = NULL, ...) 
-{   
-	
+{   	
 	# Update Slots: 
-	if (is.null(title)) title = "SNIG Parameter Estimation"
-	
+	if (is.null(title)) title = "SNIG Parameter Estimation"	
 	# Quick and dirty ...
 	ans = sghFit(x, zeta = zeta, rho = rho, lambda = -0.5, include.lambda = FALSE,
 			scale = scale,span = span, trace = trace, 
 			title = title, description = description, ...)
 	
-	# Update Slots:    
-
-	
-	# Return Value:
-	ans
+	return(ans)
 }
 
 

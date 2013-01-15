@@ -21,4 +21,5 @@
 #include <math.h>
 #include <Rcpp.h>
 RcppExport SEXP hessian2sided(SEXP fun, SEXP x, SEXP H, SEXP ee, SEXP gm, SEXP gp);
+RcppExport SEXP colMaxRcpp(SEXP X_);
 #endif
