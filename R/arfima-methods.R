@@ -277,7 +277,7 @@ setMethod("show",
 			cat("Includes Skew\t: ", as.logical(modelinc[16]),"\n")
 			cat("Includes Shape\t: ", as.logical(modelinc[17]),"\n")
 			cat("Includes Lambda\t: ", as.logical(modelinc[18]),"\n\n")
-			invisible(object)
+			return(invisible(object))
 		})
 
 # fit show
@@ -357,7 +357,7 @@ setMethod("show",
 				cat("\nSolver Message:", object@fit$message,"\n\n")
 				
 			}
-			invisible(object)
+			return(invisible(object))
 		})
 # filter show
 setMethod("show",
@@ -401,7 +401,7 @@ setMethod("show",
 			rownames(alm) = c("ARCH Lag[2]", "ARCH Lag[5]", "ARCH Lag[10]")
 			print(alm,digits = 4)
 			cat("\n\n")
-			invisible(object)
+			return(invisible(object))
 		})
 # sim show
 setMethod("show",
@@ -435,6 +435,7 @@ setMethod("show",
 			rownames(dd) = c(paste("sim", 1:m, sep = ""), "Mean(All)", "Actual", "Unconditional")
 			print(dd,digits = 3)
 			cat("\n\n")
+			return(invisible(object))
 		})
 		
 # forecast show
@@ -451,9 +452,10 @@ setMethod("show",
 			if(n.start>0) infor = ifelse(n.ahead>n.start, n.start, n.ahead) else infor = 0
 			cat(paste("\nOut of Sample: ", infor, "\n", sep = ""))
 			cat("\n0-roll forecast: \n")
-			zz = object@forecast$forecast[[1]]
+			zz = object@forecast$seriesFor[,1]
 			print(zz, digits = 4)
 			cat("\n\n")
+			return(invisible(object))
 		})
 
 # path show
@@ -485,6 +487,7 @@ setMethod("show",
 			rownames(dd) = c(paste("sim", 1:m, sep = ""), "Mean(All)", "Unconditional")			
 			print(dd, digits = 3)
 			cat("\n\n")
+			return(invisible(object))
 		})
 
 setMethod("show",
@@ -492,7 +495,7 @@ setMethod("show",
 		function(object){
 			if(!is.null(object@model$noncidx)){
 				cat("\nObject containts non-converged estimation windows. Use resume method to re-estimate.\n")
-				invisible(object)
+				return(invisible(object))
 			} else{
 				cat(paste("\n*--------------------------------------*", sep = ""))
 				cat(paste("\n*              ARFIMA Roll             *", sep = ""))
@@ -503,13 +506,13 @@ setMethod("show",
 				cat("\nNo.Refits\t\t:", N)
 				cat("\nRefit Horizon\t:", object@model$refit.every)
 				cat("\nNo.Forecasts\t:", NROW(object@forecast$density))
-				cat("Distribution\t:", model$modeldesc$distribution,"\n")
+				cat("\nDistribution\t:", model$modeldesc$distribution,"\n")
 				cat("\nForecast Density:\n")
 				print(round(head(object@forecast$density),4))
 				cat("\n..........................\n")
 				print(round(tail(object@forecast$density),4))
-				cat("\n")
-				invisible(object)
+				cat("\n\n")
+				return(invisible(object))
 			}
 		})
 # distribution show
@@ -544,6 +547,7 @@ setMethod("show",
 				if(n>0) cat(paste("\nwindow-",nm[i]," no. of non-converged fits: ", n, "\n",sep=""))
 			}
 			cat("\n\n")
+			return(invisible(object))
 		})
 
 #-------------------------------------------------------------------------
@@ -557,8 +561,8 @@ setMethod("show",
 			N = length(object@spec)
 			cat(paste("\n\nMultiple Specifications\t: ", N, sep=""))
 			cat(paste("\nMulti-Spec Type\t\t\t: ", object@type, sep=""))
-			cat("\n")
-			invisible(object)
+			cat("\n\n")
+			return(invisible(object))
 		})		
 
 setMethod("show",
@@ -574,15 +578,15 @@ setMethod("show",
 				cat(paste("\n\nModel Spec",sep=""))
 				cat(paste("\n-------------------------------\n",sep=""))
 				cat("\nInclude Mean\t: ", as.logical( object@fit[[1]]@model$modelinc[1] ) )
-				cat(paste("\nAR(FI)MA Model : (",object@fit[[1]]@model$modelinc[2],",",
+				cat(paste("\nAR(FI)MA Model  : (",object@fit[[1]]@model$modelinc[2],",",
 								ifelse(object@fit[[1]]@model$modelinc[4]>0, 1, "d"),
 								",",object@fit[[1]]@model$modelinc[3],")",sep=""))
 				if(object@fit[[1]]@model$modelinc[6]>0){
-					cat("\nExogenous Regressors in mean equation: ", object@fit[[1]]@model$modelinc[6])
+					cat("\nExogenous Regressors : ", object@fit[[1]]@model$modelinc[6])
 				} else{
-					cat("\nExogenous Regressors in mean equation: none")
+					cat("\nExogenous Regressors : none")
 				}
-				cat("\nConditional Distribution: ",object@fit[[1]]@model$modeldesc$distribution,"\n")
+				cat(paste("\nConditional Distribution: ",object@fit[[1]]@model$modeldesc$distribution,"\n", sep=""))
 				cv = sapply(object@fit, FUN = function(x) x@fit$convergence)
 				if(any(cv != 0)){
 					ncv = which(cv != 0)
@@ -609,7 +613,8 @@ setMethod("show",
 				cat("\n")
 				print(coef(object), digits = 5)
 			}
-			invisible(object)
+			cat("\n\n")
+			return(invisible(object))
 		})
 
 setMethod("show",
@@ -651,7 +656,8 @@ setMethod("show",
 				cat("\n")
 				print(coef(object), digits = 5)
 			}
-			invisible(object)
+			cat("\n\n")
+			return(invisible(object))
 		})
 
 setMethod("show",
@@ -663,232 +669,90 @@ setMethod("show",
 			cat(paste("\n*----------------------------------*", sep = ""))
 			cat(paste("\n\nNo. Assets :", length(object@forecast), sep=""))
 			cat(paste("\n--------------------------\n",sep=""))
-			fc = as.array(object)
-			print(fc, digits = 5)
-			invisible(object)
+			cat("\n\n")
+			return(invisible(object))
 		})
 
 #----------------------------------------------------------------------------------
 # univariate fit extractors
 #----------------------------------------------------------------------------------
 # coef methods
-.arfimafitcoef = function(object)
+.arfimacoef = function(object)
 {
-	object@fit$coef
+	switch(class(object)[1],
+			ARFIMAfit = object@fit$coef,
+			ARFIMAfilter = object@model$pars[object@model$pars[,2]==1, 1],
+			ARFIMAmultifit = {
+				if(object@desc$type == "equal"){
+					sapply(object@fit, FUN = function(x) coef(x), simplify = TRUE)
+				} else{
+					lapply(object@fit, FUN = function(x) coef(x))
+				}
+			},
+			ARFIMAmultifilter = {
+				if(object@desc$type == "equal"){
+					sapply(object@filter, FUN = function(x) coef(x), simplify = TRUE)
+				} else{
+					lapply(object@filter, FUN = function(x) coef(x))
+				}
+			},
+			ARFIMAroll = {
+				if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+				object@model$coef
+			})
 }
 
-setMethod("coef", signature(object = "ARFIMAfit"), .arfimafitcoef)
-
-.arfimafiltercoef = function(object)
-{
-	object@model$pars[object@model$pars[,2]==1, 1]
-}
-
-setMethod("coef", signature(object = "ARFIMAfilter"), .arfimafiltercoef)
-
-# multi-fit and multi-filter coefficients:
-.arfimamultifitcoef = function(object)
-{
-	if(object@desc$type == "equal"){
-		ans = sapply(object@fit, FUN = function(x) coef(x), simplify = TRUE)
-	} else{
-		ans = lapply(object@fit, FUN = function(x) coef(x))
-	}
-	return(ans)
-}
-setMethod("coef", signature(object = "ARFIMAmultifit"), .arfimamultifitcoef)
-
-.arfimamultifiltercoef = function(object)
-{
-	
-	ans = sapply(object@filter, FUN = function(x) coef(x), simplify = TRUE)
-	return(ans)
-}
-
-setMethod("coef", signature(object = "ARFIMAmultifilter"), .arfimamultifiltercoef)
-
-
-.arfimarollcoef = function(object)
-{
-	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
-	return(object@model$coef) 
-}
-
-setMethod("coef", signature(object = "ARFIMAroll"), .arfimarollcoef)
-
-
-# as.data.frame method for fitted object
-.arfimafitdf = function(x, row.names = NULL, optional = FALSE, ...)
-{
-	T = x@model$modeldata$T
-	ans = data.frame(data = x@model$modeldata$data[1:T], fitted = x@fit$fitted.values, 
-			residuals = x@fit$residuals)
-	rownames(ans) = as.character(x@model$modeldata$dates[1:T])
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "ARFIMAfit"), .arfimafitdf)
+setMethod("coef", signature(object = "ARFIMAfit"), .arfimacoef)
+setMethod("coef", signature(object = "ARFIMAfilter"), .arfimacoef)
+setMethod("coef", signature(object = "ARFIMAmultifit"), .arfimacoef)
+setMethod("coef", signature(object = "ARFIMAmultifilter"), .arfimacoef)
+setMethod("coef", signature(object = "ARFIMAroll"), .arfimacoef)
 #----------------------------------------------------------------------------------
-# as.data.frame method for filter object
-.arfimafilterdf = function(x, row.names = NULL, optional = FALSE, ...)
-{
-	xdata = x@model$modeldata$data	
-	T = x@model$modeldata$T
-	res = x@filter$residuals
-	ans = data.frame(data = xdata[1:T], fitted = xdata[1:T] - res, 
-			residuals = res)
-	rownames(ans) = as.character(x@model$modeldata$dates[1:T])
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "ARFIMAfilter"), .arfimafilterdf)
-
-
-
 #----------------------------------------------------------------------------------
-# as.data.frame method for forecast object
-.arfimafordfall = function(x, aligned = TRUE, prepad = TRUE, type = 0)
+# Fitted method
+.arfimafitted = function(object)
 {
-	if(aligned){
-		ans = .arfimafordf1(x = x, prepad = prepad)
-	} else{
-		ans = .arfimafordf2(x = x, type = type)
+	if(class(object)[1] == "ARFIMAfit" | class(object)[1] == "ARFIMAfilter"){
+		D = object@model$modeldata$index[1:object@model$modeldata$T]
 	}
-	return(ans)
+	switch(class(object)[1],
+			ARFIMAfit = xts(object@fit$fitted.values, D), 
+			ARFIMAfilter = xts(object@model$modeldata$data[1:object@model$modeldata$T] - object@filter$residuals, D),
+			ARFIMAmultifilter = sapply(object@filter, FUN = function(x) fitted(x), simplify = TRUE),
+			ARFIMAmultifit = sapply(object@fit, FUN = function(x) fitted(x), simplify = TRUE),
+			ARFIMAsim = {
+				ans = object@simulation$seriesSim
+				rownames(ans) = paste("T+",1:NROW(object@simulation$seriesSim), sep="")
+				return(ans)
+			},
+			ARFIMApath ={
+				ans = object@path$seriesSim
+				rownames(ans) = paste("T+",1:NROW(object@path$seriesSim), sep="")
+				return(ans)
+			},
+			ARFIMAforecast = object@forecast$seriesFor
+	)
 }
+setMethod("fitted", signature(object = "ARFIMAfit"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMAfilter"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMAmultifit"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMAmultifilter"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMAsim"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMApath"), .arfimafitted)
+setMethod("fitted", signature(object = "ARFIMAforecast"), .arfimafitted)
 
-.arfimafordf1 = function(x, prepad = TRUE)
+.arfimafittedmf = function(object)
 {
-	# return full frame with columns the rolls and rows the unique dates
-	# padded with NA for forecasts beyond n.ahead and actual filtered values
-	# for values before n.roll
-	forc = x@forecast
-	n.start = forc$n.start
-	N = x@forecast$N - n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	fdates = sort(unique(as.vector(sapply(forc$forecast, FUN=function(x) rownames(x)))))
-	tmp = matrix(NA, ncol = n.roll+1, nrow = length(fdates))
-	tmp[1:n.ahead, 1] = forc$forecast[[1]][,1]
-	for(i in 1:n.roll){
-		if(prepad) {
-			tmp[1:i, i+1] = x@model$modeldata$data[(N):(N+i-1)]
-		} 
-		tmp[(i+1):(i+n.ahead), i+1] = forc$forecast[[i+1]][,1]
+	n.assets = length(object@forecast)
+	n.ahead = object@forecast[[1]]@forecast$n.ahead
+	n.roll = object@forecast[[1]]@forecast$n.roll+1
+	Z = array(NA, dim = c(n.ahead, n.roll, n.assets))
+	for(i in 1:n.assets){
+		Z[,,i] = fitted(object@forecast[[i]])
 	}
-	tmp = as.data.frame(tmp)
-	rownames(tmp) = fdates
-	colnames(tmp) = paste("roll-", seq(0, n.roll,by = 1), sep="")
-	tmp
+	return(Z)
 }
-
-# retval: 0 is the standard, returns all values
-# retval: 1 returns only those values which have in sample equivalent data (for testing purposes)
-# retval: 2 returns only those values which are truly forecasts without in sample data
-.arfimafordf2 = function(x, type = 0, ...)
-{
-	n.ahead = x@forecast$n.ahead
-	# n.start == out.sample
-	n.start = x@forecast$n.start
-	n.roll =  x@forecast$n.roll
-	tlength = n.ahead + n.roll
-	mat = matrix(NA, ncol = n.roll + 1, nrow = n.ahead)
-	mat = sapply(x@forecast$forecast, FUN = function(x) x[,1])
-	if(is.vector(mat)) mat = matrix(mat, ncol = n.roll+1)
-	colnames(mat) = paste("roll-", seq(0, n.roll, by = 1), sep = "")
-	rownames(mat) = paste("t+", 1:n.ahead, sep = "")
-	if(n.roll == 0 | type == 0) return(as.data.frame(mat))
-	indices = apply(.embed(1:tlength, n.ahead, by = 1), 1, FUN = function(x) rev(x))
-	exc = which(indices>n.start)
-	if(type == 1){
-		if(length(exc)>0) mat[exc] = NA
-	} else{
-		if(length(exc)>0) mat[-exc] = NA
-	}
-	return(as.data.frame(mat))
-}
-
-# pad applies to when rollframe = "all", whether to pre-pad forecast with actual values else NA's
-# post forecast values are always NA's (this relates to the out.sample option and n.roll)
-.arfimafordf = function(x, row.names = NULL, optional = FALSE, rollframe = 0, aligned = TRUE, 
-		prepad = TRUE, type = 0)
-{
-	forc = x@forecast
-	n.start = forc$n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	if(!any(type==(0:2)))
-		stop("invalid argument for type in as.data.frame", call. = FALSE)
-	#if(rollframe == "all" && n.roll<=0) rollframe = 0
-	if(rollframe == "all") return(.arfimafordfall(x, aligned, prepad, type))
-	# allow type to be used here as well
-	rollframe = as.integer(rollframe)
-	if(rollframe>n.roll | rollframe<0) stop("rollframe out of bounds", call. = FALSE)
-	indx = (rollframe+1):(rollframe+n.ahead)
-	exc = which(indx>n.start)
-	ans = forc$forecast[[rollframe+1]]
-	if(type == 1){
-		if(length(exc)>0) ans[exc,] = NA
-	}
-	if(type == 2){
-		if(length(exc)>0) ans[-exc,] = NA
-	}
-	return(ans)
-}
-
-setMethod("as.data.frame", signature(x = "ARFIMAforecast"), .arfimafordf)
-
-# as.array method for forecast object
-.arfimaforar = function(x, ...)
-{
-	forc = x@forecast
-	n.start = forc$n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	forar = array(NA, dim = c(n.ahead, 1, n.roll+1))
-	for(i in 1:(n.roll+1)){
-		forar[,,i] = as.matrix(forc$forecast[[i]])
-	}
-	return(forar)
-}
-
-setMethod("as.array", signature(x = "ARFIMAforecast"), .arfimaforar)
-
-# as.list method for forecast object
-.arfimaforlist = function(x, ...)
-{
-	x@forecast$forecast
-}
-
-setMethod("as.list", signature(x = "ARFIMAforecast"), .arfimaforlist)
-
-# as.list method for forecast object
-.arfimamultiforlist = function(x, ...)
-{
-	ans = lapply(x@forecast, FUN = function(x) x@forecast$forecast)
-	names(ans) = x@desc$asset.names
-	ans
-}
-
-setMethod("as.list", signature(x = "ARFIMAmultiforecast"), .arfimamultiforlist)
-
-.arfimamultiforarray = function(x, ...)
-{
-	
-	n = length(x@forecast)
-	ns = x@forecast[[1]]@forecast$n.roll
-	nah = x@forecast[[1]]@forecast$n.ahead
-	forar = array(NA, dim = c(nah, n, ns+1))
-	cnames = x@desc$asset.names
-	rnames = paste("n.ahead-", 1:nah, sep = "")
-	dnames = paste("n.roll-", 0:ns, sep = "")
-	dimnames(forar) = list(rnames, cnames, dnames)
-	for(i in 1:(ns+1)) forar[,,i] = as.matrix(sapply(x@forecast, FUN = function(x) unlist(x@forecast$forecasts[[i]])))
-	return(forar)
-}
-
-setMethod("as.array", signature(x = "ARFIMAmultiforecast"), .arfimamultiforarray)
-
+setMethod("fitted", signature(object = "ARFIMAmultiforecast"), .arfimafittedmf)
 
 #----------------------------------------------------------------------------------
 # as.data.frame method for distribution object
@@ -930,56 +794,6 @@ setMethod("as.array", signature(x = "ARFIMAmultiforecast"), .arfimamultiforarray
 }
 
 setMethod("as.data.frame", signature(x = "ARFIMAdistribution"), .arfimadistdf)
-
-#----------------------------------------------------------------------------------
-
-# as.data.frame method for simulation object
-.arfimasimdf = function(x, row.names = NULL, optional = FALSE, which = "series")
-{
-	# simframe: series, residuals
-	#seriesSim=seriesSim, residSim=residSim
-	sim = x@simulation
-	T = x@model$modeldata$T
-	dates = x@model$modeldata$dates[1:T]
-	resids = sim$residSim
-	m = dim(resids)[2]
-	N = dim(resids)[1]
-	fwdd = .generatefwd(dates, N = N, dformat = "%Y-%m-%d", periodicity = "days")
-	if(which == "series"){
-		series = sim$seriesSim
-		ans = data.frame(seriessim = series)
-	}
-	if(which == "residuals"){
-		resids = sim$residSim
-		ans = data.frame(residsim = resids)
-	}
-	rownames(ans) = as.character(fwdd)
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "ARFIMAsim"), .arfimasimdf)
-#----------------------------------------------------------------------------------
-# as.data.frame method for path simulation object
-.arfimapathdf = function(x, row.names = NULL, optional = FALSE, which = "series")
-{
-	# simframe: sigma, series, residuals
-	#sigmaSim=sigmaSim, seriesSim=seriesSim, residSim=residSim
-	sim = x@path
-	resids = sim$residSim
-	m = dim(resids)[2]
-	N = dim(resids)[1]
-	if(which == "series"){
-		series = sim$seriesSim
-		ans = data.frame(seriessim = series)
-	}
-	if(which == "residuals"){
-		resids = sim$residSim
-		ans = data.frame(residsim = resids)
-	}
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "ARFIMApath"), .arfimapathdf)
 #----------------------------------------------------------------------------------
 # as.data.frame method for bootstrap object
 .arfimabootdf = function(x, row.names = NULL, optional = FALSE, type = "raw", qtile = c(0.01, 0.099))
@@ -1025,107 +839,49 @@ setMethod("as.data.frame", signature(x = "ARFIMAroll"), .arfimarolldf)
 
 #----------------------------------------------------------------------------------
 # residuals method
-.arfimafitresids = function(object, standardize = FALSE)
+.arfimaresids = function(object, standardize = FALSE)
 {
-	if(standardize) object@fit$residuals/coef(object)["sigma"] else object@fit$residuals
-}
-
-setMethod("residuals", signature(object = "ARFIMAfit"), .arfimafitresids)
-
-.arfimafilterresids = function(object, standardize = FALSE)
-{
-	if(standardize) object@filter$residuals/coef(object)["sigma"] else object@filter$residuals
-}
-
-setMethod("residuals", signature(object = "ARFIMAfilter"), .arfimafilterresids)
-
-.arfimamultifitresids = function(object, standardize = FALSE)
-{
-	if(standardize){
-		sapply(object@fit, FUN = function(x) residuals(x)/coef(x)["sigma"], simplify = TRUE)
-	} else{
-		sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	if(class(object)[1] == "ARFIMAfit" | class(object)[1] == "ARFIMAfilter"){
+		D = object@model$modeldata$index[1:object@model$modeldata$T]
+		s = object@model$pars["sigma",1]
 	}
-}
-
-setMethod("residuals", signature(object = "ARFIMAmultifit"), .arfimamultifitresids)
-
-.arfimamultifilterresids = function(object, standardize = FALSE)
-{
 	if(standardize){
-		sapply(object@filter, FUN = function(x) residuals(x)/coef(x)["sigma"], simplify = TRUE)
+		ans = switch(class(object)[1],
+				ARFIMAfit = xts(object@fit$residuals/s, D),
+				ARFIMAfilter = xts(object@filter$residuals/s, D),
+				ARFIMAmultifit = sapply(object@fit, FUN = function(x) residuals(x, standardize = TRUE), simplify = TRUE),
+				ARFIMAmultifilter = sapply(object@filter, FUN = function(x) residuals(x, standardize = TRUE), simplify = TRUE))
 	} else{
-		sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
+		ans = switch(class(object)[1],
+				ARFIMAfit = xts(object@fit$residuals, D),
+				ARFIMAfilter = xts(object@filter$residuals, D),
+				ARFIMAmultifit = sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE),
+				ARFIMAmultifilter = sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE))
 	}
+	return(ans)
 }
 
-setMethod("residuals", signature(object = "ARFIMAmultifilter"), .arfimamultifilterresids)
+setMethod("residuals", signature(object = "ARFIMAfit"), .arfimaresids)
+setMethod("residuals", signature(object = "ARFIMAfilter"), .arfimaresids)
+setMethod("residuals", signature(object = "ARFIMAmultifit"), .arfimaresids)
+setMethod("residuals", signature(object = "ARFIMAmultifilter"), .arfimaresids)
 
 #----------------------------------------------------------------------------------
 # Likelihood method
-.arfimafitLikelihood = function(object)
+.arfimaLikelihood = function(object)
 {
-	return(object@fit$LLH)
+	switch(class(object)[1],
+			ARFIMAfit = object@fit$LLH,
+			ARFIMAfilter = object@filter$LLH,
+			ARFIMAmultifilter = sapply(object@filter, FUN = function(x) likelihood(x), simplify = TRUE),
+			ARFIMAmultifit = sapply(object@fit, FUN = function(x) likelihood(x), simplify = TRUE))
 }
 
-setMethod("likelihood", signature(object = "ARFIMAfit"), .arfimafitLikelihood)
-
-.arfimafilterLikelihood = function(object)
-{
-	return(object@filter$LLH)
-}
-
-setMethod("likelihood", signature(object = "ARFIMAfilter"), .arfimafilterLikelihood)
-
-
-.arfimamultifilterLikelihood = function(object)
-{
-	sapply(object@filter, FUN = function(x) likelihood(x), simplify = TRUE)
-}
-
-setMethod("likelihood", signature(object = "ARFIMAmultifilter"), .arfimamultifilterLikelihood)
-
-.arfimamultifitLikelihood = function(object)
-{
-	sapply(object@fit, FUN = function(x) likelihood(x), simplify = TRUE)
-}
-
-setMethod("likelihood", signature(object = "ARFIMAmultifit"), .arfimamultifitLikelihood)
-
+setMethod("likelihood", signature(object = "ARFIMAfit"), .arfimaLikelihood)
+setMethod("likelihood", signature(object = "ARFIMAfilter"), .arfimaLikelihood)
+setMethod("likelihood", signature(object = "ARFIMAmultifilter"), .arfimaLikelihood)
+setMethod("likelihood", signature(object = "ARFIMAmultifit"), .arfimaLikelihood)
 #----------------------------------------------------------------------------------
-# Fitted method
-.arfimafitted = function(object)
-{
-	return(object@fit$fitted.values)
-}
-
-setMethod("fitted", signature(object = "ARFIMAfit"), .arfimafitted)
-
-.arfimafiltered = function(object)
-{
-	res = object@filter$residuals
-	T = object@model$modeldata$T
-	return(object@model$modeldata$data[1:T] - res)
-}
-
-setMethod("fitted", signature(object = "ARFIMAfilter"), .arfimafiltered)
-
-.arfimamultifiltered = function(object)
-{
-	sapply(object@filter, FUN = function(x) x@model$modeldata$data[1:x@model$modeldata$T] - residuals(x), simplify = TRUE)
-}
-
-setMethod("fitted", signature(object = "ARFIMAmultifilter"), .arfimamultifiltered)
-
-
-.arfimamultifitted = function(object)
-{
-	sapply(object@fit, FUN = function(x) x@model$modeldata$data[1:x@model$modeldata$T] - residuals(x), simplify = TRUE)
-}
-
-setMethod("fitted", signature(object = "ARFIMAmultifit"), .arfimamultifitted)
-#----------------------------------------------------------------------------------
-
 # Info Criteria method
 .arfimainfocriteria = function(object)
 {
@@ -1134,7 +890,7 @@ setMethod("fitted", signature(object = "ARFIMAmultifit"), .arfimamultifitted)
 	} else{
 		np = length(coef(object))
 	}
-	itest = .information.test(likelihood(object), nObs = length(fitted(object)), 
+	itest = .information.test(likelihood(object), nObs = NROW(fitted(object)), 
 			nPars = np)
 	itestm = matrix(0, ncol = 1, nrow = 4)
 	itestm[1,1] = itest$AIC
@@ -1188,27 +944,6 @@ setMethod("multifilter", signature(multifitORspec = "ARFIMAmultifit"),  definiti
 setMethod("multifilter", signature(multifitORspec = "ARFIMAmultispec"),  definition = .multifilterarfima2)
 setMethod("multiforecast", signature(multifitORspec = "ARFIMAmultifit"),  definition = .multiforecastarfima1)
 setMethod("multiforecast", signature(multifitORspec = "ARFIMAmultispec"),  definition = .multiforecastarfima2)
-
-#----------------------------------------------------------------------------------
-
-#----------------------------------------------------------------------------------
-# univariate plot method / seperate for fit,sim and forecast
-#----------------------------------------------------------------------------------
-#setMethod(f = "plot", signature(x = "ARFIMAfit", y = "missing"), .plotarfimafit)
-
-#setMethod(f = "plot", signature(x = "ARFIMAfilter", y = "missing"), .plotarfimafilter)
-
-#setMethod(f = "plot", signature(x = "ARFIMAsim", y = "missing"), .plotarfimasim)
-
-#setMethod(f = "plot", signature(x = "ARFIMAforecast", y = "missing"), .plotarfimaforecast)
-
-#setMethod(f = "plot", signature(x = "ARFIMApath", y = "missing"), .plotarfimapath)
-
-#setMethod(f = "plot", signature(x = "ARFIMAroll", y = "missing"), .plotarfimaroll)
-
-#setMethod(f = "plot", signature(x = "ARFIMAdistribution", y = "missing"), .plotarfimadist)
-
-
 # Unconditional Mean
 .unconditionalmean11 = function(object, method = c("analytical", "simulation"), n.sim = 20000, rseed = NA)
 {
@@ -1232,7 +967,7 @@ setMethod("multiforecast", signature(multifitORspec = "ARFIMAmultispec"),  defin
 	} else{
 		if(is(object, "ARFIMAfit")){
 			sim = arfimasim(object, n.sim = n.sim, n.start = 1000, startMethod = "sample", rseed = rseed)
-			umean = mean(sim@simulation$seriesSim)
+			umean = mean(as.vector(sim@simulation$seriesSim))
 			return(umean)
 		} else{
 			stop("\nuncmean by simulation not available for ARFIMAfilter class object (used spec instead).")
@@ -1274,121 +1009,13 @@ setMethod("multiforecast", signature(multifitORspec = "ARFIMAmultispec"),  defin
 		return(umean)
 	}  else{
 		sim = arfimapath(object, n.sim = n.sim, n.start = 1000, rseed = rseed)
-		umean = mean(sim@path$seriesSim)
+		umean = mean(as.vector(sim@path$seriesSim))
 		return(umean)
 	}
 }
 setMethod("uncmean", signature(object = "ARFIMAfit"),    definition = .unconditionalmean11)
 setMethod("uncmean", signature(object = "ARFIMAfilter"), definition = .unconditionalmean11)
 setMethod("uncmean", signature(object = "ARFIMAspec"),   definition = .unconditionalmean21)
-
-.fpm11 = function(object, summary = TRUE)
-{
-	n.ahead = object@forecast$n.ahead
-	if(n.ahead == 1){
-		n.roll = object@forecast$n.roll
-		N = object@forecast$N
-		ns = object@forecast$n.start
-		if(n.roll == 0 | n.roll<4) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (n.roll>3).")
-		forecast = sapply(object@forecast$forecasts, FUN = function(x) x[1,])
-		# get only the forecasts for which out.of.sample data is available
-		forecast = forecast[1:ns]
-		#dates = sapply(object@forecast$forecasts, FUN = function(x) rownames(x[1,]))
-		#dates = dates[1:ns]
-		actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll+1)]
-		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-		if(summary){
-			ans = data.frame(MSE = mean((forecast - actual)^2), MAE = mean(abs(forecast - actual)), DAC = mean(DAC))
-		} else{
-			ans = data.frame(SE = (forecast - actual)^2, AE = abs(forecast - actual), DAC = DAC)
-			rownames(ans) = object@model$modeldata$dates[(N - ns + 1):(N - ns + n.roll+1)]
-		}
-	} else{
-		if(object@model$n.start<5) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (out.sample>4).")
-		if(summary){
-			n.roll = object@forecast$n.roll
-			actual = object@model$modeldata$data
-			dates = as.character( object@model$modeldata$dates )
-			ans = matrix(NA, ncol = n.roll+1, nrow = 4)
-			colnames(ans) = paste("roll-", seq(0, n.roll))
-			rownames(ans) = c("MSE", "MAE", "DAC", "N")
-			for(i in 1:(n.roll+1)){
-				tmp = as.data.frame(object, aligned = FALSE, rollframe = i-1, type = 1)
-				tmp = tmp[,2, drop = FALSE]
-				tmp = tmp[which(!is.na(tmp)), , drop = FALSE]
-				dt = rownames(tmp)
-				actd = actual[match(dt, dates)]
-				if(length(actd)>0 && length(actd)>4){
-					ans[1,i] = mean((tmp[,1] - actd)^2)
-					ans[2,i] = mean(abs(tmp[,1] - actd))
-					DAC = apply(cbind(tmp[,1], actd), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-					ans[3,i] = mean(DAC)
-				}
-				ans[4,i] = length(actd)
-			}
-		} else{
-			n.roll = object@forecast$n.roll
-			actual = object@model$modeldata$data
-			dates = as.character( object@model$modeldata$dates )
-			sol = vector(mode = "list", length = n.roll+1)
-			names(sol) = paste("roll-", seq(0, n.roll))
-			for(i in 1:(n.roll+1)){
-				ans = matrix(NA, nrow = n.ahead, ncol = 3)
-				colnames(ans) = c("SE", "AE", "DAC")
-				tmp = as.data.frame(object, aligned = FALSE, rollframe = i-1, type = 1)
-				tmp = tmp[,2, drop = FALSE]
-				tmp = tmp[which(!is.na(tmp)), , drop = FALSE]
-				dt = rownames(tmp)
-				actd = actual[match(dt, dates)]
-				if(length(actd)>0 && length(actd)>4){
-					ans[,1] = (tmp[,1] - actd)^2
-					ans[,2] = abs(tmp[,1] - actd)
-					ans[,3] = apply(cbind(tmp[,1], actd), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-					ans[3,i] = mean(DAC)
-				}
-				sol[[i]] = ans
-			}
-			ans = sol
-		}
-	}
-	return( ans )
-}
-
-
-.fpm21 = function(object, summary = TRUE)
-{
-	
-	if(summary){
-		forecast = object@forecast$density[,1]
-		actual = object@forecast$density[,"Realized"]
-		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-		tmp = c(mean( (forecast - actual)^2 ), mean(abs(forecast - actual)), mean(DAC))
-		names(tmp) = c("MSE", "MAE", "DAC")
-		tmp = data.frame(Stats = tmp)
-	} else{
-		forecast = object@forecast$density[,1]
-		actual = object@forecast$density[,"Realized"]
-		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-		if(object@model$calculate.VaR){
-			m = NCOL(object@forecast$VaR)-1
-			V = NULL
-			for(i in 1:m) V = cbind(V, .varloss(object@model$VaR.alpha[i], as.numeric(actual), as.numeric(object@forecast$VaR[,i])))
-			colnames(V) = paste("VaRLoss(",object@model$VaR.alpha,")",sep="")
-			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC, V)
-			colnames(tmp)[1:3] = c("SE", "AE", "HIT")
-			rownames(tmp) = as.character(time(object@forecast$density))
-		} else{
-			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC)
-			colnames(tmp) = c("SE", "AE", "HIT")
-			rownames(tmp) = as.character(time(object@forecast$density))
-		}
-	}
-	return( tmp )
-}
-
-setMethod("fpm", signature(object = "ARFIMAforecast"),  definition = .fpm11)
-setMethod("fpm", signature(object = "ARFIMAroll"),  definition = .fpm21)
-
 
 # forecast performance measures
 .arfimarollreport = function(object, type = "VaR", VaR.alpha = 0.01, conf.level = 0.95)
@@ -1433,5 +1060,9 @@ setMethod("report", signature(object = "ARFIMAroll"), .arfimarollreport)
 	invisible(object)
 }
 
+#######################
 setMethod("convergence", signature(object = "ARFIMAfit"),  definition = .convergence)
 setMethod("vcov", signature(object = "ARFIMAfit"),  definition = .vcov)
+
+setMethod("fpm", signature(object = "ARFIMAforecast"),  definition = .fpm1)
+setMethod("fpm", signature(object = "ARFIMAroll"),  definition = .fpm2)

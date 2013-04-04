@@ -46,7 +46,7 @@
 					n.start = n.start, m.sim = m.sim, presigma = presigma, prereturns = prereturns, 
 					preresiduals = preresiduals, rseed = rseed, custom.dist = custom.dist, 
 					mexsimdata = mexsimdata, vexsimdata = vexsimdata)
-			swindow[[i]]$path.df = as.data.frame(sim, which = "series")
+			swindow[[i]]$simseries = fitted(sim)
 			swindow[[i]]$seed = sim@seed
 		}
 		fixpars = as.list(coef(fitORspec))
@@ -61,7 +61,7 @@
 					n.start = n.start, m.sim = m.sim, presigma = presigma, prereturns = prereturns, 
 					preresiduals = preresiduals, rseed = rseed, custom.dist = custom.dist, 
 					mexsimdata = mexsimdata, vexsimdata = vexsimdata)
-			swindow[[i]]$path.df = as.data.frame(sim, which = "series")
+			swindow[[i]]$simseries = fitted(sim)
 			swindow[[i]]$seed = sim@seed
 			
 		}
@@ -81,20 +81,22 @@
 				envir = environment())
 		for(i in 1:nwindows){
 			parallel::clusterExport(cluster, c("i"), envir = environment())
-			nx = dim(swindow[[i]]$path.df)[2]
+			nx = NCOL(swindow[[i]]$simseries)
 			rwindow[[i]]$fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(j){
-						rugarch:::.fitandextract(spec, swindow[[i]]$path.df[,j], out.sample = 0, 
-								solver = solver, fit.control = fit.control, solver.control = solver.control)
+						rugarch:::.fitandextract(spec, .numeric2xts(swindow[[i]]$simseries[,j]), 
+								out.sample = 0, solver = solver, fit.control = fit.control, 
+								solver.control = solver.control)
 					})
 			}
 	} else{
 		for(i in 1:nwindows){
-			rwindow[[i]]$fitlist = lapply(swindow[[i]]$path.df, FUN = function(x){
-						.fitandextract(spec, x, out.sample = 0, solver = solver, 
+			rwindow[[i]]$fitlist = apply(swindow[[i]]$simseries, 2,
+					FUN = function(x){
+						.fitandextract(spec, .numeric2xts(x), out.sample = 0, solver = solver, 
 								fit.control = fit.control, solver.control = solver.control)
 					})
 		}
-	}	
+	}
 	reslist = vector(mode = "list", length = nwindows)
 	for(j in 1:nwindows){
 		reslist[[j]]$simcoef = 	matrix(NA, ncol = length(fixpars), nrow = m.sim)
@@ -153,10 +155,10 @@
 	dist$persist = 	persistence(fit)
 	dist$vlongrun = uncvariance(fit)
 	dist$mlongrun = uncmean(fit)
-	tmp = as.data.frame(fit)
-	dist$maxdata = apply(tmp[, -2], 2, "max")
-	dist$mindata = apply(tmp[, -2], 2, "min")
-	dist$meandata = apply(tmp[, -2], 2, "mean")
+	tmp = cbind(fit@model$modeldata$data[1:fit@model$modeldata$T], as.numeric(fitted(fit)), as.numeric(sigma(fit)))
+	dist$maxdata = unname(apply(tmp, 2, "max"))
+	dist$mindata = unname(apply(tmp, 2, "min"))
+	dist$meandata = unname(apply(tmp, 2, "mean"))
 	dist$momdata = c(.kurtosis(tmp[,1]), .skewness(tmp[,1]))
 	dist$convergence = fit@fit$convergence
 	return(dist)

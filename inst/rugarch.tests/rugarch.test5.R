@@ -44,11 +44,11 @@ rugarch.test5a = function(cluster=NULL)
 	# basic simulation (no external regressors in simulation)
 	# use external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format="%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format="%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	# define the specification
@@ -76,13 +76,13 @@ rugarch.test5a = function(cluster=NULL)
 			preresiduals = NA, rseed = 100)
 	
 	# use external regressors
-	fwd1200 = ForwardDates(dates, n.ahead = 1200, date.format="%Y-%m-%d", 
+	fwd1200 = rugarch:::.ForwardDates(dates, n.ahead = 1200, date.format="%Y-%m-%d", 
 			periodicity="days")
 	
 	# create a dummy vector for those forward days which are Mondays and Fridays
-	fwdMonday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdMonday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Monday")
-	fwdFriday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdFriday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Friday")
 	
 	sgarch.sim4 = ugarchsim(sgarch.fit, n.start = 0, n.sim = 1200, m.sim = 1, 
@@ -134,11 +134,11 @@ rugarch.test5b = function(cluster=NULL)
 	# basic simulation (no external regressors in simulation)
 	# use external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	# define the specification
@@ -171,13 +171,13 @@ rugarch.test5b = function(cluster=NULL)
 			rseed = 100)
 	
 	# use external regressors
-	fwd1200 = ForwardDates(dates, n.ahead = 1200, date.format = "%Y-%m-%d", 
+	fwd1200 = rugarch:::.ForwardDates(dates, n.ahead = 1200, date.format = "%Y-%m-%d", 
 			periodicity = "days")
 	
 	# create a dummy vector for those forward days which are Mondays and Fridays
-	fwdMonday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdMonday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Monday")
-	fwdFriday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdFriday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Friday")
 	
 	egarch.sim4 = ugarchsim(egarch.fit, n.start = 0, n.sim = 1200, m.sim = 1, 
@@ -239,7 +239,7 @@ rugarch.test5c = function(cluster=NULL)
 			solver = "solnp")
 	tc = coef(fit)
 	sim = ugarchsim(fit, n.sim = 5000, n.start = 100, m.sim = 100)
-	simdf = as.data.frame(sim, which="series")
+	simdf = fitted(sim)
 	setstart(spec) <- as.list(coef(fit))
 	if( !is.null(cluster) ){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -248,7 +248,7 @@ rugarch.test5c = function(cluster=NULL)
 					try(ugarchfit(spec = spec, data = simdf[,i]))
 				})
 	} else{
-		fitlist = lapply(simdf, FUN = function(x) try(ugarchfit(data = x, spec = spec)))
+		fitlist = apply(simdf, 2, FUN = function(x) try(ugarchfit(data = x, spec = spec)))
 	}
 	
 	coefl = t(sapply(fitlist, FUN = function(x) if(is.null(coef(x))) rep(NA, 7) else coef(x)))
@@ -301,7 +301,7 @@ rugarch.test5c = function(cluster=NULL)
 	tc = coef(fit2)
 	sim2 = ugarchsim(fit2, n.sim = 5000, n.start = 100, m.sim = 100, 
 			rseed = rseed)
-	simdf2 = as.data.frame(sim2, which="series")
+	simdf2 = fitted(sim2)
 	setstart(spec2)<-as.list(coef(fit2))
 	
 	
@@ -313,7 +313,7 @@ rugarch.test5c = function(cluster=NULL)
 					try(ugarchfit(spec = spec2, data = simdf2[,i], fit.control=list(scale=1)))
 				})
 	} else{
-		fitlist2 = lapply(simdf2, FUN = function(x) try(ugarchfit(data = x, spec = spec2)))
+		fitlist2 = apply(simdf2, 2, FUN = function(x) try(ugarchfit(data = x, spec = spec2)))
 	}
 	
 	
@@ -369,7 +369,7 @@ rugarch.test5c = function(cluster=NULL)
 			solver="solnp", solver.control=list(tol=1e-10, trace=1))
 	sim3 = ugarchsim(fit3, n.sim = 5000, n.start = 100, m.sim = 100, 
 			rseed = rseed)
-	simdf3 = as.data.frame(sim3, which = "series")
+	simdf3 = fitted(sim3)
 	setstart(spec3)<-as.list(coef(fit3))
 	tc = coef(fit3)
 	
@@ -382,7 +382,7 @@ rugarch.test5c = function(cluster=NULL)
 					ugarchfit(spec = spec3, data = simdf3[,i])
 				})
 	} else{
-		fitlist3 = lapply(simdf3, FUN = function(x) ugarchfit(data = x, spec = spec3))
+		fitlist3 = apply(simdf3, 2, FUN = function(x) ugarchfit(data = x, spec = spec3))
 	}
 
 	coefl3 = matrix(NA, ncol = 8, nrow = 100)

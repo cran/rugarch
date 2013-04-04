@@ -30,20 +30,19 @@ This is a mispecification test based on Hansen's GMM procedure. Under a correctl
 specified model, certain population moment conditions should be satisfied and 
 hold in the sample using the standardized residuals. The moment conditions can 
 be tested both individually using a t-test or jointly using a Wald test 
-(the vignette gives more details). The test returns a matrix containing the 
-first 4 moments statistics, their standard error and t-values, \sQuote{M1} to 
-\sQuote{M4}, the t-value of the test of the the joint squared residuals under 
-the specified number of lags, \sQuote{Q2} , and the t-value of the test of joint 
-nullness, \sQuote{J}. The joint tests (\sQuote{Q2} and \sQuote{J}) are 
-distributed chi-squared with n.lag and 4 + n.lag d.o.f. respectively, while the 
-individual moment conditions may be tested for  significance using a standard 
-t-test.
-}
+(the vignette gives more details). The test returns a matrix (moment.mat) 
+containing the first 4 moments statistics, their standard errors and t-values 
+(2-sided t-test with alternative hypothesis that the value is not equal to zero). 
+The matrix of joint conditions (joint.mat) contains the t-values and critical 
+values of \sQuote{Q2}, \sQuote{Q3} and \sQuote{Q4} representing the 
+autocorrelation, given the chosen lags in the second, third and fourth moments 
+and distributed as chi-squared with n.lag d.o.f, and the joint test (\sQuote{J}) 
+for all moment conditions distributed chi-squared with 4+(n.lagx3) d.o.f.}
 \value{
 A list with the following items:\cr
-\item{statmat}{ The matrix of the statistics (see details).}
+\item{joint.mat}{ The matrix of the joint tests.}
+\item{moment.mat}{ The matrix of the individual moment tests.}
 \item{H0}{ The Null Hypothesis.}
-\item{critical.value}{ The critical value for each statistic.}
 \item{Decision}{Whether to reject or not the Null given the conf.level.}
 }
 \references{

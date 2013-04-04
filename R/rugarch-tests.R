@@ -167,7 +167,7 @@
 .signbiasTest = function(object)
 {
 	if(is(object, "uGARCHfilter")) z = object@filter$z else z = z = object@fit$z
-	res = residuals(object)
+	res = as.numeric(residuals(object))
 	z2 = z^2
 	n = length(z)
 	zminus = as.integer(z<0)
@@ -205,8 +205,7 @@
 	}
 	# must remove fixed parameters
 	dist = object@model$modeldesc$distribution
-	cdf = .getDistribution(dist)
-	cdfv = cdf(z = sort(z), hh = 0, lambda = ipars[idx["ghlambda",1],1], skew = ipars[idx["skew",1],1], 
+	cdfv = pdist(dist, q = sort(z), lambda = ipars[idx["ghlambda",1],1], skew = ipars[idx["skew",1],1], 
 			ipars[idx["shape",1],1])
 	j = length(groups)
 	gofmat = matrix(NA, ncol = 3, nrow = j)
@@ -526,10 +525,10 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 	tmp1 = .waldcomomtest(z[,1]^2-1, lags, N)
 	orthmat[3, 5] = tmp1$tval[lags+1]
 	
-	tmp2 = .waldcomomtest(z[,1]^3-sk, lags, N)
+	tmp2 = .waldcomomtest(z[,1]^3-skew, lags, N)
 	orthmat[3, 6] = tmp2$tval[lags+1]
 	
-	tmp3 = .waldcomomtest(z[,1]^4-ku, lags, N)
+	tmp3 = .waldcomomtest(z[,1]^4-kurt, lags, N)
 	orthmat[3, 7] = tmp3$tval[lags+1]
 	
 	M = rbind(M, tmp1$h, tmp2$h, tmp3$h)

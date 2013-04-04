@@ -72,39 +72,17 @@ double rghyp(const double zeta, const double rho, const double lambda)
 	double alpha = param[0];
 	double beta = param[1];
 	double delta = param[2];
-	double mu = param[2];
+	double mu = param[3];
 	double chi = delta*delta;
 	double psi = (alpha * alpha) - (beta * beta);
 	double W = rgig(lambda, chi, psi);
-	double ans = mu + W * beta + sqrt(W) * rnorm(0, 1);
+	double ans = mu + W*W*beta + sqrt(W) * rnorm(0, 1);
 	free(param);
 	return(ans);
 }
 double rsnig(const double zeta, const double rho)
 {
-	double gamma, v, y, x0, x1, x2, x3, p1, u, x, ans;
-	double *param;
-	param = paramgh(zeta, rho, -0.5);
-	double alpha = param[0];
-	double beta = param[1];
-	double delta = param[2];
-	double mu = param[3];
-	gamma = sqrt(alpha*alpha - beta*beta);
-	v = rchisq(1);
-	x0 = delta/gamma;
-	x1 = sqrt(4 * gamma * delta * v + pow(v,2));
-	x2 = x0 + 1/(2 * gamma*gamma) * (v + x1);
-	x3 = x0 + + 1/(2 * gamma*gamma) * (v - x1);
-	p1 = delta/(delta + gamma * x2);
-	u = runif(0,1);
-	if(u<p1){
-		x = x2;
-	} else{
-		x = x3;
-	}
-	y = rnorm(0, 1);
-	ans = sqrt(x) * y + mu + beta * x;
-	free(param);
+	double ans = rghyp(zeta, rho, -0.5);
 	return(ans);
 }
 
@@ -159,18 +137,10 @@ double rjsu(const double nu, const double tau)
 
 double rnig(const double alpha, const double beta, const double delta, const double mu)
 {
-	double gamma, v, y, x0, x1, x2, x3, p1, u, x, ans;
-	gamma = sqrt(alpha*alpha - beta*beta);
-	v = rchisq(1);
-	x0 = delta/gamma;
-	x1 = sqrt(4 * gamma * delta * v + pow(v,2));
-	x2 = x0 + 1/(2 * gamma*gamma) * (v + x1);
-	x3 = x0 + + 1/(2 * gamma*gamma) * (v - x1);
-	p1 = delta/(delta + gamma * x2);
-	u = runif(0,1);
-	x = (u < p1)? x2 : x3;
-	y = rnorm(0, 1);
-	ans = sqrt(x) * y + mu + beta * x;
+	double chi = delta*delta;
+	double psi = (alpha * alpha) - (beta * beta);
+	double W = rgig(-0.5, chi, psi);
+	double ans = mu + W*W*beta + sqrt(W) * rnorm(0, 1);
 	return(ans);
 }
 
@@ -364,6 +334,42 @@ double dsstdstd(const double x, const double nu, const double xi)
 	pdf = g*dstdstd(z/xxi,nu)*sigma;
 	return pdf;
 }
+
+double dhyp(const double x, const double alpha, const double beta, const double delta, const double mu, const int logr)
+{
+	double pdf=0;
+	if(alpha<=0){
+		return pdf=0;
+	}
+	if(delta <= 0){
+		return pdf=0;
+	}
+	if(fabs(beta) >= alpha){
+		return pdf=0;
+	}
+	double g = alpha*alpha - beta*beta;
+	double e = x - mu;
+	pdf = 0.5*log(g) - log(2*alpha*delta*bessel_k(delta*sqrt(g),1,2)) - alpha*sqrt(delta*delta + e*e)  + beta*e;
+	if(logr==1){
+		pdf = pdf;
+	} else{
+		pdf = exp(pdf);
+	}
+	return pdf;
+}
+double dhypstd(const double x,  const double zeta, const double rho, const int logr)
+{
+	double pdf;
+	double *param;
+	param = paramgh(zeta, rho, 1);
+	double alpha=param[0];
+	double beta=param[1];
+	double delta=param[2];
+	double mu=param[3];
+	pdf = dhyp(x, alpha, beta, delta, mu, logr);
+	free(param);
+	return pdf;
+}
 double dgh(const double x, const double alpha, const double beta, const double delta, const double mu, const double lambda, const int logr)
 {
 	double pdf=0;
@@ -446,7 +452,7 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 			 5 - ged
 			 6 - skew-ged
 			 7 - Normal Inverse Gaussian (NIG)
-			 8 - Generalized Hyperbolic (GHYP)
+			 8 - Generalized Hyperbolic (GHYP) --> special HYP case handled separately for speed.
 			 9 - JSU
 			 10 - GH Skew Student
 			 11 - Truncated Normal (skew = lower, shape = upper)
@@ -484,7 +490,11 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 	}
 	if(ndis==8)
 	{
-		pdf=dghstd(zz, shape, skew, dlambda, 0)/hh;
+		if(dlambda==1){
+			pdf=dhypstd(zz, shape, skew, 0)/hh;
+		} else{
+			pdf=dghstd(zz, shape, skew, dlambda, 0)/hh;
+		}
 	}
 	if(ndis==9)
 	{
@@ -546,7 +556,7 @@ double rgarchdist(const double shape, const double skew, const double lambda, co
 	}
 	if(ndis==9)
 	{
-		ans = rjsu(shape, skew);
+		ans = rjsu(skew, shape);
 	}
 	return(ans);
 }

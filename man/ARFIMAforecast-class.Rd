@@ -2,9 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{ARFIMAforecast-class}
-\alias{as.array,ARFIMAforecast-method}
-\alias{as.data.frame,ARFIMAforecast-method}
-\alias{as.list,ARFIMAforecast-method}
+\alias{fitted,ARFIMAforecast-method}
 \alias{show,ARFIMAforecast-method}
 \alias{fpm,ARFIMAforecast-method}
 \title{class: ARFIMA Forecast Class}
@@ -23,14 +21,9 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-   \item{as.array}{\code{signature(x = "ARFIMAforecast")}: 
-   Extracts the forecast array with matrix column dimensions equal to the 
-   n.ahead value and row dimension 1 (series forecast), and array dimension 
-   equal to the number of rolling forecasts chosen.}
-   \item{as.data.frame}{\code{signature(x = "ARFIMAforecast")}: 
-   Extracts the forecasts. Takes many additional arguments (see note below).}
-   \item{as.list}{\code{signature(x = "ARFIMAforecast")}: 
-   Extracts the forecast list with all rollframes.}
+   \item{fitted}{\code{signature(x = "ARFIMAforecast")}: 
+   The n.ahead by n.roll+1 matrix of conditional mean forecasts. The column 
+   names are the T[0] dates.}
    \item{fpm}{\code{signature(object = "ARFIMAforecast")}: 
    Forecast performance measures.}
    \item{show}{\code{signature(object = "ARFIMAforecast")}: 
@@ -38,25 +31,24 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 	}
 }
 \note{
-There are 3 main extractor functions for the ARFIMA object which is admittedly 
-the most complex in the package as a result of allowing for rolling forecasts. 
-The \code{as.array} extracts an array object where each page of the array 
-represents a roll. The \code{as.list} method works similarly returns instead a 
-list object. There are no additional arguments to these extractor functions and 
-they will return all the forecasts. The \code{as.data.frame} method on the other 
-hand provides for 4 additional arguments. The \code{rollframe} option is for the 
-rolling frame to return (with 0 being the default no-roll) and allows either a 
-valid numeric value or alternatively the character value \dQuote{all} for which 
-additional options then come into play. When \dQuote{all} is chosen in the 
-\code{rollframe} argument, the data.frame returned may be time aligned 
-(logical option \code{aligned}) in which case the logical option \code{prepad} 
-indicates whether to pad the values prior to the forecast start time with actual 
-values or NA (value \code{FALSE}). Finally, the \code{type} option controls 
-whether to return all forecasts (value 0, default), return only those forecasts 
-which have in sample equivalent data (value 1) or return only those values which 
-are truly forecasts without in sample data (value 2). Depending on the intended 
-usage of the forecasts, some or all these options may be useful to the user when 
-extracting data from the forecast object.\cr
+Since versions 1.01-3, the \code{fitted} method has been introduced
+which extracts the n.ahead by (n.roll+1) matrix of conditional mean forecasts, 
+with column names the T[0] time index. This is unlike the old \code{data.frame} 
+which returned the T+1 etc dates. This method is the default extractor in 
+rugarch package for the conditional mean (whether from an estimated, filtered, 
+forecast or simulated object) and the other method, namely \code{as.data.frame} 
+is now deprecated with the exception of a few classes where it is still used
+(\code{\linkS4class{ARFIMAdistribution}} and \code{\linkS4class{ARFIMAroll}}).\cr
+The fpm method returns the Mean Squared Error (MSE), Mean Absolute Error (MAE), 
+Directional Accuracy (DAC) and number of points used for the calculation (N), of 
+forecast versus realized returns, if the extra \code{summary} option is set 
+to TRUE (default). This is a 4 x (n.roll+1) matrix, with row headings the T[0]
+time index, and requires at least 5 points to calculate the summary measures else
+will return NA. When n.ahead>1, this method calculates the measures on the 
+n.ahead>1 unconditional forecast, but if n.ahead=1 with n.roll>4, it will 
+calculate the measures on the rolling forecast instead. Finally, when summary
+is set to FALSE, the method will return a list of length n.roll+1 of xts objects
+with the loss functions (Squared Error and Absolute Error and Directional Hits).
 }
 \author{Alexios Ghalanos}
 

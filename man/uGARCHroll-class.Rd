@@ -11,6 +11,9 @@
 \alias{resume}
 \alias{resume,uGARCHroll-method}
 \alias{fpm,uGARCHroll-method}
+\alias{quantile,uGARCHroll-method}
+\alias{pit,uGARCHroll-method}
+\alias{convergence,uGARCHroll-method}
 \alias{coef,uGARCHroll-method}
 \title{class: Univariate GARCH Rolling Forecast Class}
 \description{Class for the univariate GARCH rolling forecast.}
@@ -37,9 +40,21 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHroll", distance 2.
 	alternative solver and control parameters.}
 	\item{fpm}{\code{signature(object = "uGARCHroll")}: 
     Forecast performance measures.}
-    item{coef}{\code{signature(object = "uGARCHroll")}: 
+    \item{coef}{\code{signature(object = "uGARCHroll")}: 
     Extracts the list of coefficients for each estimated window in the 
     rolling backtest.}
+    \item{quantile}{\code{signature(x = "uGARCHroll")}: 
+	Calculates and returns, given a vector of probabilities (additional argument 
+	\dQuote{probs}), the conditional quantiles of the rolling object as an
+	xts matrix.}
+	\item{pit}{\code{signature(object = "uGARCHroll")}: 
+	Calculates and returns the conditional probability integral transform given the 
+	realized data and forecast density.}
+    \item{convergence}{\code{signature(object = "uGARCHroll")}: 
+    Returns the convergence code for the estimation windows, with 0 indicating
+    that all have converged and 1 that there were non-converged windows. In 
+    the latter case the \sQuote{nonconverged} attribute is also printed of those 
+    windows which failed to converge.}
     \item{show}{\code{signature(object = "uGARCHroll")}:
 	Summary.}
 	 }

@@ -103,52 +103,54 @@ parameters across the various models:(note that when a parameter is followed by
 a number, this represents the order of the model. Just increment the number 
 for higher orders, with the exception of the component sGARCH permanent 
 component parameters which are fixed to have a lag-1 autoregressive structure.):\cr
-\emph{\bold{Mean Model}}:\cr
-   \tabular{rll}{
-     \tab constant	\tab \code{mu}\cr
-     \tab AR term	\tab \code{ar1}\cr
-     \tab MA term	\tab \code{ma1}\cr
-     \tab ARCH in mean	\tab \code{archm}\cr
-     \tab exogenous regressors	\tab \code{mxreg1}\cr
-     \tab arfima	\tab \code{arfima}\cr
+\itemize{
+\item\emph{\bold{Mean Model}}\cr
+	\itemize{
+    \item constant: \code{mu}\cr
+    \item AR term:	\code{ar1}\cr
+    \item MA term:	\code{ma1}\cr
+    \item ARCH-in-mean: \code{archm}\cr
+    \item exogenous regressors: \code{mxreg1}\cr
+    \item arfima: \code{arfima}\cr
    }
-\emph{\bold{Distribution Model}}:\cr
-   \tabular{rll}{
-     \tab ghlambda \tab \code{lambda (for GHYP distribution)}\cr
-     \tab skew	\tab \code{skew}\cr
-     \tab shape	\tab \code{shape}\cr
+\item \emph{\bold{Distribution Model}}\cr
+   \itemize{
+     \item skew:     \code{skew}\cr
+     \item shape:    \code{shape}\cr
+     \item ghlambda: \code{lambda (for GHYP distribution)}\cr  
    }
-\emph{\bold{Variance Model (common specs)}}:\cr
-  \tabular{rll}{
-     \tab constant	\tab \code{omega}\cr
-     \tab ARCH term	\tab \code{alpha1}\cr
-     \tab GARCH term \tab \code{beta1}\cr
-     \tab exogenous regressors	\tab \code{vxreg1}\cr
+\item \emph{\bold{Variance Model (common specs)}}\cr
+  \itemize{
+     \item constant:   \code{omega}\cr
+     \item ARCH term:  \code{alpha1}\cr
+     \item GARCH term: \code{beta1}\cr
+     \item exogenous regressors: \code{vxreg1}\cr
    }
-\emph{\bold{Variance Model (GJR, EGARCH)}}:\cr
-  \tabular{rll}{
-     \tab assymetry term \tab \code{gamma1}\cr
+\item \emph{\bold{Variance Model (GJR, EGARCH)}}\cr
+  \itemize{
+     \item assymetry term: \code{gamma1}\cr
    }
-\emph{\bold{Variance Model (APARCH)}}:\cr
-  \tabular{rll}{
-     \tab assymetry term \tab \code{gamma1}\cr
-     \tab power term	\tab \code{delta}\cr
+\item \emph{\bold{Variance Model (APARCH)}}\cr
+  \itemize{
+     \item assymetry term: \code{gamma1}\cr
+     \item power term: \code{delta}\cr
    }
-\emph{\bold{Variance Model (FGARCH)}}:\cr
-  \tabular{rll}{
-     \tab assymetry term1 (rotation)	\tab \code{eta11}\cr
-     \tab assymetry term2 (shift)	\tab \code{eta21}\cr
-     \tab power term1(shock)	\tab \code{delta}\cr
-     \tab power term2(variance)\tab \code{lambda}\cr
+\item \emph{\bold{Variance Model (FGARCH)}}\cr
+  \itemize{
+     \item assymetry term1 (rotation): \code{eta11}\cr
+     \item assymetry term2 (shift): \code{eta21}\cr
+     \item power term1(shock): \code{delta}\cr
+     \item power term2(variance): \code{lambda}\cr
    }
-\emph{\bold{Variance Model (csGARCH)}}:\cr
-  \tabular{rll}{
-     \tab permanent component autoregressive term (rho)	\tab \code{eta11}\cr
-     \tab permanent component shock term (phi)	\tab \code{eta21}\cr
-     \tab permanent component intercept	(omega)\tab \code{omega}\cr
-     \tab transitory component ARCH term	\tab \code{alpha1}\cr
-     \tab transitory component GARCH term \tab \code{beta1}\cr
+\item \emph{\bold{Variance Model (csGARCH)}}\cr
+  \itemize{
+     \item permanent component autoregressive term (rho): \code{eta11}\cr
+     \item permanent component shock term (phi): \code{eta21}\cr
+     \item permanent component intercept:   \code{omega}\cr
+     \item transitory component ARCH term:  \code{alpha1}\cr
+     \item transitory component GARCH term: \code{beta1}\cr
    }
+}
 }
 \author{Alexios Ghalanos}
 \examples{

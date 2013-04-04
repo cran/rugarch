@@ -41,6 +41,8 @@ double dsgedstd(const double, const double, const double);
 double xdt(const double, const double);
 double dstdstd(const double, const double);
 double dsstdstd(const double, const double, const double);
+double dhyp(const double , const double , const double , const double , const double , const int );
+double dhypstd(const double ,  const double , const double , const int );
 double dgh(const double, const double, const double, const double, const double, const double, const int);
 double dghstd(const double, const double, const double, const double, const int);
 double dnig(const double, const double, const double, const double, const double, const int);

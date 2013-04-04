@@ -2,8 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{ARFIMAmultiforecast-class}
-\alias{as.array,ARFIMAmultiforecast-method}
-\alias{as.list,ARFIMAmultiforecast-method}
+\alias{fitted,ARFIMAmultiforecast-method}
 \alias{show,ARFIMAmultiforecast-method}
 
 \title{class: ARFIMA Multiple Forecast Class}
@@ -21,13 +20,9 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.array}{\code{signature(x = "ARFIMAmultiforecast")}: 
-    extracts the forecast array with matrix column dimensions equal to the number of assets, 
-    row dimension the n.ahead and array dimension equal to the number of rolling forecasts 
-    chosen.}
-    \item{as.list}{\code{signature(x = "ARFIMAmultiforecast")}: 
-    extracts the forecast list of length equal to the number of assets, sublists equal to n.roll, 
-    row dimension of each sublist equal to n.ahead and column dimension equal to 1 (series forecasts).}
+    \item{fitted}{\code{signature(x = "ARFIMAmultiforecast")}: 
+    Extracts the conditional mean forecast from the object, and returns an
+    array of the n.ahead by (n.roll+1) by n.assets.}
     \item{show}{\code{signature(object = "ARFIMAmultiforecast")}: forecast summary. }
 	 }
 }

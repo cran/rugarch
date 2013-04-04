@@ -2,7 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{ARFIMApath-class}
-\alias{as.data.frame,ARFIMApath-method}
+\alias{fitted,ARFIMApath-method}
 \alias{show,ARFIMApath-method}
 
 \title{class: ARFIMA Path Simulation Class}
@@ -21,16 +21,10 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.data.frame}{\code{signature(x = "ARFIMApath")}: 
-    Extracts the simulated path values (see note).}
+    \item{fitted}{\code{signature(x = "ARFIMApath")}: 
+    Extracts the simulated path values as a matrix of dimension n.sim by m.sim.}
     \item{show}{\code{signature(object = "ARFIMApath")}: path simulation summary. }
 	 }
-}
-\note{
-The \code{as.data.frame} function takes optionally 1 additional arguments, namely \code{which},
-indicating the type of simulation path series to extract. Valid values \dQuote{series} for the 
-simulated series and \dQuote{residuals} for the simulated residuals. The dimension of the 
-\code{data.frame} will be \code{n.sim} by \code{m.sim}.
 }
 \author{Alexios Ghalanos}
 \keyword{classes}

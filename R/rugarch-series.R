@@ -15,137 +15,98 @@
 ##
 #################################################################################
 
-# function to deal with the numerous data formats present
-# we want to extract the date from the data
-.extractdata<-function(data)
+################################################################################
+# EXPORTED
+move = function(index, by=1){
+	if(!is(index, "POSIXct") && !is(index, "Date") && !is(index, "numeric"))
+		stop("\nunrecongnized time index")
+	n = length(index)
+	if(by>=n) stop("\nby must be less than length of index!")
+	if(by==0) return(index)
+	p = median(diff(index))
+	newindex = c(index[-c(1:by)], generatefwd(index[n], length.out=1, by=p))
+	return(newindex)
+}
+
+generatefwd = function(T0, length.out = 1, by = "days"){
+	if(!is(T0, "POSIXct") && !is(T0, "Date") && !is(T0, "numeric"))
+		stop("\nunrecongnized time index")
+	Z = seq(T0, by = by, length.out=length.out*4)[-1]
+	if(!is.numeric(T0)){
+		W = weekdays(Z)
+		idx = c(which(W=="Saturday"), which(W=="Sunday"))
+		if(length(idx)>0) Z = Z[-idx]
+	}
+	Z = Z[1:length.out]
+	return(Z)
+}
+
+# T0 = as.POSIXct("2001-01-01 16:00:00")
+# interval = format(seq(as.POSIXct("2001-01-01 09:30:00"), as.POSIXct("2001-01-01 16:00:00"), by="min"), "%H:%M:%S")
+# by = "mins"
+# length.out=1000
+ftseq = function(T0, length.out, by, interval, exclude.weekends = TRUE)
 {
-	tsclass = class(data)[1]
-	valid.choices = c("timeSeries", "zoo", "zooreg", "numeric", "data.frame", "xts", "matrix")
-	if(!any(valid.choices == tsclass)) stop("\nrgarch-->error: class of data object not recognized")
-	x = switch(tsclass,
-			timeSeries = .xseries.timeSeries(data),
-			zoo = .xseries.zoo(data),
-			zooreg = .xseries.zoo(data),
-			xts = .xseries.xts(data),
-			numeric = .xseries.numeric(data),
-			data.frame = .xseries.dataframe(data),
-			matrix = .xseries.matrix(data))
-	return(x)
-}
-
-.xseries.timeSeries = function(data){
-	x = unclass(data)
-	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
-	xdata = as.numeric(x)
-	rdates = .makedate(as.character(time(data)))
-	if(rdates$status){
-		xdates = rdates$dates
-		dformat = rdates$dformat
-	} else{
-		xdates = 1:length(x)
-		dformat = "numeric"
-	}
-	return(list(data = xdata, pos = xdates, dformat = dformat))
-}
-
-.xseries.zoo = function(data){
-	x = unclass(data)
-	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
-	xdata = as.numeric(x)
-	rdates = .makedate(as.character(zoo::index(data)))
-	if(rdates$status){
-		xdates = rdates$dates
-		dformat = rdates$dformat
-	} else{
-		xdates = 1:length(x)
-		dformat = "numeric"
-	}
-	return(list(data = xdata, pos = xdates, dformat = dformat))
-}
-
-.xseries.xts = function(data){
-	x = unclass(data)
-	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
-	xdata = as.numeric(x)
-	rdates = .makedate(as.character(zoo::index(data)))
-	if(rdates$status){
-		xdates = rdates$dates
-		dformat = rdates$dformat
-	} else{
-		xdates = 1:length(x)
-		dformat = "numeric"
-	}
-	return(list(data = xdata, pos = xdates, dformat = dformat))
-}
-
-.xseries.numeric = function(data){
-	x = unclass(data)
-	xdata = x
-	if(!is.null(names(data))){
-		rdates = .makedate(names(data))
-		if(rdates$status){
-			xdates = rdates$dates
-			dformat = rdates$dformat
-		} else{
-			xdates = 1:length(x)
-			dformat = "numeric"
+	start = T0
+	# Just one check:
+	if(!is(start, "POSIXct")) stop("\nstart must be a POSIXct object")
+	U = format(start, "%H:%M:%S")
+	if(is.na(match(U, interval))) stop("\nstart must match one of the supplied interval values.")
+	zn = length.out-1
+	k = 1
+	while(zn<length.out){
+		# function does not know what increment "by" is nor the interval.
+		# start out with length.out*10 as an estimate and continue looping
+		# until we have enough points to satisfy the requirements, including
+		# exclusion of weekends
+		z = seq(from = start, by = by, length.out = length.out*10*k)[-1]
+		y = format(z, "%H:%M:%S")
+		z = z[which(!is.na(match(y, interval)))]
+		if(exclude.weekends){	
+			z = z[-which(weekdays(z)=="Saturday")]
+			z = z[-which(weekdays(z)=="Sunday")]
 		}
-	} else{
-		xdates = 1:length(x)
-		dformat = "numeric"
+		zn = length(z)
+		k = k*2
 	}
-	return(list(data = xdata, pos = xdates, dformat = dformat))
+	return(z[1:length.out])
 }
 
-.xseries.dataframe = function(data){
-	xdata = as.numeric(data[,1])
-	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
-	ow <- options("warn")
-	options(warn = (-1))
-	if(!is.null(rownames(data))){
-		if(!is.na(as.numeric(rownames(data)[1]))){
-			xdates = as.numeric(rownames(data))
-			dformat = "numeric"
-		} else{
-			rdates = .makedate(rownames(data))
-			if(rdates$status){
-				xdates = rdates$dates
-				dformat = rdates$dformat
-			} else{
-				xdates = 1:length(xdata)
-				dformat = "numeric"
-			}
-		}
-	} else{
-		xdates = 1:length(xdata)
-		dformat = "numeric"
+#R = ftseq(as.POSIXct("2001-01-01 16:00:00"), length.out=2000, by = 18000, interval = interval)
+################################################################################
+.extractdata = function(data, warn = FALSE)
+{
+	xdata = try(as.xts(data), silent = TRUE)
+	if(inherits(xdata, "try-error")){
+		if(warn) warning("\nrugarch-->warning: data indexing not recognized by xts...coercing to Date with origin 1970-01-01.")
+		if(is.data.frame(data) | is.matrix(data)) data = as.numeric(data[,1]) else data = as.numeric(data)
+		data = unname(data)
+		xdata = xts(data, as.Date(seq_along(data), origin="1970-01-01"))
 	}
-	options(ow)
-	return(list(data = xdata, pos = xdates, dformat = dformat))
+	obj = list()
+	obj$data = as.numeric(coredata(xdata))
+	obj$index = index(xdata)
+	obj$period = median(diff(index(xdata)))
+	return(obj)
 }
 
-.xseries.matrix<-function(data){
-	xdata = as.numeric(data[,1])
-	if(!is.null(dim(data)[2]) && dim(data)[2]>1) stop("only univariate dataset supported")
-	if(!is.null(rownames(data))){
-		rdates = .makedate(rownames(data))
-		if(rdates$status){
-			xdates = rdates$dates
-			dformat = rdates$dformat
-		} else{
-			xdates = as.character(1:length(xdata))
-			dformat = "numeric"
-		}
-	} else{
-		xdates = as.character(1:length(xdata))
-		dformat = "numeric"
-	}
-	return(list(data = xdata, pos = xdates, dformat = dformat))
+.numeric2xts = function(data){
+	data = as.numeric(data)
+	return(xts(data, as.Date(1:NROW(data), origin="1950-01-01")))
 }
 
+.genxts = function(index0, length.out = 10, period = "days"){
+	Z = seq(index0, by = period, length.out=length.out)
+	return(Z)
+}
+################################################################################
+# DEPRECATED
 # make generatefwd search for available dates from original set
 .generatefwd = function(Dates, N, dformat, periodicity = "days")
 {
+	if(!require(chron)){
+		stop("\nchron is required for this...")
+	}
 	if(is.numeric(Dates[1])){
 		n = length(Dates)
 		fwd = (Dates[n]+1):(n+N)
@@ -153,7 +114,7 @@
 		n = length(Dates)
 		# reformat data
 		sdx = format(Dates[n], "%m/%d/%y")
-		fwd = seq.dates(from=sdx, by = periodicity, length.=N*8)
+		fwd = chron::seq.dates(from=sdx, by = periodicity, length.=N*8)
 		# generate enough to dates to not cause problem with weekend exclusion later
 		z1 = which(chron::is.weekend(fwd))
 		fwd = as.character(fwd)
@@ -165,13 +126,16 @@
 	return(fwd)
 }
 
-ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
-{
-	UseMethod("ForwardDates")
-}
+#ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
+#{#
+#	UseMethod("ForwardDates")
+#}
 
 .ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
 {
+	if(!require(chron)){
+		stop("\nchron is required for this...")
+	}
 	if(is.numeric(Dates[1])){
 		n = length(Dates)
 		fwd = (Dates[n]+1):(n+n.ahead)
@@ -179,7 +143,7 @@ ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
 		n = length(Dates)
 		# reformat data
 		sdx = format(as.Date(Dates[n], format = date.format), format = "%m/%d/%y")
-		fwd = seq.dates(from = sdx, by = periodicity, length. = 8 * n.ahead)
+		fwd = chron::seq.dates(from = sdx, by = periodicity, length. = 8 * n.ahead)
 		# generate enough to dates to not cause problem with weekend exclusion later
 		z1 = which(chron::is.weekend(fwd))
 		fwd = format(as.Date(as.character(fwd), format = "%m/%d/%y" ), format = date.format)
@@ -190,12 +154,12 @@ ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
 	return(fwd)
 }
 	
-setMethod("ForwardDates", signature(Dates = "character"), definition=.ForwardDates)
+#setMethod("ForwardDates", signature(Dates = "character"), definition=.ForwardDates)
 
-WeekDayDummy = function(Dates, date.format, weekday = "Monday")
-{
-	UseMethod("WeekDayDummy")
-}
+#WeekDayDummy = function(Dates, date.format, weekday = "Monday")
+#{
+#	UseMethod("WeekDayDummy")
+#}
 
 .WeekDayDummy = function(Dates, date.format, weekday = "Monday")
 {
@@ -212,7 +176,7 @@ WeekDayDummy = function(Dates, date.format, weekday = "Monday")
 	ans
 }
 
-setMethod(f = "WeekDayDummy", signature(Dates = "character"), definition = .WeekDayDummy)
+#setMethod(f = "WeekDayDummy", signature(Dates = "character"), definition = .WeekDayDummy)
 
 # create the forecast date set which depends on out.sample data
 .forcdates = function( origdates, n.ahead, N, i, ns , dformat)

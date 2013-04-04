@@ -124,8 +124,6 @@ rugarch.test1b = function(cluster=NULL){
 	print(cfmatrix, digits = 4)
 	cat("\nARFIMAfit and ARFIMAfilter residuals check:\n")
 	print(head(sapply(filt, FUN = function(x) residuals(x))) == head(sapply(fit, FUN = function(x) residuals(x))))
-	cat("\nas.data.frame method:\n")
-	print(cbind(head(as.data.frame(filt[[1]])), head(as.data.frame(fit[[1]]))))
 	cat("\ncoef method:\n")
 	print(cbind(coef(filt[[1]]), coef(fit[[1]])))
 	cat("\nfitted method:\n")
@@ -191,7 +189,7 @@ rugarch.test1c = function(cluster=NULL){
 		forc[[i]] = arfimaforecast(fit[[i]], n.ahead = 100)
 	}
 	
-	lmean40 = sapply(forc, FUN = function(x) as.numeric(as.data.frame(x)[40,1]))
+	lmean40 = sapply(forc, FUN = function(x) as.numeric(fitted(x)[40,1]))
 	cfmatrix1 = cbind(cfmatrix, umean, lmean40)
 	colnames(cfmatrix1) = c(colnames(cfmatrix1[,1:7]), "uncmean", "forecast40")
 	
@@ -203,7 +201,7 @@ rugarch.test1c = function(cluster=NULL){
 		setfixed(spec) = as.list(coef(fit[[i]]))
 		forc2[[i]] = arfimaforecast(spec, data = sp500ret, n.ahead = 100)
 	}
-	lmean240 = sapply(forc2, FUN = function(x) as.numeric(as.data.frame(x)[40,1]))
+	lmean240 = sapply(forc2, FUN = function(x) as.numeric(fitted(x)[40,1]))
 	cfmatrix2 = cbind(cfmatrix, umean, lmean240)
 	colnames(cfmatrix2) = c(colnames(cfmatrix2[,1:7]), "uncmean", "forecast40")
 	
@@ -218,30 +216,27 @@ rugarch.test1c = function(cluster=NULL){
 	cat("\nSpec\n")	
 	print(cfmatrix2, digits = 4)
 	slotNames(forc[[1]])
-	showMethods(classes="ARFIMAforecast")
 	# summary
 	print(show(forc[[1]]))
-	# Extractor Functions
-	# as array (array dimension [3] is 1 since n.roll = 0 i.e. no rolling beyond the first)
-	print(as.array(forc[[1]]))
-	# as.data.frame
-	print(as.data.frame(forc[[1]]))
-	# as.list
-	print(as.list(forc[[1]]))
 	sink(type="message")
 	sink()
 	close(zz)
 	
-	nforc = sapply(forc, FUN = function(x) t(unlist(as.data.frame(x, aligned = FALSE))))
+	nforc = sapply(forc, FUN = function(x) t(as.numeric(fitted(x))))
 	postscript("test1c.eps", width = 12, height = 5)
-	dd = c(rownames(tail(sp500ret, 100)), rownames(as.data.frame(forc[[1]])))
+	# generate FWD dates:
+	dx = as.POSIXct(tail(rownames(sp500ret),50)) 
+	df = .genxts(tail(dx, 1), length.out = 100+1, period = forc[[1]]@model$modeldata$period)[-1]
+		
+	dd = c(dx, df)
 	clrs = rainbow(9, alpha = 1, start = 0.4, end = 0.95)
-	plot(as.Date(dd), c(tail(sp500ret[,1], 100), nforc[,1]), type = "l", ylim = c(-0.02, 0.02), col = "lightgrey",
-			ylab = "", xlab = "", main = "100-ahead Unconditional Forecasts")
+	plot(xts(c(tail(sp500ret[,1], 50), nforc[,1]), dd), type = "l", ylim = c(-0.02, 0.02), col = "lightgrey",
+			ylab = "", xlab = "", main = "100-ahead Unconditional Forecasts", 
+			minor.ticks=FALSE, auto.grid=FALSE)
 	for(i in 1:9){
-		tmp = c(tail(sp500ret[,1], 100), rep(NA, 100))
-		tmp[101:200] = nforc[1:100,i]
-		lines(as.Date(dd), c(rep(NA, 100), tmp[-(1:100)]), col = clrs[i])
+		tmp = c(tail(sp500ret[,1], 50), rep(NA, 100))
+		tmp[51:150] = nforc[1:100,i]
+		lines(xts(c(rep(NA, 50), tmp[-(1:50)]),dd), col = clrs[i])
 	}
 	legend("topleft", legend = dist, col = clrs, fill = clrs, bty = "n")
 	dev.off()
@@ -277,7 +272,7 @@ rugarch.test1d = function(cluster=NULL){
 	for(i in 1:9){
 		forc[[i]] = arfimaforecast(fit[[i]], n.ahead = 1, n.roll = 999)
 	}
-	rollforc = sapply(forc, FUN = function(x) t(unlist(as.data.frame(x, rollframe = "all", aligned = FALSE))))
+	rollforc = sapply(forc, FUN = function(x) t(fitted(x)))
 	
 	# forecast performance measures:
 	fpmlist = vector(mode = "list", length = 9)
@@ -287,14 +282,16 @@ rugarch.test1d = function(cluster=NULL){
 	
 	postscript("test1d.eps", width = 16, height = 5)
 	par(mfrow = c(1,2))
-	dd = rownames(tail(sp500ret, 1250))
+	dd = as.POSIXct(tail(rownames(sp500ret), 1250)) 
 	clrs = rainbow(9, alpha = 1, start = 0.4, end = 0.95)
-	plot(as.Date(dd), tail(sp500ret[,1], 1250), type = "l", ylim = c(-0.02, 0.02), col = "lightgrey",
-			ylab = "", xlab = "", main = "Rolling 1-ahead Forecasts\nvs Actual")
+	plot(xts(tail(sp500ret[,1], 1250), dd), type = "l", ylim = c(-0.02, 0.02), 
+			col = "lightgrey", ylab = "", xlab = "", 
+			main = "Rolling 1-ahead Forecasts\nvs Actual", minor.ticks=FALSE, 
+			auto.grid=FALSE)
 	for(i in 1:9){
 		tmp = tail(sp500ret[,1], 1250)
 		tmp[251:1250] = rollforc[1:1000,i]
-		lines(as.Date(dd), c(rep(NA, 250), tmp[-(1:250)]), col = clrs[i])
+		lines(xts(c(rep(NA, 250), tmp[-(1:250)]), dd), col = clrs[i])
 	}
 	legend("topleft", legend = dist, col = clrs, fill = clrs, bty = "n")
 	
@@ -319,9 +316,7 @@ rugarch.test1d = function(cluster=NULL){
 	cat("\nRolling Forecast FPM\n")
 	print(compm, digits = 4)
 	cat("\nMethods Check\n")
-	print(as.data.frame(forc[[1]], rollframe = 0))
-	print(as.data.frame(forc[[1]], rollframe = 999))
-	print(t(as.data.frame(forc[[1]], rollframe = "all", aligned = FALSE)))
+	print(fitted(forc[[1]])[,1:10,drop=FALSE])
 	print(fpm(forc[[1]], summary = TRUE))
 	print(show(forc[[1]]))
 	sink(type="message")
@@ -404,39 +399,35 @@ rugarch.test1e = function(cluster=NULL){
 	sink(zz)
 	cat("\nMultifit Evaluation\n")
 	cat("\nUnequal Spec\n")
-	print(show(mfit1))
+	print(mfit1)
 	print(likelihood(mfit1))
 	print(coef(mfit1))
 	print(head(fitted(mfit1)))
 	print(head(residuals(mfit1)))
-	print(show(mfilt1))
+	print(mfilt1)
 	print(likelihood(mfilt1))
 	print(coef(mfilt1))
 	print(head(fitted(mfilt1)))
 	print(head(residuals(mfilt1)))
-	print(show(mforc1))
-	print(as.array(mforc1))
-	print(as.list(mforc1))
-	print(show(mforc11))
-	print(as.array(mforc11))
-	print(as.list(mforc11))
+	print(mforc1)
+	print(fitted(mforc1))
+	print(mforc11)
+	print(fitted(mforc11))
 	cat("\nEqual Spec\n")
-	print(show(mfit2))
+	print(mfit2)
 	print(likelihood(mfit2))
 	print(coef(mfit2))
 	print(head(fitted(mfit2)))
 	print(head(residuals(mfit2)))
-	print(show(mfilt2))
+	print(mfilt2)
 	print(likelihood(mfilt2))
 	print(coef(mfilt2))
 	print(head(fitted(mfilt2)))
 	print(head(residuals(mfilt2)))
-	print(show(mforc2))
-	print(as.array(mforc2))
-	print(as.list(mforc2))
-	print(show(mforc21))
-	print(as.array(mforc21))
-	print(as.list(mforc21))
+	print(mforc2)
+	print(fitted(mforc2))
+	print(mforc21)
+	print(fitted(mforc21))
 	sink(type="message")
 	sink()
 	close(zz)
@@ -472,6 +463,7 @@ rugarch.test1f = function(cluster=NULL){
 	print(tail(as.data.frame(roll1, which = "VaR"), 25))
 	print(coef(roll1)[[1]])
 	print(coef(roll1)[[20]])
+	print(head(fpm(roll1, summary=FALSE)))
 	sink(type="message")
 	sink()
 	close(zz)
@@ -717,8 +709,8 @@ rugarch.test1g = function(cluster=NULL){
 	
 	sim = arfimasim(fit, n.sim = 10, m.sim = 10000, startMethod="sample", 
 			custom.dist = list(name = "sample", distfit = ressim, type = "res"), mexsimdata = exsim)
-	forc = as.data.frame(arfimaforecast(fit, n.ahead = 10, external.forecasts = list(mregfor = BenchF)))
-	simx = as.data.frame(sim)
+	forc = fitted(arfimaforecast(fit, n.ahead = 10, external.forecasts = list(mregfor = BenchF)))
+	simx = fitted(sim)
 	actual10 = Dat[(T-500+1):(T-500+10), 1, drop = FALSE]
 	
 	simm = apply(simx, 1 ,"mean")
@@ -746,7 +738,7 @@ rugarch.test1h = function(cluster=NULL){
 	distribution.model = "norm", 
 	fixed.pars = truecoef1)
 	sim1 = arfimapath(spec1, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 101)
-	data1 = as.data.frame(sim1)
+	data1 = fitted(sim1)
 	#write.csv(data1[,1], file = "D:/temp1.csv")
 	spec1 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
@@ -769,7 +761,7 @@ rugarch.test1h = function(cluster=NULL){
 	distribution.model = "norm", 
 	fixed.pars = truecoef2)
 	sim2 = arfimapath(spec2, n.sim = 5000, n.start = 100, m.sim = 1,  rseed = 102)	
-	data2 = as.data.frame(sim2)
+	data2 = fitted(sim2)
 	#write.csv(data2[,1], file = "D:/temp2.csv")
 	spec2 = arfimaspec( 
 	mean.model = list(armaOrder = c(2,0), include.mean = TRUE, arfima = TRUE), 
@@ -792,7 +784,7 @@ rugarch.test1h = function(cluster=NULL){
 	distribution.model = "norm", 
 	fixed.pars = truecoef3)
 	sim3 = arfimapath(spec3, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 103)
-	data3 = as.data.frame(sim3)
+	data3 = fitted(sim3)
 	#write.csv(data3[,1], file = "D:/temp3.csv")
 	spec3 = arfimaspec( 
 	mean.model = list(armaOrder = c(0,2), include.mean = TRUE, arfima = TRUE), 
@@ -815,7 +807,7 @@ rugarch.test1h = function(cluster=NULL){
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm", fixed.pars = truecoef)
 	sim = arfimapath(spec, n.sim = 5000, n.start = 100, m.sim = 50, rseed = 1:50)
-	Data = as.data.frame(sim)
+	Data = fitted(sim)
 	spec = arfimaspec( 
 	mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 	distribution.model = "norm")
@@ -879,7 +871,6 @@ rugarch.test1h = function(cluster=NULL){
 				rand.gen = rnorm, n.start = 100, backComp = TRUE, sd = 0.0123, mu = 0.005)
 		Data[,i] = sim$series
 	}
-	Data = as.data.frame(Data)
 	spec = arfimaspec( 
 			mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 			distribution.model = "norm")

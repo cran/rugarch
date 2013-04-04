@@ -49,10 +49,10 @@
 	n = length(xdata$data)
 	if((n-n.start)<100) stop("\nugarchfit-->error: function requires at least 100 data\n points to run\n")
 	data = xdata$data[1:(n-n.start)]
-	dates = xdata$pos[1:(n-n.start)]
+	index = xdata$index[1:(n-n.start)]
 	origdata = xdata$data
-	origdates = xdata$pos
-	dformat = xdata$dformat
+	origindex = xdata$index
+	period = xdata$period
 	# create a temporary environment to store values (deleted at end of function)
 	garchenv = new.env(hash = TRUE)
 	arglist = list()
@@ -73,9 +73,8 @@
 	} else{
 		vexdata = NULL
 	}
-	arglist$dates = dates
+	arglist$index = index
 	arglist$trace = trace
-	
 	m =  model$maxOrder
 	model$modeldata$T = T = length(as.numeric(data))
 	dist = model$modeldesc$distribution
@@ -103,7 +102,7 @@
 				# if all parameters are fixed an no standard erros are to
 				# be calculated then we return a ugarchfilter object
 				warning("\nugarchfit-->warning: all parameters fixed...returning ugarchfilter object instead\n")
-				return(ugarchfilter(data = data, spec = spec, out.sample = out.sample))
+				return(ugarchfilter(data = xts(origdata, origindex), spec = spec, out.sample = out.sample))
 			} else{
 				# if all parameters are fixed but we require standard errors, we
 				# skip the solver
@@ -200,8 +199,8 @@
 				hess, arglist = arglist)
 		model$modelinc[7] = modelinc[7]
 		model$modeldata$data = origdata
-		model$modeldata$dates = origdates
-		model$modeldata$date.format = dformat
+		model$modeldata$index = origindex
+		model$modeldata$period = period
 		model$pars[, 1] = fit$ipars[,1]
 		model$pars[, 5:6] = ipars2[,5:6]
 		fit$ipars[, 4] = ipars2[, 4]
@@ -214,8 +213,8 @@
 		fit$message = sol$message
 		fit$convergence = 1
 		model$modeldata$data = origdata
-		model$modeldata$dates = origdates
-		model$modeldata$date.format = dformat
+		model$modeldata$index = origindex
+		model$modeldata$period = period
 	}
 	
 	# make model list to return some usefule information which
@@ -359,13 +358,13 @@
 	# no forward looking information contaminating the study.
 	xdata = .extractdata(data)
 	data = xdata$data
-	dates = xdata$pos
-	dformat = xdata$dformat
+	index = xdata$index
+	period = xdata$period
 	origdata = data
-	origdates = dates
+	origindex = index
 	T = length(origdata)  - out.sample
 	data = origdata[1:T]
-	dates = origdates[1:T]
+	index = origindex[1:T]
 	if(!is.null(n.old)) Nx = n.old else Nx = length(data)
 	recinit = .checkrec(rec.init, Nx)
 	model = spec@model
@@ -446,8 +445,8 @@
 	filter$distribution = distribution
 	filter$ipars = ipars
 	model$modeldata$data = origdata
-	model$modeldata$dates = origdates
-	model$modeldata$date.format = dformat
+	model$modeldata$index = origindex
+	model$modeldata$period = period
 	model$n.start = out.sample
 	
 	sol = new("uGARCHfilter",
@@ -464,8 +463,8 @@
 	fit = fitORspec
 	data = fit@model$modeldata$data
 	Nor = length(as.numeric(data))
-	dates = fit@model$modeldata$dates
-	dformat = fit@model$modeldata$date.format
+	index  = fit@model$modeldata$index
+	period = fit@model$modeldata$period
 	ns = fit@model$n.start
 	N = Nor - ns
 	model = fit@model
@@ -476,7 +475,7 @@
 	pars = fit@fit$coef
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .forcregressors(model, external.forecasts$mregfor, external.forecasts$vregfor, ipars, n.ahead, Nor, out.sample = ns, n.roll)
+	xreg = .forcregressors(model, external.forecasts$mregfor, external.forecasts$vregfor, n.ahead, Nor, out.sample = ns, n.roll)
 	mxf = xreg$mxf
 	vxf = xreg$vxf
 	
@@ -490,19 +489,20 @@
 					archm = ifelse(modelinc[5]>0,TRUE,FALSE), archpow = modelinc[5], arfima = modelinc[4], 
 					external.regressors = mxf[1:(N + fcreq), , drop = FALSE], archex = modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars = as.list(pars))
-	tmp =  data.frame(data[1:(N + fcreq)])
-	rownames(tmp) = as.character(dates[1:(N + fcreq)])
-	flt = .gjrgarchfilter(data = tmp[,1,drop=FALSE], spec = fspec, n.old = N)
+	tmp =  xts(data[1:(N + fcreq)], index[1:(N + fcreq)])
+	flt = .gjrgarchfilter(data = tmp, spec = fspec, n.old = N)
 	sigmafilter = flt@filter$sigma
 	resfilter = flt@filter$residuals
 	zfilter = flt@filter$z
-	# forecast GARCH process
-	
 	kappa = 0
 	if(modelinc[8]>0) kappa = pneg(ipars[idx["ghlambda",1],1], ipars[idx["shape",1],1], ipars[idx["skew",1],1], model$modeldesc$distribution)
-
-	forecasts = vector(mode="list", length = n.roll+1)
-	fwdd = vector(mode="list", length = n.roll+1)
+	# forecast GARCH process
+	seriesFor = sigmaFor = matrix(NA, ncol = n.roll+1, nrow = n.ahead)
+	#seriesFor[1,] = fitted(flt)[(N+1):(N+n.roll+1)]
+	#sigmaFor[1,]  = sigma(flt)[(N+1):(N+n.roll+1)]
+	# n.ahead x n.roll +1 (n.ahead=1 generted by model)
+	colnames(seriesFor) = colnames(sigmaFor) = as.character(index[N:(N+n.roll)])
+	rownames(seriesFor) = rownames(sigmaFor) = paste("T+", 1:n.ahead, sep="")
 	for(i in 1:(n.roll+1)){
 		np = N + i - 1
 		if(modelinc[1] > 0){
@@ -510,12 +510,7 @@
 		} else{
 			mu = rep(0, N+i+n.ahead-1)
 		}
-		#if(modelinc[7]>0){
-			omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
-		#} else {
-		#	omega = rep(0, N+i+n.ahead-1)
-		#}
-		# no look-ahead
+		omega = rep(ipars[idx["omega",1]:idx["omega",2], 1], N+i+n.ahead-1)
 		h = c(sigmafilter[1:(N+i-1)], rep(0, n.ahead))
 		epsx = c(resfilter[1:(N+i-1)], rep(0, n.ahead))
 		x = c(data[1:(N+i-1)], rep(0, n.ahead))
@@ -524,11 +519,8 @@
 		mxfi = mxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		vxfi = vxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		ans = .ngjrgarchforecast(ipars, modelinc, idx, mu, omega, kappa, mxfi, vxfi, h, epsx, z, data = x, N = np, n.ahead)
-		
-		fdf = data.frame(sigma = ans$h, series = ans$x)
-		fwdd[[i]] = .forcdates( dates, n.ahead, N, i, ns, dformat )
-		rownames(fdf) = as.character(fwdd[[i]])
-		forecasts[[i]] = fdf
+		sigmaFor[,i] = ans$h
+		seriesFor[,i] = ans$x
 	}
 	
 	fcst = list()
@@ -536,8 +528,8 @@
 	fcst$N = N+ns
 	fcst$n.start = ns
 	fcst$n.roll = n.roll
-	fcst$forecasts = forecasts
-	fcst$fdates = fwdd
+	fcst$sigmaFor = sigmaFor
+	fcst$seriesFor = seriesFor
 	model$modeldata$sigma = flt@filter$sigma
 	model$modeldata$residuals = flt@filter$residuals
 	ans = new("uGARCHforecast",
@@ -592,8 +584,8 @@
 	Nor = length(as.numeric(xdata$data))
 	data = xdata$data
 	N = length(as.numeric(data))
-	dates = xdata$pos
-	dformat = xdata$dformat	
+	index = xdata$index
+	period = xdata$period
 	ns = out.sample
 	N = Nor - ns
 	
@@ -616,12 +608,12 @@
 	ipars = model$pars
 	modelinc = model$modelinc
 	model$modeldata$data = data
-	model$modeldata$dates = dates
-	model$modeldata$dformat = dformat
+	model$modeldata$index = index
+	model$modeldata$period = period
 	
 	
 	# check if necessary the external regressor forecasts provided first
-	xreg = .forcregressors(model, external.forecasts$mregfor, external.forecasts$vregfor, ipars, n.ahead, Nor, out.sample = ns, n.roll)
+	xreg = .forcregressors(model, external.forecasts$mregfor, external.forecasts$vregfor, n.ahead, Nor, out.sample = ns, n.roll)
 	mxf = xreg$mxf
 	vxf = xreg$vxf
 	# filter data (check external regressor data - must equal length of origData)
@@ -634,20 +626,21 @@
 					archm = ifelse(modelinc[5]>0,TRUE,FALSE), archpow = modelinc[5], arfima = modelinc[4], 
 					external.regressors = mxf[1:(N + fcreq), , drop = FALSE], archex = modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars = as.list(pars))
-	tmp =  data.frame(data[1:(N + fcreq)])
-	rownames(tmp) = as.character(dates[1:(N + fcreq)])
-	flt = .gjrgarchfilter(data = tmp[,1,drop=FALSE], spec = fspec, n.old = N)
+	tmp =  xts(data[1:(N + fcreq)], index[1:(N + fcreq)])
+	flt = .gjrgarchfilter(data = tmp, spec = fspec, n.old = N)
 	sigmafilter = flt@filter$sigma
 	resfilter = flt@filter$residuals
 	zfilter = flt@filter$z
 	
 	kappa = 0
 	if(modelinc[8]>0) kappa = pneg(ipars[idx["ghlambda",1],1], ipars[idx["shape",1],1], ipars[idx["skew",1],1], model$modeldesc$distribution)
-	
-
 	# forecast GARCH process
-	forecasts = vector(mode="list", length = n.roll+1)
-	fwdd = vector(mode="list", length = n.roll+1)
+	seriesFor = sigmaFor = matrix(NA, ncol = n.roll+1, nrow = n.ahead)
+	#seriesFor[1,] = fitted(flt)[(N+1):(N+n.roll+1)]
+	#sigmaFor[1,]  = sigma(flt)[(N+1):(N+n.roll+1)]
+	# n.ahead x n.roll +1 (n.ahead=1 generted by model)
+	colnames(seriesFor) = colnames(sigmaFor) = as.character(index[N:(N+n.roll)])
+	rownames(seriesFor) = rownames(sigmaFor) = paste("T+", 1:n.ahead, sep="")
 	for(i in 1:(n.roll+1)){
 		np = N + i - 1
 		if(modelinc[1] > 0){
@@ -669,19 +662,16 @@
 		mxfi = mxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		vxfi = vxf[1:(N+i-1+n.ahead), , drop = FALSE]
 		ans = .ngjrgarchforecast(ipars, modelinc, idx, mu, omega, kappa, mxfi, vxfi, h, epsx, z, data = x, N = np, n.ahead)
-		
-		fdf = data.frame(sigma = ans$h, series = ans$x)
-		fwdd[[i]] = .forcdates( dates, n.ahead, N, i, ns, dformat )
-		rownames(fdf) = as.character(fwdd[[i]])
-		forecasts[[i]] = fdf
+		sigmaFor[,i] = ans$h
+		seriesFor[,i] = ans$x
 	}
 	fcst = list()
 	fcst$n.ahead = n.ahead
 	fcst$N = N+ns
 	fcst$n.start = ns
 	fcst$n.roll = n.roll
-	fcst$forecasts = forecasts
-	fcst$fdates = fwdd
+	fcst$sigmaFor = sigmaFor
+	fcst$seriesFor = seriesFor
 	model$modeldata$sigma = flt@filter$sigma
 	model$modeldata$residuals = flt@filter$residuals
 	ans = new("uGARCHforecast",
@@ -696,7 +686,7 @@
 .gjrgarchsim = function(fit, n.sim = 1000, n.start = 0, m.sim = 1, startMethod = 
 				c("unconditional","sample"), presigma = NA, prereturns = NA, 
 		preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA), 
-		mexsimdata = NULL, vexsimdata = NULL)
+		mexsimdata = NULL, vexsimdata = NULL, ...)
 {
 	if( (n.sim+n.start) < 100 && m.sim > 100 ){
 		ans = .gjrgarchsim2(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
@@ -745,7 +735,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	
@@ -906,7 +896,7 @@
 	idx = model$pidx
 	ipars = fit@fit$ipars
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	
@@ -1065,7 +1055,7 @@
 .gjrgarchpath = function(spec, n.sim = 1000, n.start = 0, m.sim = 1,
 		presigma = NA, prereturns = NA, preresiduals = NA, rseed = NA, 
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, 
-		vexsimdata = NULL)
+		vexsimdata = NULL, ...)
 {
 	if( (n.sim+n.start) < 20 && m.sim > 100 ){
 		ans = .gjrgarchpath2(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim,
@@ -1130,7 +1120,7 @@
 	} else { vexdata = NULL }
 	distribution = model$modeldesc$distribution	
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	
@@ -1296,7 +1286,7 @@
 	distribution = model$modeldesc$distribution
 	
 	# check if necessary the external regressor forecasts provided first
-	xreg = .simregressors(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)	
+	xreg = .simregressors(model, mexsimdata, vexsimdata, N, n, m.sim, m)	
 	mexsim = xreg$mexsimlist
 	vexsim = xreg$vexsimlist
 	

@@ -1,7 +1,6 @@
 \name{ARFIMAfilter-class}
 \docType{class}
 \alias{ARFIMAfilter-class}
-\alias{as.data.frame,ARFIMAfilter-method}
 \alias{coef,ARFIMAfilter-method}
 \alias{fitted,ARFIMAfilter-method}
 \alias{infocriteria,ARFIMAfilter-method}
@@ -23,8 +22,6 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.data.frame}{\code{signature(x = "ARFIMAfilter")}: 
-    Extracts the position (dates), data, filtered values and residuals.}
     \item{coef}{\code{signature(object = "ARFIMAfilter")}: 
     Extracts the coefficients.}
     \item{fitted}{\code{signature(object = "ARFIMAfilter")}: 

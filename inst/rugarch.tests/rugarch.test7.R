@@ -100,14 +100,21 @@ rugarch.test7b = function(cluster = NULL)
 			solver = "lbfgs", fit.control = list(scale = 1), 
 			solver.control = list(trace=1),
 			calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05))
+	
 	# see the warnings printed
 	roll2 = resume(roll, cluster = cluster,
 			solver = "hybrid", fit.control = list(scale = 1), 
 			solver.control = list(trace=0))
+	# once more to fix the one remaining window with problems
+	roll2 = resume(roll2, cluster = cluster,
+			solver = "solnp", solver.control = list(trace=0, 
+					rho=0.5, tol=1e-6, delta=1e-5))
 	
 	z5 <- file("test7b.txt", open="wt")
 	sink(z5)
+	print(convergence(roll))
 	show(roll2)
+	print(convergence(roll2))
 	sink(type="message")
 	sink()
 	close(z5)

@@ -108,7 +108,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	# variance model:
 	vmodel = list()
 		
-	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH", "csGARCH")
+	valid.model = c("sGARCH", "eGARCH", "gjrGARCH", "tGARCH", "fGARCH", "iGARCH", "apARCH", "csGARCH", "mcsGARCH")
 	if(is.null(variance.model$model)){
 		modeldesc$vmodel = "sGARCH"
 	} else{
@@ -201,6 +201,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	if(is.null(mean.model$archm) || !mean.model$archm){
 		modelinc[5] = 0
 	} else{
+		if(modeldesc$vmodel=="mcsGARCH") stop("\narchm not supported by mcsGARCH model.")
 		if(is.null(mean.model$archpow)) mean.model$archpow = 1
 		modelinc[5] = as.integer( mean.model$archpow )
 	}
@@ -214,6 +215,7 @@ ugarchspec = function(variance.model = list(model = "sGARCH", garchOrder = c(1,1
 	if(is.null(mean.model$archex) || !mean.model$archex){
 		modelinc[20] = 0
 	} else{
+		if(modeldesc$vmodel=="mcsGARCH") stop("\narchex not supported by mcsGARCH model.")
 		modelinc[20] = as.integer( mean.model$archex )
 		if(modelinc[6] == 0) stop("\narchex cannot be used without external.regressors!!\n", call. = FALSE)
 		if(modelinc[6] < modelinc[20]) stop("\narchex cannot be greater than number of external.regressors!!\n", call. = FALSE)
@@ -832,6 +834,8 @@ setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vec
 					fGARCH = .fgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
 							solver.control = solver.control, fit.control = fit.control, ...),
 					csGARCH = .csgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
+							solver.control = solver.control, fit.control = fit.control, ...),
+					mcsGARCH = .mcsgarchfit(spec = spec, data = data, out.sample = out.sample, solver = solver, 
 							solver.control = solver.control, fit.control = fit.control, ...)) )
 }
 
@@ -844,7 +848,8 @@ setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vec
 					gjrGARCH = .gjrgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
 					apARCH = .aparchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
 					fGARCH = .fgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
-					csGARCH = .csgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...)) )
+					csGARCH = .csgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...),
+					mcsGARCH = .mcsgarchfilter(spec = spec, data = data, out.sample = out.sample, n.old = n.old, rec.init = rec.init, ...)) )
 }
 
 .ugarchforecast1 = function(fitORspec, data = NULL, n.ahead = 10, n.roll = 0, out.sample = 0, 
@@ -864,6 +869,8 @@ setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vec
 					fGARCH = .fgarchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...),
 					csGARCH = .csgarchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
+							out.sample = out.sample, external.forecasts = external.forecasts, ...), 
+					mcsGARCH = .mcsgarchforecast(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...)) )
 }
 
@@ -884,6 +891,8 @@ setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vec
 					fGARCH = .fgarchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...),
 					csGARCH = .csgarchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
+							out.sample = out.sample, external.forecasts = external.forecasts, ...),
+					mcsGARCH = .mcsgarchforecast2(fitORspec = fitORspec, data = data, n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample, external.forecasts = external.forecasts, ...)) )
 }
 
@@ -917,6 +926,10 @@ setReplaceMethod(f="setbounds", signature= c(object = "uGARCHspec", value = "vec
 							preresiduals = preresiduals, rseed = rseed,  custom.dist = custom.dist, 
 							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...),
 					csGARCH = .csgarchsim(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
+							startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
+							preresiduals = preresiduals, rseed = rseed,  custom.dist = custom.dist, 
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...),
+					mcsGARCH = .mcsgarchsim(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 							startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
 							preresiduals = preresiduals, rseed = rseed,  custom.dist = custom.dist, 
 							mexsimdata = mexsimdata, vexsimdata = vexsimdata, ...)) )
@@ -1031,7 +1044,17 @@ resume = function(object, ...)
 	UseMethod("resume")
 }
 
-setMethod("resume", signature(object = "uGARCHroll"),  definition = .resumeroll1)
+# Need a special purpose resume function for the mcsGARCH method
+.resume = function(object, ...)
+{
+	if(resume@model$spec@model$modeldesc$vmodel=="mcsGARCH"){
+		ans = .resumeroll.mcs(object, ...)
+	} else{
+		ans = .resumeroll1(object, ...)
+	}
+	return( ans )
+}
+setMethod("resume", signature(object = "uGARCHroll"),  definition = .resume)
 
 #----------------------------------------------------------------------------------
 # univariate garch roll
@@ -1045,7 +1068,38 @@ ugarchroll = function(spec, data, n.ahead = 1, forecast.length = 500,
 {
 	UseMethod("ugarchroll")
 }
-setMethod("ugarchroll", signature(spec = "uGARCHspec"),  definition = .rollfdensity)
+
+# Need a special purpose roll function for the mcsGARCH method
+
+.ugarchroll = function(spec, data, n.ahead = 1, forecast.length = 500, 
+		n.start = NULL, refit.every = 25, refit.window = c("recursive", "moving"), 
+		window.size = NULL, solver = "hybrid", fit.control = list(), solver.control = list(),
+		calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.05), cluster = NULL,
+		keep.coef = TRUE, ...)
+{
+	if(spec@model$modeldesc$vmodel == "mcsGARCH"){
+		if(is.null(list(...)$DailyVar)) stop("\nmcsGARCH models requires DailyVar forecast")
+		DailyVar = list(...)$DailyVar
+		ans = .rollfdensity.mcs(spec = spec, data = data, n.ahead = n.ahead, 
+				forecast.length = forecast.length, n.start = n.start, 
+				refit.every = refit.every, refit.window = refit.window[1], 
+				window.size = window.size, solver = solver, 
+				fit.control = fit.control, solver.control = solver.control,
+				calculate.VaR = calculate.VaR, VaR.alpha = VaR.alpha, 
+				cluster = cluster, keep.coef = keep.coef, DailyVar = DailyVar)
+	} else{
+		ans = .rollfdensity(spec = spec, data = data, n.ahead = n.ahead, 
+				forecast.length = forecast.length, n.start = n.start, 
+				refit.every = refit.every, refit.window = refit.window[1], 
+				window.size = window.size, solver = solver, 
+				fit.control = fit.control, solver.control = solver.control,
+				calculate.VaR = calculate.VaR, VaR.alpha = VaR.alpha, 
+				cluster = cluster, keep.coef = keep.coef, ...)
+	}
+	return( ans )
+}
+setMethod("ugarchroll", signature(spec = "uGARCHspec"),  definition = .ugarchroll)
+
 #----------------------------------------------------------------------------------
 # univariate garch parameter distribution
 #----------------------------------------------------------------------------------
@@ -1309,7 +1363,6 @@ setMethod("show",
 				cat(paste("fGARCH Sub-Model\t: ", model$modeldesc$vsubmodel, "\n", sep = ""))
 			}
 			sim = object@simulation
-			dates = object@model$dates
 			sigma = sim$sigmaSim
 			series = sim$seriesSim
 			resids = sim$residSim
@@ -1360,8 +1413,20 @@ setMethod("show",
 			n.start = object@forecast$n.start
 			if(n.start>0) infor = ifelse(n.ahead>n.start, n.start, n.ahead) else infor = 0
 			cat(paste("\nOut of Sample: ", infor, "\n", sep = ""))
-			cat("\n0-roll forecast: \n")
-			zz = object@forecast$forecast[[1]]
+			cat(paste("\n0-roll forecast [T0=", as.character(object@model$modeldata$index[object@model$modeldata$T]), "]:\n", sep=""))
+			if(vmodel=="csGARCH"){
+				zz = cbind(object@forecast$seriesFor[,1], object@forecast$sigmaFor[,1], object@forecast$qFor[,1])
+				colnames(zz) = c("Series", "Sigma[Transitory]", "Sigma[Permanent]")
+				rownames(zz) = paste("T+",1:NROW(object@forecast$seriesFor), sep="")
+			} else if(vmodel=="mcsGARCH"){
+				zz = cbind(object@forecast$seriesFor[,1], object@forecast$sigmaFor[,1], object@forecast$qFor[,1])
+				colnames(zz) = c("Series", "Sigma[Total]", "Sigma[Stochastic]")
+				rownames(zz) = paste("T+",1:NROW(object@forecast$seriesFor), sep="")
+			} else{
+				zz = cbind(object@forecast$seriesFor[,1], object@forecast$sigmaFor[,1])
+				colnames(zz) = c("Series", "Sigma")
+				rownames(zz) = paste("T+",1:NROW(object@forecast$seriesFor), sep="")
+			}
 			print(zz, digits = 4)
 			cat("\n\n")
 		})
@@ -1463,17 +1528,18 @@ setMethod("show",
 			}
 			cat(paste("\nn.ahead : ", object@model$n.ahead, sep = ""))
 			cat(paste("\nBootstrap method: ",object@model$type))
-			cat("\nDate (T):", as.character(object@model$dateT))
-			forc = object@forc@forecast$forecasts[[1]]
-			zs = rbind(as.data.frame(object, which = "sigma", type = "summary"),  forc[,"sigma"])
-			zr = rbind(as.data.frame(object, which = "series", type = "summary"), forc[,"series"])
-			rownames(zr)[6] = rownames(zs)[6] = "forecast"
+			cat("\nDate (T[0]):", as.character(object@model$indexT))
+			sig = sigma(object@forc)
+			ser = fitted(object@forc)
+			zs = cbind(t(as.data.frame(object, which = "sigma", type = "summary")),  sig)
+			zr = cbind(t(as.data.frame(object, which = "series", type = "summary")), ser)
+			colnames(zr)[6] = colnames(zs)[6] = c("forecast[analytic]")
 			hh = min(object@model$n.ahead, 10)
 			cat("\n\nSeries (summary):\n")
-			print(head(round(t(zr), 6), hh), digits = 5)
+			print(head(round((zr), 6), hh), digits = 5)
 			cat(".....................\n")
 			cat("\nSigma (summary):\n")
-			print(head(round(t(zs), 6),hh), digits = 5)
+			print(head(round((zs), 6),hh), digits = 5)
 			cat(".....................")
 			cat("\n\n")
 		})
@@ -1482,7 +1548,7 @@ setMethod("show",
 		signature(object = "uGARCHroll"),
 		function(object){
 			if(!is.null(object@model$noncidx)){
-				cat("\nObject containts non-converged estimation windows. Use resume method to re-estimate.\n")
+				cat("\nObject contains non-converged estimation windows. Use resume method to re-estimate.\n")
 				invisible(object)
 			} else{
 				cat(paste("\n*-------------------------------------*", sep = ""))
@@ -1619,8 +1685,6 @@ setMethod("show",
 			cat(paste("\n*---------------------------------*", sep = ""))
 			cat(paste("\nNo. Assets :", length(object@forecast), sep=""))
 			cat(paste("\n--------------------------\n",sep=""))
-			fc = as.array(object)
-			print(fc, digits = 5)
 			invisible(object)
 		})
 #----------------------------------------------------------------------------------
@@ -1675,192 +1739,11 @@ setMethod("coef", signature(object = "uGARCHmultifilter"), .ugarchmultifiltercoe
 
 .ugarchrollcoef = function(object)
 {
-	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(!is.null(object@model$noncidx)) stop("\nObject contains non-converged estimation windows.")
 	return(object@model$coef) 
 }
 
 setMethod("coef", signature(object = "uGARCHroll"), .ugarchrollcoef)
-#----------------------------------------------------------------------------------
-# as.data.frame method for fitted object
-.ugarchfitdf = function(x, row.names = NULL, optional = FALSE, ...)
-{
-	fit = x@fit
-	xdata = x@model$modeldata$data
-	T = x@model$modeldata$T
-	ans = data.frame(data = xdata[1:T], fitted = fit$fitted.values, 
-			residuals = fit$residuals, sigma = fit$sigma)
-	rownames(ans) = as.character(x@model$modeldata$dates[1:T])
-	return( ans )
-}
-
-setMethod("as.data.frame", signature(x = "uGARCHfit"), .ugarchfitdf)
-#----------------------------------------------------------------------------------
-# as.data.frame method for filter object
-.ugarchfilterdf = function(x, row.names = NULL, optional = FALSE, ...)
-{
-	flt = x@filter
-	T = x@model$modeldata$T
-	ans = data.frame(data = flt$model$modeldata$data[1:T], 
-			fitted = flt$model$modeldata$data[1:T] - flt$residuals, 
-			residuals = flt$residuals, sigma = flt$sigma)
-	rownames(ans) = as.character(x@model$modeldata$dates[1:T])
-	return( ans )
-}
-
-setMethod("as.data.frame", signature(x = "uGARCHfilter"), .ugarchfilterdf)
-#----------------------------------------------------------------------------------
-# as.data.frame method for forecast object
-.ugarchfordfall = function(x, which = "sigma", aligned = TRUE, prepad = TRUE, type = 0)
-{
-	if(aligned){
-		ans = .ugarchfordf1(x = x, which = which, prepad = prepad)
-	} else{
-		ans = .ugarchfordf2(x = x, which = which, type = type)
-	}
-	return(ans)
-}
-
-.ugarchfordf1 = function(x, which = "sigma", prepad = TRUE)
-{
-	# return full frame with columns the rolls and rows the unique dates
-	# padded with NA for forecasts beyond n.ahead and actual filtered values
-	# for values before n.roll
-	forc = x@forecast
-	n.start = forc$n.start
-	N = x@forecast$N - n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	tp = ifelse(which == "sigma", 1, 2)
-	fdates = sort(unique(as.vector(sapply(forc$forecast, FUN=function(x) rownames(x)))))
-	tmp = matrix(NA, ncol = n.roll+1, nrow = length(fdates))
-	tmp[1:n.ahead, 1] = forc$forecast[[1]][,tp]
-	if( n.roll > 0 ){
-		for(i in 1:(n.roll)){
-			if(which == "sigma"){
-				if(prepad) {
-					tmp[1:i, i+1] = x@model$modeldata$sigma[N:(N+i-1)]
-				}
-			} else {
-				if(prepad) {
-					tmp[1:i, i+1] = x@model$modeldata$data[N:(N+i-1)]
-				} 
-			}
-			tmp[(i+1):(i+n.ahead), i+1] = forc$forecast[[i+1]][,tp]
-		}
-	}
-	tmp = as.data.frame(tmp)
-	rownames(tmp) = fdates
-	colnames(tmp) = paste("roll-", seq(0, n.roll,by = 1), sep="")
-	tmp
-}
-
-# retval: 0 is the standard, returns all values
-# retval: 1 returns only those values which have in sample equivalent data (for testing purposes)
-# retval: 2 returns only those values which are truly forecasts without in sample data
-.ugarchfordf2 = function(x, which = "sigma", type = 0, ...)
-{
-	n.ahead = x@forecast$n.ahead
-	# n.start == out.sample
-	n.start = x@forecast$n.start
-	n.roll =  x@forecast$n.roll
-	tlength = n.ahead + n.roll
-	mat = matrix(NA, ncol = n.roll + 1, nrow = n.ahead)
-	mat = sapply(x@forecast$forecast, FUN = function(x) x[, which])
-	if(is.vector(mat)) mat = matrix(mat, ncol = n.roll+1)
-	colnames(mat) = paste("roll-", seq(0, n.roll, by = 1), sep = "")
-	rownames(mat) = paste("t+", 1:n.ahead, sep = "")
-	if(n.roll==0 | type==0) return(as.data.frame(mat))
-	indices = apply(.embed(1:tlength, n.ahead, by = 1), 1, FUN = function(x) rev(x))
-	exc = which(indices>n.start)
-	if(type == 1){
-		if(length(exc)>0) mat[exc] = NA
-	} else{
-		if(length(exc)>0) mat[-exc] = NA
-	}
-	return(as.data.frame(mat))
-}
-
-# pad applies to when rollframe = "all", whether to pre-pad forecast with actual values else NA's
-# post forecast values are always NA's (this relates to the out.sample option and n.roll)
-.ugarchfordf = function(x, row.names = NULL, optional = FALSE, rollframe = 0, 
-		aligned = TRUE, which = "sigma", prepad = TRUE, type = 0)
-{
-	forc = x@forecast
-	n.start = forc$n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	if(!any(type==(0:2)))
-		stop("invalid argument for type in as.data.frame", call. = FALSE)
-	#if(rollframe == "all" && n.roll<=0) rollframe = 0
-	if(rollframe == "all") return(.ugarchfordfall(x, which, aligned, prepad, type))
-	# allow type to be used here as well
-	rollframe = as.integer(rollframe)
-	if(rollframe>n.roll | rollframe<0) stop("rollframe out of bounds", call. = FALSE)
-	indx = (rollframe+1):(rollframe+n.ahead)
-	exc = which(indx>n.start)
-	ans = forc$forecast[[rollframe+1]]
-	if(type == 1){
-		if(length(exc)>0) ans[exc,] = NA
-	}
-	if(type == 2){
-		if(length(exc)>0) ans[-exc,] = NA
-	}
-	return(ans)
-}
-
-setMethod("as.data.frame", signature(x = "uGARCHforecast"), .ugarchfordf)
-
-# as.array method for forecast object
-.ugarchforar = function(x, ...)
-{
-	forc = x@forecast
-	n.start = forc$n.start
-	n.ahead = forc$n.ahead
-	n.roll = forc$n.roll
-	forar = array(NA, dim = c(n.ahead, 2, n.roll+1))
-	for(i in 1:(n.roll+1)){
-		forar[,,i] = as.matrix(forc$forecast[[i]])
-	}
-	return(forar)
-}
-
-setMethod("as.array", signature(x = "uGARCHforecast"), .ugarchforar)
-
-# as.list method for forecast object
-.ugarchforlist = function(x, ...)
-{
-	x@forecast$forecast
-}
-
-setMethod("as.list", signature(x = "uGARCHforecast"), .ugarchforlist)
-
-
-
-# as.list method for forecast object
-.ugarchmultiforlist = function(x, ...)
-{
-	ans = lapply(x@forecast, FUN = function(x) x@forecast$forecast)
-	ans
-}
-
-setMethod("as.list", signature(x = "uGARCHmultiforecast"), .ugarchmultiforlist)
-
-.ugarchmultiforarray = function(x, which = "sigma", ...)
-{	
-	n = length(x@forecast)
-	asset.names = x@desc$asset.names
-	ns = x@forecast[[1]]@forecast$n.roll
-	nah = x@forecast[[1]]@forecast$n.ahead
-	forar = array(NA, dim = c(nah, n, ns+1))
-	rnames = paste("n.ahead-", 1:nah, sep = "")
-	dnames = paste("n.roll-", 0:ns, sep = "")
-	dimnames(forar) = list(rnames, asset.names, dnames)
-	for(i in 1:(ns+1)) forar[,,i] = sapply(x@forecast, FUN = function(x) x@forecast$forecasts[[i]][,which])
-	return(forar)
-}
-
-setMethod("as.array", signature(x = "uGARCHmultiforecast"), .ugarchmultiforarray)
-
 #----------------------------------------------------------------------------------
 # as.data.frame method for distribution object
 .ugarchdistdf = function(x, row.names = NULL, optional = FALSE, which = "coef", window = 1, ...)
@@ -1907,62 +1790,6 @@ setMethod("as.array", signature(x = "uGARCHmultiforecast"), .ugarchmultiforarray
 }
 
 setMethod("as.data.frame", signature(x = "uGARCHdistribution"), .ugarchdistdf)
-
-#----------------------------------------------------------------------------------
-
-# as.data.frame method for simulation object
-.ugarchsimdf = function(x, row.names = NULL, optional = FALSE, which = "sigma")
-{
-	# simframe: sigma, series, residuals
-	#sigmaSim=sigmaSim, seriesSim=seriesSim, residSim=residSim
-	sim = x@simulation
-	T = x@model$modeldata$T
-	dates = x@model$modeldata$dates[1:T]
-	sigma = sim$sigmaSim
-	m = dim(sigma)[2]
-	N = dim(sigma)[1]
-	fwdd = .generatefwd(dates, N = N, dformat = "%Y-%m-%d", periodicity = "days")
-	if(which == "sigma"){
-		ans = data.frame(sigmasim = sigma)
-	}
-	if(which == "series"){
-		series = sim$seriesSim
-		ans = data.frame(seriessim = series)
-	}
-	if(which == "residuals"){
-		resids = sim$residSim
-		ans = data.frame(residsim = resids)
-	}
-	rownames(ans) = as.character(fwdd)
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "uGARCHsim"), .ugarchsimdf)
-#----------------------------------------------------------------------------------
-# as.data.frame method for path simulation object
-.ugarchpathdf = function(x, row.names = NULL, optional = FALSE, which = "sigma")
-{
-	# simframe: sigma, series, residuals
-	#sigmaSim=sigmaSim, seriesSim=seriesSim, residSim=residSim
-	sim = x@path
-	sigma = sim$sigmaSim
-	m = dim(sigma)[2]
-	N = dim(sigma)[1]
-	if(which == "sigma"){
-		ans = data.frame(sigmasim = sigma)
-	}
-	if(which == "series"){
-		series = sim$seriesSim
-		ans = data.frame(seriessim = series)
-	}
-	if(which == "residuals"){
-		resids = sim$residSim
-		ans = data.frame(residsim = resids)
-	}
-	ans
-}
-
-setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 #----------------------------------------------------------------------------------
 # as.data.frame method for bootstrap object
 .ugarchbootdf = function(x, row.names = NULL, optional = FALSE, which = "sigma", type = "raw", qtile = c(0.01, 0.099))
@@ -1978,7 +1805,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		if(type == "q"){
 			if(all(is.numeric(qtile)) && (all(qtile<1.0) && all(qtile >0.0))){
 				sigma = x@fsigma
-				ans = apply(sigma, 2, FUN = function(x) quantile(x, qtile, na.rm=TRUE))
+				ans = apply(sigma, 2, FUN = function(x) stats::quantile(x, qtile, na.rm=TRUE))
 				ans = as.data.frame(ans)
 				colnames(ans) = paste("t+", 1:n.ahead, sep="")
 				rownames(ans) = paste("q", qtile, sep = "")
@@ -1988,7 +1815,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		} 
 		if(type == "summary"){
 			sigma = x@fsigma
-			ans = apply(sigma, 2, FUN = function(x) c(min(x, na.rm=TRUE), quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
+			ans = apply(sigma, 2, FUN = function(x) c(min(x, na.rm=TRUE), stats::quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), stats::quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
 			ans = as.data.frame(ans)
 			colnames(ans) = paste("t+", 1:n.ahead, sep="")
 			rownames(ans) = c("min", "q0.25", "mean", "q0.75", "max")
@@ -2004,7 +1831,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		if(type == "q"){
 			if(all(is.numeric(qtile)) && (all(qtile<1.0) && all(qtile >0.0))){
 						series = x@fseries
-						ans = apply(series, 2, FUN = function(x) quantile(x, qtile, na.rm=TRUE))
+						ans = apply(series, 2, FUN = function(x) stats::quantile(x, qtile, na.rm=TRUE))
 						ans = as.data.frame(ans)
 						colnames(ans) = paste("t+", 1:n.ahead, sep="")
 						rownames(ans) = paste("q", qtile, sep = "")
@@ -2014,7 +1841,7 @@ setMethod("as.data.frame", signature(x = "uGARCHpath"), .ugarchpathdf)
 		}
 		if(type == "summary"){
 			series = x@fseries
-			ans = apply(series, 2, FUN = function(x) c(min(x, na.rm=TRUE), quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
+			ans = apply(series, 2, FUN = function(x) c(min(x, na.rm=TRUE), stats::quantile(x, 0.25, na.rm=TRUE), mean(x, na.rm=TRUE), stats::quantile(x, 0.75, na.rm=TRUE), max(x, na.rm=TRUE) ))
 			ans = as.data.frame(ans)
 			colnames(ans) = paste("t+", 1:n.ahead, sep="")
 			rownames(ans) = c("min", "q.25", "mean", "q.75", "max")
@@ -2030,52 +1857,38 @@ setMethod("as.data.frame", signature(x = "uGARCHboot"), .ugarchbootdf)
 # valid which = density, fpm, coefs
 .ugarchrolldf = function(x, row.names = NULL, optional = FALSE, which = "density")
 {
-	if(!is.null(x@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(!is.null(x@model$noncidx)) stop("\nObject contains non-converged estimation windows.")
 	if(which == "density") ans =  x@forecast$density else ans = x@forecast$VaR
 	return(ans)
 }
 setMethod("as.data.frame", signature(x = "uGARCHroll"), .ugarchrolldf)
 #----------------------------------------------------------------------------------
 # residuals method
-.ugarchfitresids = function(object, standardize = FALSE)
+.ugarchresids = function(object, standardize = FALSE)
 {
-	if(standardize) object@fit$residuals/object@fit$sigma else  object@fit$residuals
-}
-
-setMethod("residuals", signature(object = "uGARCHfit"), .ugarchfitresids)
-
-.ugarchfilterresids = function(object, standardize = FALSE)
-{
-	if(standardize) object@filter$residuals/object@filter$sigma else  object@filter$residuals	
-}
-
-setMethod("residuals", signature(object = "uGARCHfilter"), .ugarchfilterresids)
-
-.ugarchmultifitresids = function(object, standardize = FALSE)
-{
-	if(standardize){
-		sapply(object@fit, FUN = function(x) residuals(x)/sigma(x), simplify = TRUE)
-	} else{
-		sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE)
+	if(class(object)[1] == "uGARCHfit" | class(object)[1] == "uGARCHfilter"){
+		D = object@model$modeldata$index[1:object@model$modeldata$T]
 	}
-}
-
-setMethod("residuals", signature(object = "uGARCHmultifit"), .ugarchmultifitresids)
-
-.ugarchmultifilterresids = function(object, standardize = FALSE)
-{
 	if(standardize){
-		sapply(object@filter, FUN = function(x) residuals(x)/sigma(x), simplify = TRUE)
+		ans = switch(class(object)[1],
+				uGARCHfit = xts(object@fit$residuals/object@fit$sigma, D),
+				uGARCHfilter = xts(object@filter$residuals/object@filter$sigma, D),
+				uGARCHmultifit = sapply(object@fit, FUN = function(x) residuals(x, standardize = TRUE), simplify = TRUE),
+				uGARCHmultifilter = sapply(object@filter, FUN = function(x) residuals(x, standardize = TRUE), simplify = TRUE))
 	} else{
-		sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE)
-	}	
+		ans = switch(class(object)[1],
+				uGARCHfit = xts(object@fit$residuals, D),
+				uGARCHfilter = xts(object@filter$residuals, D),
+				uGARCHmultifit = sapply(object@fit, FUN = function(x) residuals(x), simplify = TRUE),
+				uGARCHmultifilter = sapply(object@filter, FUN = function(x) residuals(x), simplify = TRUE))
+	}
+	return(ans)
 }
 
-setMethod("residuals", signature(object = "uGARCHmultifilter"), .ugarchmultifilterresids)
-
-
-
-
+setMethod("residuals", signature(object = "uGARCHfit"), .ugarchresids)
+setMethod("residuals", signature(object = "uGARCHfilter"), .ugarchresids)
+setMethod("residuals", signature(object = "uGARCHmultifit"), .ugarchresids)
+setMethod("residuals", signature(object = "uGARCHmultifilter"), .ugarchresids)
 #----------------------------------------------------------------------------------
 # sigma method
 sigma = function(object, ...)
@@ -2083,34 +1896,52 @@ sigma = function(object, ...)
 	UseMethod("sigma")
 }
 
-.ugarchfitsigma = function(object)
+# xts is returned for fitted and filtered object. Does not make sense to
+# returns anything but a matrix for the simulated and forecast.
+.ugarchsigma = function(object)
 {
-	object@fit$sigma
+	if(class(object)[1] == "uGARCHfit" | class(object)[1] == "uGARCHfilter"){
+		D = object@model$modeldata$index[1:object@model$modeldata$T]
+	}
+	switch(class(object)[1],
+			uGARCHfit = xts(object@fit$sigma, D),
+			uGARCHfilter = xts(object@filter$sigma, D),
+			uGARCHmultifit = sapply(object@fit, FUN = function(x) sigma(x), simplify = TRUE),
+			uGARCHmultifilter = sapply(object@filter, FUN = function(x) sigma(x), simplify = TRUE),
+			uGARCHsim = {
+				ans = object@simulation$sigmaSim
+				rownames(ans) = paste("T+",1:NROW(object@simulation$sigmaSim), sep="")
+				return(ans)
+			},
+			uGARCHpath ={
+				ans = object@path$sigmaSim
+				rownames(ans) = paste("T+",1:NROW(object@path$sigmaSim), sep="")
+				return(ans)
+			},
+			uGARCHforecast = object@forecast$sigmaFor
+	)
 }
 
-setMethod("sigma", signature(object = "uGARCHfit"), .ugarchfitsigma)
+setMethod("sigma", signature(object = "uGARCHfit"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHfilter"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHmultifit"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHmultifilter"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHsim"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHpath"), .ugarchsigma)
+setMethod("sigma", signature(object = "uGARCHforecast"), .ugarchsigma)
 
-.ugarchfiltersigma = function(object)
+.ugarchsigmamf = function(object)
 {
-	object@filter$sigma
+	n.assets = length(object@forecast)
+	n.ahead = object@forecast[[1]]@forecast$n.ahead
+	n.roll = object@forecast[[1]]@forecast$n.roll+1
+	Z = array(NA, dim = c(n.ahead, n.roll, n.assets))
+	for(i in 1:n.assets){
+		Z[,,i] = sigma(object@forecast[[i]])
+	}
+	return(Z)
 }
-
-setMethod("sigma", signature(object = "uGARCHfilter"), .ugarchfiltersigma)
-
-.ugarchmultifitsigma = function(object)
-{
-	sapply(object@fit, FUN = function(x) sigma(x), simplify = TRUE)
-}
-
-setMethod("sigma", signature(object = "uGARCHmultifit"), .ugarchmultifitsigma)
-
-
-.ugarchmultifiltersigma = function(object)
-{
-	sapply(object@filter, FUN = function(x) sigma(x), simplify = TRUE)
-}
-
-setMethod("sigma", signature(object = "uGARCHmultifilter"), .ugarchmultifiltersigma)
+setMethod("sigma", signature(object = "uGARCHmultiforecast"), .ugarchsigmamf)
 
 #----------------------------------------------------------------------------------
 # nyblom method
@@ -2176,68 +2007,184 @@ likelihood = function(object)
 {
 	UseMethod("likelihood")
 }
-.ugarchfitLikelihood = function(object)
+.ugarchLikelihood = function(object)
 {
-	return(object@fit$LLH)
+	switch(class(object)[1],
+			uGARCHfit = object@fit$LLH,
+			uGARCHfilter = object@filter$LLH,
+			uGARCHmultifilter = sapply(object@filter, FUN = function(x) likelihood(x), simplify = TRUE),
+			uGARCHmultifit = sapply(object@fit, FUN = function(x) likelihood(x), simplify = TRUE))
 }
 
-setMethod("likelihood", signature(object = "uGARCHfit"), .ugarchfitLikelihood)
-
-.ugarchfilterLikelihood = function(object)
-{
-	return(object@filter$LLH)
-}
-
-setMethod("likelihood", signature(object = "uGARCHfilter"), .ugarchfilterLikelihood)
-
-
-.ugarchmultifilterLikelihood = function(object)
-{
-	sapply(object@filter, FUN = function(x) likelihood(x), simplify = TRUE)
-}
-
-setMethod("likelihood", signature(object = "uGARCHmultifilter"), .ugarchmultifilterLikelihood)
-
-.ugarchmultifitLikelihood = function(object)
-{
-	sapply(object@fit, FUN = function(x) likelihood(x), simplify = TRUE)
-}
-
-setMethod("likelihood", signature(object = "uGARCHmultifit"), .ugarchmultifitLikelihood)
-
+setMethod("likelihood", signature(object = "uGARCHfit"), .ugarchLikelihood)
+setMethod("likelihood", signature(object = "uGARCHfilter"), .ugarchLikelihood)
+setMethod("likelihood", signature(object = "uGARCHmultifilter"), .ugarchLikelihood)
+setMethod("likelihood", signature(object = "uGARCHmultifit"), .ugarchLikelihood)
 #----------------------------------------------------------------------------------
 # Fitted method
 .ugarchfitted = function(object)
 {
-	return(object@fit$fitted.values)
+	if(class(object)[1] == "uGARCHfit" | class(object)[1] == "uGARCHfilter"){
+		D = object@model$modeldata$index[1:object@model$modeldata$T]
+	}
+	switch(class(object)[1],
+			uGARCHfit = xts(object@fit$fitted.values, D), 
+			uGARCHfilter = xts(object@model$modeldata$data[1:object@model$modeldata$T] - object@filter$residuals, D),
+			uGARCHmultifilter = sapply(object@filter, FUN = function(x) fitted(x), simplify = TRUE),
+			uGARCHmultifit = sapply(object@fit, FUN = function(x) fitted(x), simplify = TRUE),
+			uGARCHsim = {
+				ans = object@simulation$seriesSim
+				rownames(ans) = paste("T+",1:NROW(object@simulation$seriesSim), sep="")
+				return(ans)
+			},
+			uGARCHpath ={
+				ans = object@path$seriesSim
+				rownames(ans) = paste("T+",1:NROW(object@path$seriesSim), sep="")
+				return(ans)
+			},
+			uGARCHforecast = object@forecast$seriesFor
+			)
 }
-
 setMethod("fitted", signature(object = "uGARCHfit"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHfilter"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHmultifit"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHmultifilter"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHsim"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHpath"), .ugarchfitted)
+setMethod("fitted", signature(object = "uGARCHforecast"), .ugarchfitted)
 
-.ugarchfiltered = function(object)
+
+.ugarchfittedmf = function(object)
 {
-	T = object@model$modeldata$T
-	return(object@model$modeldata$data[1:T] - object@filter$residuals)
+	n.assets = length(object@forecast)
+	n.ahead = object@forecast[[1]]@forecast$n.ahead
+	n.roll = object@forecast[[1]]@forecast$n.roll+1
+	Z = array(NA, dim = c(n.ahead, n.roll, n.assets))
+	for(i in 1:n.assets){
+		Z[,,i] = fitted(object@forecast[[i]])
+	}
+	return(Z)
 }
-
-setMethod("fitted", signature(object = "uGARCHfilter"), .ugarchfiltered)
-
-.ugarchmultifiltered = function(object)
-{
-	sapply(object@filter, FUN = function(x) fitted(x), simplify = TRUE)
-}
-
-setMethod("fitted", signature(object = "uGARCHmultifilter"), .ugarchmultifiltered)
-
-
-.ugarchmultifitted = function(object)
-{
-	sapply(object@fit, FUN = function(x) fitted(x), simplify = TRUE)
-}
-
-setMethod("fitted", signature(object = "uGARCHmultifit"), .ugarchmultifitted)
+setMethod("fitted", signature(object = "uGARCHmultiforecast"), .ugarchfittedmf)
 #----------------------------------------------------------------------------------
+# reduce method
+reduce = function(object, pvalue = 0.1, ...)
+{
+	UseMethod("reduce")
+}
 
+.reduce = function(object, pvalue = 0.1, ...){
+	cf = object@fit$robust.matcoef
+	idx = which(cf[,4]>pvalue)
+	if(length(idx)>0){
+		pars = cf[idx,1]
+		# zero the coefficients
+		pars = pars*0
+		names(pars) = rownames(cf)[idx]
+		spec = getspec(object)
+		setfixed(spec)<-as.list(pars)
+		setstart(spec)<-as.list(cf[-idx,1])
+		dat = xts(object@model$modeldata$data, object@model$modeldata$index)
+		ns = object@model$n.start
+		fit = ugarchfit(spec, dat, out.sample = ns, ...)
+		return(fit)
+	} else{
+		return(object)
+	}
+}
+
+setMethod("reduce", signature(object = "uGARCHfit"), .reduce)
+#----------------------------------------------------------------------------------
+# quantile S4 method
+.ugarchquantile = function(x, probs=c(0.01, 0.05))
+{	
+	d = x@model$modeldesc$distribution
+	di = .DistributionBounds(d)
+	if(di$include.skew)  skew  = x@model$pars["skew",1] else skew = 0
+	if(di$include.shape) shape = x@model$pars["shape",1] else shape = 0
+	if(di$include.ghlambda) ghlambda = x@model$pars["ghlambda",1] else ghlambda = 0
+	s = sigma(x)
+	m = fitted(x)
+	if(class(x)=="uGARCHforecast"){
+		ans = matrix(NA, dim(s)[1], dim(s)[2])
+		if(length(probs)>1) stop("\nprobs must be a scalar for a uGARCHforecast object")
+		for(i in 1:NCOL(ans)) ans[,i] = qdist(d, probs[1], mu = m[,i], sigma = s[,i], 
+					skew = skew, shape = shape, lambda = ghlambda)
+		colnames(ans) = colnames(s)
+		rownames(ans) = rownames(s)
+	} else if(class(x)=="uGARCHsim" | class(x)=="uGARCHpath"){
+		if(length(probs)>1) stop("\nprobs must be a scalar for a uGARCHsim and uGARCHpath objects")
+		ans = matrix(NA, , dim(s)[1], dim(s)[2])
+		for(i in 1:NCOL(ans)) ans[,i] = qdist(d, probs[1], mu = m[,i], sigma = s[,i], 
+					skew = skew, shape = shape, lambda = ghlambda)
+		colnames(ans) = colnames(s)
+		rownames(ans) = rownames(s)
+	} else if(class(x)=="uGARCHroll"){
+		skew = x@forecast$density[,"Skew"]
+		shape = x@forecast$density[,"Shape"]
+		lambda = x@forecast$density[,"Shape(GIG)"]
+		s = x@forecast$density[,"Sigma"]
+		m = x@forecast$density[,"Mu"]
+		ans = matrix(NA, ncol = length(probs), nrow = length(s))
+		for(i in 1:length(probs)) ans[,i] = as.numeric(m) + qdist(d, probs[i], skew = skew, shape = shape, 
+					lambda = lambda) * as.numeric(s)
+		colnames(ans) = paste("q[", probs,"]", sep="")
+		ans = xts(ans, as.POSIXct(rownames(x@forecast$density)))
+	} else{
+		ans = matrix(NA, ncol = length(probs), nrow = NROW(s))
+		for(i in 1:length(probs)) ans[,i] = as.numeric(m) + qdist(d, probs[i], skew = skew, shape = shape, 
+					lambda = ghlambda) * as.numeric(s)
+		colnames(ans) = paste("q[", probs,"]", sep="")
+		ans = xts(ans, index(s))
+	}
+	return(ans)
+}
+setMethod("quantile", signature(x = "uGARCHfit"), .ugarchquantile)
+setMethod("quantile", signature(x = "uGARCHfilter"), .ugarchquantile)
+setMethod("quantile", signature(x = "uGARCHforecast"), .ugarchquantile)
+setMethod("quantile", signature(x = "uGARCHsim"), .ugarchquantile)
+setMethod("quantile", signature(x = "uGARCHpath"), .ugarchquantile)
+setMethod("quantile", signature(x = "uGARCHroll"), .ugarchquantile)
+
+# pit S4 method
+pit = function(object, ...)
+{
+	UseMethod("pit")
+}
+
+.ugarchpit = function(object)
+{	
+	if(class(object)=="uGARCHroll"){
+		d = object@model$spec@model$modeldesc$distribution
+		skew = object@forecast$density[,"Skew"]
+		shape = object@forecast$density[,"Shape"]
+		lambda = object@forecast$density[,"Shape(GIG)"]
+		s = object@forecast$density[,"Sigma"]
+		m = object@forecast$density[,"Mu"]
+		r = object@forecast$density[,"Realized"]
+		ans =  pdist(d, q = r, mu = as.numeric(m), sigma = as.numeric(s), 
+				skew = skew, shape = shape, lambda = ghlambda)
+		ans = xts(ans, as.POSIXct(rownames(object@forecast$density)))
+		colnames(ans) = "pit"
+	} else{
+		d = object@model$modeldesc$distribution
+		di = .DistributionBounds(d)
+		if(di$include.skew)  skew  = object@model$pars["skew",1] else skew = 0
+		if(di$include.shape) shape = object@model$pars["shape",1] else shape = 0
+		if(di$include.ghlambda) ghlambda = object@model$pars["ghlambda",1] else ghlambda = 0
+		s = sigma(object)
+		m = fitted(object)
+		r = object@model$modeldata$data[1:object@model$modeldata$T]
+		ans =  pdist(d, q = r, mu = as.numeric(m), sigma = as.numeric(s), 
+				skew = skew, shape = shape, lambda = ghlambda)
+		ans = xts(ans, index(s))
+		colnames(ans) = "pit"
+	}
+	return(ans)
+}
+setMethod("pit", signature(object = "uGARCHfit"), .ugarchpit)
+setMethod("pit", signature(object = "uGARCHfilter"), .ugarchpit)
+setMethod("pit", signature(object = "uGARCHroll"), .ugarchpit)
 # newsimpact curve method (not multiplied by unconditional sigma)
 newsimpact = function(object, z = seq(-0.3, 0.3, length.out = 100))
 {
@@ -2246,6 +2193,8 @@ newsimpact = function(object, z = seq(-0.3, 0.3, length.out = 100))
 
 .newsimpact = function(object, z = seq(-0.3, 0.3, length.out = 100))
 {
+	# For the mcsGARCH and csGARCH the stochastic and permanent components,
+	# respectively, are shown, which are sGARCH
 	vmodel = object@model$modeldesc$vmodel
 	ans = switch(vmodel,
 			sGARCH = .sgarchni(z, object),
@@ -2253,7 +2202,9 @@ newsimpact = function(object, z = seq(-0.3, 0.3, length.out = 100))
 			gjrGARCH = .gjrgarchni(z, object),
 			eGARCH = .egarchni(z, object),
 			apARCH = .aparchni(z, object),
-			iGARCH = .sgarchni(z, object))
+			iGARCH = .sgarchni(z, object),
+			csGARCH = .sgarchni(z, object),
+			mcsGARCH = .sgarchni(z, object))
 	return(ans)
 }
 
@@ -2482,6 +2433,7 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			apARCH = .persistaparch1(pars, idx, distribution),
 			fGARCH = .persistfgarch1(pars, idx, distribution, vsubmodel),
 			csGARCH = .persistcsgarch1(pars, idx, distribution),
+			mcsGARCH = .persistmcsgarch1(pars, idx, distribution),
 			iGARCH = 1)
 	#names(ans) = "persistence"
 	return(ans)
@@ -2519,6 +2471,7 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			apARCH = .persistaparch1(pars, idx, distribution),
 			fGARCH = .persistfgarch1(pars, idx, distribution, vsubmodel),
 			csGARCH = .persistcsgarch1(pars, idx, distribution),
+			mcsGARCH = .persistmcsgarch1(pars, idx, distribution),
 			iGARCH = 1)
 	#names(ans) = "persistence"
 	return(ans)
@@ -2535,6 +2488,7 @@ setMethod("persistence", signature(object = "uGARCHfilter", pars = "missing",
 			apARCH = .persistaparch2(pars, distribution),
 			fGARCH = .persistfgarch2(pars, distribution, submodel),
 			csGARCH = .persistcsgarch2(pars, distribution),
+			mcsGARCH = .persistmcsgarch2(pars, distribution),
 			iGARCH = 1)
 	#names(ans) = "persistence"
 	return(ans)
@@ -2574,6 +2528,32 @@ setMethod("persistence",signature(object = "missing", pars = "numeric",
 	return(ps)
 }
 
+
+.persistmcsgarch1 = function(pars, idx, distribution = "norm"){
+	ps = sum(pars[idx["alpha",1]:idx["alpha",2]]) + sum(pars[idx["beta",1]:idx["beta",2]])
+	names(ps) = "Stochastic"
+	return(ps)
+}
+
+
+.persistmcsgarch2 = function(pars, idx, distribution = "norm"){	
+	Names = names(pars)
+	if(any(substr(Names, 1, 5)=="alpha")){
+		i = which(substr(Names, 1, 5)=="alpha")
+		alpha = pars[i]
+	} else{
+		alpha = 0
+	}	
+	if(any(substr(Names, 1, 4)=="beta")){
+		i = which(substr(Names, 1, 4)=="beta")
+		beta = pars[i]
+	} else{
+		beta = 0
+	}
+	ps = sum(alpha) + sum(beta)
+	names(ps) = "Stochastic"
+	return(ps)
+}
 
 .persistcsgarch1 = function(pars, idx, distribution = "norm"){
 	ps1 = sum(pars[idx["alpha",1]:idx["alpha",2]]) + sum(pars[idx["beta",1]:idx["beta",2]])
@@ -2905,6 +2885,7 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			apARCH = .uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = .uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
 			csGARCH = .unccsgarch1(pars, idx, distribution, vexdata),
+			mcsGARCH = .uncmcsgarch1(pars, idx, distribution, vexdata),
 			iGARCH = Inf)
 	#names(ans) = "unconditional"
 	return(unname(ans))
@@ -2945,6 +2926,8 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			apARCH = 	.uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = 	.uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
 			csGARCH = 	.unccsgarch1(pars, idx, distribution, vexdata),
+			mcsGARCH = 	.uncmcsgarch1(pars, idx, distribution, vexdata),
+			
 			iGARCH = 	Inf)
 	#names(ans) = "unconditional"
 	return(unname(ans))
@@ -2966,6 +2949,7 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			apARCH = 	.uncaparch1(pars, idx, distribution, vexdata),
 			fGARCH = 	.uncfgarch1(pars, idx, distribution, vsubmodel, vexdata),
 			csGARCH = 	.unccsgarch1(pars, idx, distribution, vexdata),
+			mcsGARCH = 	.uncmcsgarch1(pars, idx, distribution, vexdata),
 			iGARCH = 	Inf)
 	#names(ans) = "unconditional"
 	return(unname(ans))
@@ -2981,6 +2965,7 @@ uncvariance = function(object, pars, distribution = "norm", model = "sGARCH",
 			apARCH = 	.uncaparch2(pars, distribution, vexdata),
 			fGARCH = 	.uncfgarch2(pars, distribution, submodel, vexdata),
 			csGARCH = 	.unccsgarch2(pars, distribution, vexdata),
+			mcsGARCH = 	.uncmcsgarch2(pars, distribution, vexdata),
 			iGARCH = 	Inf)
 	#names(ans) = "unconditional"
 	return(unname(ans))
@@ -3297,6 +3282,44 @@ setMethod("uncvariance", signature(object = "missing", pars = "numeric",
 	return(uvol)
 }
 
+
+.uncmcsgarch1 = function(pars, idx, distribution = "norm", vexdata = NULL){
+	if(!is.null(vexdata)){
+		vxreg = pars[idx["vxreg",1]:idx["vxreg",2]]
+		meanvex = apply(vexdata, 2, "mean")
+		umeanvex = sum(vxreg*meanvex)
+	} else{
+		umeanvex = 0
+	}
+	omega = pars[idx["omega",1]:idx["omega",2]]
+	ps = sum(pars[idx["alpha",1]:idx["alpha",2]]) + sum(pars[idx["beta",1]:idx["beta",2]])
+	uvol = (umeanvex+omega)/(1-ps)
+	return(uvol)
+}
+.uncmcsgarch2 = function(pars, distribution = "norm", vexdata = NULL){
+	Names = names(pars)
+	if(!is.null(vexdata)){
+		if(any(substr(Names, 1, 5) == "vxreg")){
+			i = which(substr(Names, 1, 5) == "vxreg")
+			vxreg = pars[i]
+		} else{
+			vxreg = 0
+		}
+		meanvex = apply(vexdata, 2, "mean")
+		umeanvex = sum(vxreg*meanvex)
+	} else{
+		umeanvex = 0
+	}
+	if(any(substr(Names, 1, 5) == "omega")){
+		i = which(substr(Names, 1, 5) == "omega")
+		omega = pars[i]
+	} else{
+		omega = 0
+	}
+	ps = persistence(pars = pars, distribution = distribution, model = "mcsGARCH")
+	uvol = (umeanvex+omega)/(1-ps)
+	return(uvol)
+}
 # Unconditional Mean
 uncmean = function(object, method = c("analytical", "simulation"), n.sim = 20000, rseed = NA)
 {
@@ -3486,62 +3509,54 @@ fpm = function( object, summary = TRUE, ...)
 		N = object@forecast$N
 		ns = object@forecast$n.start
 		if(n.roll == 0 | n.roll<4) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (n.roll>3).")
-		forecast = sapply(object@forecast$forecasts, FUN = function(x) x[1,2])
 		# get only the forecasts for which out.of.sample data is available
-		forecast = forecast[1:ns]
-		#dates = sapply(object@forecast$forecasts, FUN = function(x) rownames(x[1,]))
-		#dates = dates[1:ns]
-		actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll)]
+		forecast = as.numeric(fitted(object))[1:ns]
+		actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll+1)]
 		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
 		if(summary){
 			ans = data.frame(MSE = mean((forecast - actual)^2), MAE = mean(abs(forecast - actual)), DAC = mean(DAC))
 		} else{
 			ans = data.frame(SE = (forecast - actual)^2, AE = abs(forecast - actual), DAC = DAC)
-			rownames(ans) = object@model$modeldata$dates[(N - ns + 1):(N - ns + n.roll)]
+			rownames(ans) = object@model$modeldata$dates[(N - ns + 1):(N - ns + n.roll+1)]
 		}
 	} else{
 		if(n.ahead<4) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (n.ahead>4).")
 		T = object@model$modeldata$T
+		Realized = object@model$modeldata$data
+		N = NROW(Realized)
+		Ser = fitted(object)
+		T0 = as.POSIXct(colnames(Ser))
+		index = as.POSIXct(object@model$modeldata$index)
+		T1 = sapply(T0, function(x) min(which(x<index)))
+		# if last value of T0>index[length(index)] we get Inf
+		# but N - Inf + 1 = -Inf < 4 so excluded.
+		L = N - T1 + 1
+		inc =  which(L>4)
 		if(summary){
 			n.roll = object@forecast$n.roll
 			actual = object@model$modeldata$data
-			dates = as.character( object@model$modeldata$dates )
 			ans = matrix(NA, ncol = n.roll+1, nrow = 4)
-			colnames(ans) = paste("roll-", seq(0, n.roll))
+			colnames(ans) = as.character(T0)
 			rownames(ans) = c("MSE", "MAE", "DAC", "N")
-			for(i in 1:(n.roll+1)){
-				tmp = as.data.frame(object, which = "series", aligned = FALSE, rollframe = i-1, type = 1)
-				tmp = tmp[,2, drop = FALSE]
-				tmp = tmp[which(!is.na(tmp)), , drop = FALSE]
-				dt = rownames(tmp)
-				actd = actual[match(dt, dates)]
-				if(length(actd)>0 && length(actd)>4){
-					ans[1,i] = mean((tmp[,1] - actd)^2)
-					ans[2,i] = mean(abs(tmp[,1] - actd))
-					DAC = apply(cbind(tmp[,1], actd), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-					ans[3,i] = mean(DAC)
-				}
-				ans[4,i] = length(actd)
+			for(i in 1:length(inc)){
+				ans[1,i] = mean((Ser[1:L[i],i] - Realized[T1[i]:N])^2)
+				ans[2,i] = mean(abs((Ser[1:L[i],i] - Realized[T1[i]:N])))
+				DAC = apply(cbind(Ser[1:L[i],i], Realized[T1[i]:N]), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+				ans[3,i] = mean(DAC)
+				ans[4,i] = L[i]
 			}
 		} else{
 			n.roll = object@forecast$n.roll
 			actual = object@model$modeldata$data
-			dates = as.character( object@model$modeldata$dates )
 			sol = vector(mode = "list", length = n.roll+1)
-			names(sol) = paste("roll-", seq(0, n.roll))
+			names(sol) = paste("roll-", seq(0, n.roll), sep="")
 			for(i in 1:(n.roll+1)){
-				tmp = as.data.frame(object, which = "series", aligned = FALSE, rollframe = i-1, type = 1)
-				tmp = tmp[,2, drop = FALSE]
-				tmp = tmp[which(!is.na(tmp)), , drop = FALSE]
-				ans = matrix(NA, nrow = dim(tmp)[1], ncol = 3)
+				ans = matrix(NA, nrow = L[i], ncol = 3)
 				colnames(ans) = c("SE", "AE", "DAC")
-				dt = rownames(tmp)
-				actd = actual[match(dt, dates)]
-				if(length(actd)>0 && length(actd)>4){
-					ans[,1] = (tmp[,1] - actd)^2
-					ans[,2] = abs(tmp[,1] - actd)
-					ans[,3] = apply(cbind(tmp[,1], actd), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
-				}
+				ans[,1] = (Ser[1:L[i],i] - Realized[T1[i]:N])^2
+				ans[,2] = abs(Ser[1:L[i],i] - Realized[T1[i]:N])
+				ans[,3] = apply(cbind(Ser[1:L[i],i], Realized[T1[i]:N]), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
+				ans = xts(ans, index[T1[i]:N])
 				sol[[i]] = ans
 			}
 			ans = sol
@@ -3553,15 +3568,18 @@ fpm = function( object, summary = TRUE, ...)
 # VaR loss function used by Gonzalez-Rivera, Lee, and Mishra (2004)
 # which can be used with the MCS test of Hansen, Lunde and Nason (2011) to compare
 # models
-.varloss = function(alpha, actual, VaR){
+
+VaRloss = function(alpha, actual,  VaR){
+	actual = as.numeric(actual)
+	VaR = as.numeric(VaR)
+	alpha = as.numeric(alpha[1])
 	loss = (alpha - (1 + exp(2500*(actual*100 - VaR*100)))^-1 ) * ( actual*100 - VaR*100)
 	return(loss)
 }
 
-
 .fpm2 = function(object, summary = TRUE)
 {
-	if(!is.null(object@model$noncidx)) stop("\nObject containts non-converged estimation windows.")
+	if(!is.null(object@model$noncidx)) stop("\nObject contains non-converged estimation windows.")
 	if(summary){
 		forecast = object@forecast$density[,1]
 		actual = object@forecast$density[,"Realized"]
@@ -3570,21 +3588,21 @@ fpm = function( object, summary = TRUE, ...)
 		names(tmp) = c("MSE", "MAE", "DAC")
 		tmp = data.frame(Stats = tmp)
 	} else{
-		forecast = object@forecast$density[,1]
-		actual = object@forecast$density[,"Realized"]
+		forecast = as.numeric(object@forecast$density[,1])
+		actual =  as.numeric(object@forecast$density[,"Realized"])
 		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
 		if(object@model$calculate.VaR){
 			m = NCOL(object@forecast$VaR)-1
 			V = NULL
-			for(i in 1:m) V = cbind(V, .varloss(object@model$VaR.alpha[i], as.numeric(actual), as.numeric(object@forecast$VaR[,i])))
+			for(i in 1:m) V = cbind(V, VaRloss(object@model$VaR.alpha[i], actual, as.numeric(object@forecast$VaR[,i])))
 			colnames(V) = paste("VaRLoss(",object@model$VaR.alpha,")",sep="")
-			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC, V)
+			tmp = cbind( as.numeric( (forecast - actual)^2) , abs(forecast - actual), DAC, V)
 			colnames(tmp)[1:3] = c("SE", "AE", "HIT")
-			rownames(tmp) = as.character(time(object@forecast$density))
+			rownames(tmp) = rownames(object@forecast$density)
 		} else{
 			tmp = cbind( as.numeric( (forecast - actual)^2) , as.numeric(abs(forecast - actual)), DAC)
 			colnames(tmp) = c("SE", "AE", "HIT")
-			rownames(tmp) = as.character(time(object@forecast$density))
+			rownames(tmp) = rownames(object@forecast$density)
 		}
 	}
 	return( tmp )
@@ -3599,6 +3617,18 @@ convergence = function(object){
 	return( object@fit$convergence )
 }
 setMethod("convergence", signature(object = "uGARCHfit"),  definition = .convergence)
+
+.convergenceroll = function(object){
+	nonc = object@model$noncidx
+	if(is.null(nonc)){
+		ans = 0 
+	} else{
+		ans = 1
+		attr(ans, 'nonconverged')<-nonc
+	}
+	return(ans)
+}
+setMethod("convergence", signature(object = "uGARCHroll"),  definition = .convergenceroll)
 
 .vcov = function(object, robust = FALSE){
 	if(robust){

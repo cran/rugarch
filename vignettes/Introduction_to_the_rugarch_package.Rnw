@@ -24,7 +24,7 @@
 \bibliographystyle{plainnat}
 \begin{document}
 \title{Introduction to the rugarch package.\\
-(Version 1.0-14)}
+(Version 1.02)}
 \author{Alexios Ghalanos}
 \date{\today}
 \maketitle

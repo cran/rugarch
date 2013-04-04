@@ -169,15 +169,25 @@ TinY = 1.0e-8
 		fit$hessian = .hessian2sidedcpp(f, ipars[estidx, 1], arglist = arglist)
 		E = eigen(fit$hessian)$values
 		# approx. number of decimal places lost to roundoff/numerical estimation error
-		condH = log10(max(E)/min(E))
+		if(any(E<0)){
+			# This should silence the warnings
+			condH = NaN
+		} else{
+			condH = log10(max(E)/min(E))			
+		}
 	} else{
 		fit$hessian = hess
 		E = eigen(fit$hessian)$values
-		condH = log10(max(E)/min(E))
+		if(any(E<0)){
+			# This should silence the warnings
+			condH = NaN
+		} else{
+			condH = log10(max(E)/min(E))			
+		}
 	}
 	fit$cvar = try(solve(fit$hessian), silent = TRUE)
 	# (might also fail in which case user will see an error about the inversion failure)
-	if(inherits(fit$cvar, "try-error")){		
+	if(inherits(fit$cvar, "try-error")){
 		zz = try(solve(.hessian2sided(f, ipars[estidx, 1], arglist = arglist)), silent=TRUE)
 		if(inherits(zz, "try-error")) {
 			fit$cvar = NULL
@@ -250,6 +260,20 @@ TinY = 1.0e-8
 			fit$robust.matcoef[fixed,] = cbind(fit$coef[fixed], fNA, fNA, fNA)
 			fit$hessian.message = NULL
 		}
+		if(model$modelinc[7] == 0){
+			vtomega = ipars[idx["omega", 1], 1]
+			names(vtomega) = "omega"
+			fit$coef = c(fit$coef, vtomega)
+			names(fit$coef)[length(fit$coef)] = "omega"
+			fit$se.coef = c(fit$se.coef, NA)
+			fit$tval = c(fit$tval, NA)
+			# change here
+			fit$matcoef = rbind(fit$matcoef, c(vtomega, NA, NA, NA))
+			fit$robust.se.coef = c(fit$robust.se.coef, NA)
+			fit$robust.tval = c(fit$robust.tval, NA)
+			# change here
+			fit$robust.matcoef = rbind(fit$robust.matcoef, c(vtomega, NA, NA, NA))
+		}
 	} else{
 		fit$coef = ipars[estidx, 1]
 		if(is.null(fit$cvar)){
@@ -316,7 +340,7 @@ TinY = 1.0e-8
 	return(fit)
 }
 
-.forcregressors = function(model, mregfor, vregfor, ipars, n.ahead, N, out.sample, n.roll)
+.forcregressors = function(model, mregfor, vregfor, n.ahead, N, out.sample, n.roll)
 {
 	# N is the original length
 	treq = n.ahead + n.roll
@@ -389,7 +413,7 @@ TinY = 1.0e-8
 	return(list(mxf = mxf, vxf = vxf))
 }
 
-.simregressors = function(model, mexsimdata, vexsimdata, ipars, N, n, m.sim, m)
+.simregressors = function(model, mexsimdata, vexsimdata, N, n, m.sim, m)
 {
 	mxn = model$modelinc[6]
 	vxn = model$modelinc[15]
@@ -431,7 +455,7 @@ TinY = 1.0e-8
 		if(!is.null(vexsimdata))
 		{
 			if(!is.list(vexsimdata)) 
-				stop("\nugarchsim-->error: mexsimdata should be a list of length m.sim")
+				stop("\nugarchsim-->error: vexsimdata should be a list of length m.sim")
 			if(length(vexsimdata) != m.sim){
 				vsd = vector(mode = "list", length = m.sim)
 				for(i in 1:m.sim) vsd[[i]] = as.matrix(vexsimdata[[1]])
@@ -459,6 +483,7 @@ TinY = 1.0e-8
 
 .custzdist = function(custom.dist, zmatrix, m.sim, n)
 {
+	# ToDo: clean up (make use of rdist which is now vectorized)
 	if(is.na(custom.dist$name) | is.na(custom.dist$distfit)[1]){
 		z = matrix(apply(zmatrix, 1, FUN = function(x) .makeSample(as.character(x[1]), lambda = as.numeric(x[2]), 
 		skew = as.numeric(x[3]), shape = as.numeric(x[4]), n = as.numeric(x[5]), seed = as.integer(x[6]))), n, m.sim)

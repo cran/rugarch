@@ -80,9 +80,9 @@ rugarch.test6a = function(cluster=NULL)
 	# to better results with the solnp solver. The nlminb does not require this.
 	fit = vector(mode = "list", length = 100)
 	simcoef.s = matrix(NA, ncol = 8, nrow = 100)
-	path.df = as.data.frame(sgarch.path, which = "series")
+	path.df = fitted(sgarch.path)
 	
-	fit = lapply(path.df, FUN = function(x){
+	fit = apply(path.df, 2, FUN = function(x){
 				ugarchfit(data = x, spec = spec, solver = "solnp", 
 						fit.control = list(scale = 1))
 			})
@@ -157,7 +157,7 @@ rugarch.test6b = function(cluster=NULL)
 	
 	#setup coefficient matrix
 	simcoef.gjr = matrix(NA, ncol = 9, nrow = 100)
-	path.df = as.data.frame(gjrgarch.path, which = "series")
+	path.df = fitted(gjrgarch.path)
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
 		parallel::clusterExport(cluster, c("path.df", "spec"), envir = environment())
@@ -166,7 +166,7 @@ rugarch.test6b = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 				ugarchfit(data = x, spec = spec, solver = "solnp",
 						fit.control = list(scale = 1))
 			})
@@ -252,7 +252,7 @@ rugarch.test6c = function(cluster=NULL)
 	
 	#setup coefficient matrix
 	simcoef.e = matrix(NA, ncol = 9, nrow = 100)
-	path.df = as.data.frame(egarch.path, which = "series")
+	path.df = fitted(egarch.path)
 	
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -262,7 +262,7 @@ rugarch.test6c = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 					ugarchfit(data = x, spec = spec, solver = "solnp",
 							fit.control = list(scale = 1))
 				})
@@ -338,7 +338,7 @@ rugarch.test6d = function(cluster=NULL)
 	
 	#setup coefficient matrix
 	simcoef.a = matrix(NA, ncol = 10, nrow = 100)
-	path.df = as.data.frame(aparch.path, which = "series")
+	path.df = fitted(aparch.path)
 	
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -348,7 +348,7 @@ rugarch.test6d = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 					ugarchfit(data = x, spec = spec, solver = "solnp",
 							fit.control = list(scale = 1))
 				})
@@ -426,7 +426,7 @@ rugarch.test6e = function(cluster=NULL)
 	
 	#setup coef-matrix
 	simcoef.fna = matrix(NA, ncol = 8, nrow = 100)
-	path.df = as.data.frame(fgarch.path, which = "series")
+	path.df = fitted(fgarch.path)
 	
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -436,7 +436,7 @@ rugarch.test6e = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 					ugarchfit(data = x, spec = spec, solver = "solnp",
 							fit.control = list(scale = 1))
 				})
@@ -512,7 +512,7 @@ rugarch.test6f = function(cluster=NULL)
 	
 	#setup coef-matrix
 	simcoef.fn = matrix(NA, ncol = 8, nrow = 100)
-	path.df = as.data.frame(fgarch.path, which = "series")
+	path.df = fitted(fgarch.path)
 	
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -522,7 +522,7 @@ rugarch.test6f = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 					ugarchfit(data = x, spec = spec, solver = "solnp",
 							fit.control = list(scale = 1))
 				})
@@ -597,7 +597,7 @@ rugarch.test6g = function(cluster=NULL)
 	
 	#setup coef-matrix
 	simcoef.av = matrix(NA, ncol = 9, nrow = 100)
-	path.df = as.data.frame(fgarch.path, which = "series")
+	path.df = fitted(fgarch.path)
 	
 	if(!is.null(cluster)){
 		parallel::clusterEvalQ(cluster, require(rugarch))
@@ -607,7 +607,7 @@ rugarch.test6g = function(cluster=NULL)
 							fit.control = list(scale = 1))
 				})
 	} else{
-		fit = lapply(path.df, FUN = function(x){
+		fit = apply(path.df, 2, FUN = function(x){
 					ugarchfit(data = x, spec = spec, solver = "solnp",
 							fit.control = list(scale = 1))
 				})

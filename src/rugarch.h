@@ -65,4 +65,10 @@ void csgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x,
 
 void csgarchsimC(int *model, double *pars, int *idx, double *h, double *q, double *z, double *res, double *e,
 		double *vexdata, int *T, int *m);
+
+void mcsgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *res, double *e,
+		double *s, double *v, double *vexdata, int *m, int *T, double *h, double *z, double *llh, double *LHT);
+
+void mcsgarchsimC(int *model, double *pars, int *idx, double *h, double *z, double *eres, double *e,
+		double *vexdata, int *T, int *m);
 #endif /* RUGARCH_H */

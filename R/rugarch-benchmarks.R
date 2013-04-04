@@ -30,13 +30,12 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 	# load the Deutschemark-Sterling Benchmark Returns Data
 	
 	# Log Relative Error Test measures the number of digits of accuracy of rugarch versus benchmark
-	dmbp = as.matrix(get(data(dmbp)))
-
+	dmbp = as.matrix(data("dmbp",  envir = environment()))
 	spec = ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1,1)), 
 			mean.model = list(armaOrder = c(0,0), include.mean = TRUE), 
 			distribution.model = "norm")
 	# fit the model
-	fit1 = ugarchfit(data = dmbp[,1], spec = spec, solver = "solnp", solver.control = list(trace=0))
+	fit1 = ugarchfit(data = dmbp[,1,drop=FALSE], spec = spec, solver = "solnp", solver.control = list(trace=0))
 	# test against the benchmark using log relative error measure:
 	benchmark.pars = c(-0.00619041, 0.0107613, 0.153134, 0.805974)
 	benchmark.se = c(0.00846212, 0.00285271, 0.0265228, 0.0335527)
@@ -63,7 +62,7 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 			mean.model = list(armaOrder = c(0,0), include.mean = TRUE), 
 			distribution.model = "norm")
 	# fit the model
-	fit2 = ugarchfit(data = dmbp[,1], spec = spec, solver = "solnp")
+	fit2 = ugarchfit(data = dmbp[,1,drop=FALSE], spec = spec, solver = "solnp")
 	benchmark.pars = c(-.01167873487, -.12633933747, -.03845788444, .91265373928, .33305592776)
 	benchmark.se = c(.00886, .0285, .0192, .0168, .0406)
 	rugarch.pars = coef(fit2)
@@ -87,7 +86,7 @@ ugarchbench = function( benchmark = c("commercial", "published") )
 }
 .commbench = function()
 {
-	dji30ret = as.matrix(get(data(dji30ret)))
+	dji30ret = as.matrix(data("dji30ret",  envir = environment()))
 	ctrl = list(rho = 1, delta = 1e-9, outer.iter = 100, inner.iter = 650, tol = 1e-9, trace = 0)
 	benchmark = vector(mode="list")
 	benchmark$sgarch = vector(mode="list", length = 3)

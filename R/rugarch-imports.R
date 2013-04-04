@@ -590,3 +590,45 @@ nCm = function(n, m, tol = 9.9999999999999984e-009)
 	out[nna] <- outnow
 	out
 }
+
+#################################################################
+# some functions from the shape package of Soetaert/ 
+# Only needed for a couple of plots
+# equivalent to calling shape::femmecol(100)
+
+femme100 = function(){
+	ans = c("#00008F","#000098","#0000A1","#0000AA","#0000B3","#0000BC","#0000C5",
+"#0000CE","#0000D7","#0000E0","#0000EA","#0000F3","#0000FC","#0006FF",
+"#0011FF","#001BFF","#0025FF","#0030FF","#003AFF","#0044FF","#004FFF",
+"#0059FF","#0063FF","#006DFF","#0078FF","#0082FF","#008CFF","#0097FF",
+"#00A1FF","#00ABFF","#00B6FF","#00C0FF","#00CAFF","#00D5FF","#00DFFF",
+"#00E9FF","#00F3FF","#00FEFF","#09FFF6","#13FFEC","#1EFFE1","#28FFD7",
+"#32FFCD","#3DFFC2","#47FFB8","#51FFAE","#5BFFA4","#66FF99","#70FF8F",
+"#7AFF85","#85FF7A","#8FFF70","#99FF66","#A4FF5B","#AEFF51","#B8FF47",
+"#C2FF3D","#CDFF32","#D7FF28","#E1FF1E","#ECFF13","#F6FF09","#FFFE00",
+"#FFF300","#FFE900","#FFDF00","#FFD400","#FFCA00","#FFC000","#FFB600",
+"#FFAB00","#FFA100","#FF9700","#FF8C00","#FF8200","#FF7800","#FF6D00",
+"#FF6300","#FF5900","#FF4F00","#FF4400","#FF3A00","#FF3000","#FF2500",
+"#FF1B00","#FF1100","#FF0600","#FB0000","#F10000","#E70000","#DC0000",
+"#D20000","#C80000","#BE0000","#B30000","#A90000","#9F0000","#950000",
+"#8A0000","#800000")
+return(ans)
+}
+
+#  function:    shape::drapecol
+.drapecol = function (A, col = femme100(), NAcol = "white", lim = NULL) 
+{
+	nr <- nrow(A)
+	nc <- ncol(A)
+	ncol <- length(col)
+	AA <- 0.25 * (A[1:(nr - 1), 1:(nc - 1)] + A[1:(nr - 1), 2:nc] + 
+				A[2:nr, 1:(nc - 1)] + A[2:nr, 2:nc])
+	if (!is.null(lim)) 
+		Ar <- lim
+	else Ar <- range(AA, na.rm = TRUE)
+	rn <- Ar[2] - Ar[1]
+	ifelse(rn != 0, drape <- col[1 + trunc((AA - Ar[1])/rn * 
+									(ncol - 1))], drape <- rep(col[1], ncol))
+	drape[is.na(drape)] <- NAcol
+	return(drape)
+}

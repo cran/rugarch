@@ -22,8 +22,7 @@ and \code{\linkS4class{ARFIMAmultispec}}.}
 A positive integer indicating the number of periods before the last to keep for 
 out of sample forecasting (see details).}
 \item{data}{
-A multivariate data object. Can be a matrix or data.frame object, no other class 
-supported at present.}
+A multivariate data object of class xts or coercible to such.}
 \item{solver}{
 One of either \dQuote{nlminb} or \dQuote{solnp}.}
 \item{solver.control}{

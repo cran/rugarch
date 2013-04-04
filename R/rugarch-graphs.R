@@ -124,16 +124,14 @@
 .qqDist = function (y, dist = "norm", ylim = NULL, main = paste(dist, "- QQ Plot"),
 		xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", doplot = TRUE,
 		datax = FALSE, cex.main = 0.8, ...)
-{
-	
-	qDist = .getQuantile(dist)
+{	
 	y = as.vector(y)
 	if (has.na <- any(ina <- is.na(y))) {
 		yN = y
 		y = y[!ina]
 	}
 	if (0 == (n <- length(y))) stop("y is empty or has only NAs")
-	x = qDist(ppoints(n), ...)[order(order(y))]
+	x = qdist(distribution = dist, p = ppoints(n), ...)[order(order(y))]
 	if (has.na) {
 		y = x
 		x = yN
@@ -158,10 +156,9 @@
 # ------------------------------------------------------------------------------
 .qqLine = function (y, dist = "norm", datax = FALSE, ...)
 {   
-	qDist = .getQuantile(dist)
 	y = as.vector(y)
 	y = quantile(y[!is.na(y)], c(0.25, 0.75))
-	x = qDist(c(0.25, 0.75), ...)
+	x = qdist(distribution = dist, p = c(0.25, 0.75), ...)
 	if (datax) {
 		slope = diff(x)/diff(y)
 		int = x[1] - slope * y[1]

@@ -49,7 +49,11 @@ List of matrices (size of list m.sim, with each matrix having n.sim rows) of
 simulated external regressor-in-variance data. If the fit object contains 
 external regressors in the mean equation, this must be provided else will be
 assumed zero.}
-\item{...}{ . }
+\item{...}{ If the model is the \dQuote{csGARCH}, then \code{preq} can be used 
+to denote the previous value of the permanent component of the variance model 
+(q, e.g. tail(fit@fit$q,1)) so that the ugarchpath method with all pre-values 
+included will evaluate to the same result as the ugarchsim method with method 
+equal to \dQuote{sample} (assuming the same random seeding values are used).}
 }
 \value{
 A \code{\linkS4class{uGARCHpath}} object containing details of the GARCH path 
@@ -59,6 +63,8 @@ simulation.
 This is a convenience method to allow path simulation of various GARCH models 
 without the need to supply a fit object as in the \code{\link{ugarchsim}} method. 
 Instead, a GARCH spec object is required with the fixed model parameters.
+The mcsGARCH model is not supported for the path method-use \code{\link{ugarchsim}}
+instead.
 }
 \author{Alexios Ghalanos}
 \seealso{

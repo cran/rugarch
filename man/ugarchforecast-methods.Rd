@@ -30,7 +30,10 @@ to keep for out of sample testing.}
 \item{external.forecasts}{
 A list with forecasts for the external regressors in the mean and/or variance 
 equations if specified.}
-\item{...}{ . }
+\item{...}{For the multiplicative component sGARCH model (mcsGARCH), the
+additional argument \sQuote{DailyVar} is required and should be an xts object of 
+the daily forecasted variance for the period under consideration to be used 
+with the intraday data.}
 }
 \value{
 A \code{\linkS4class{uGARCHforecast}} object containing details of the GARCH 
@@ -70,7 +73,8 @@ spec = ugarchspec()
 fit = ugarchfit(data = dmbp[,1], spec = spec)
 forc = ugarchforecast(fit, n.ahead=20)
 forc
-head(as.data.frame(forc))
+head(sigma(forc))
+head(fitted(forc))
 #plot(forc,which="all")
 }}
 \keyword{methods}

@@ -2,7 +2,6 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{ARFIMAfit-class}
-\alias{as.data.frame,ARFIMAfit-method}
 \alias{coef,ARFIMAfit-method}
 \alias{fitted,ARFIMAfit-method}
 \alias{getspec,ARFIMAfit-method}
@@ -30,8 +29,6 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.data.frame}{\code{signature(x = "ARFIMAfit")}: 
-    Extracts the position (dates), data, fitted values and residuals.}
     \item{coef}{\code{signature(object = "ARFIMAfit")}: 
     Extracts the coefficients.}
     \item{fitted}{\code{signature(object = "ARFIMAfit")}: 

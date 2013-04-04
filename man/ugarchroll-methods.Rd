@@ -88,7 +88,11 @@ how to use these methods).
 In case of no-convergence in some of all the windows, a new method called 
 \code{\link{resume}} now allows to pass the returned (non-converged) object with
 new solver and control parameters to be re-estimated (only the non-converged
-windows are re-estimated).
+windows are re-estimated). Non-convergence here implies both a failure of the
+solver to converge to a solution (global failure) OR a failure to invert the 
+resulting Hessian (local failure). The \code{convergence} method can be used
+on an object (aside from the printed warning) to print out the number of the
+non-converged estimation windows.\cr
 Parallel functionality is now based entirely on the parallel package, and it is
 up to the user to pass a cluster object, and then stop it once the routine is
 completed.

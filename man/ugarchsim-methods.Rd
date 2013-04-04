@@ -51,7 +51,10 @@ List of matrices (size of list m.sim, with each matrix having n.sim rows) of
 simulated external regressor-in-variance data. If the fit object contains 
 external regressors in the mean equation, this must be provided else will be
 assumed zero.}
-\item{...}{ . }
+\item{...}{For the multiplicative component sGARCH model (mcsGARCH), the
+additional argument \sQuote{DailyVar} is required and should be an xts object 
+of length floor(n.sim/increments-per-day) by m.sim of the the daily simulated 
+variance to use with the intraday data.}
 }
 \value{
 A \code{\linkS4class{uGARCHsim}} object containing details of the GARCH simulation.
@@ -81,9 +84,6 @@ spec = ugarchspec()
 fit = ugarchfit(data = dmbp[,1], spec = spec)
 sim = ugarchsim(fit,n.sim=1000, n.start=1, m.sim=1, startMethod="sample")
 sim
-# plot(sim, which="all")
-# as.data.frame takes an extra argument which
-# indicating one of "sigma", "series" and "residuals"
-head(as.data.frame(sim, which = "sigma"))
+head(sigma(sim))
 }}
 \keyword{methods}

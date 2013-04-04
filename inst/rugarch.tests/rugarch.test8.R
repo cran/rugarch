@@ -42,7 +42,7 @@ rugarch.test8a = function(cluster=NULL)
 	spec = ugarchspec(
 			variance.model = list(model = "fGARCH", submodel = "NAGARCH"), 
 			distribution.model = "std")
-	fit = ugarchfit(spec, data = dji30ret[,"XOM"], fit.control = list(scale = 1))
+	fit = ugarchfit(spec, data = dji30ret[,"XOM",drop=FALSE], fit.control = list(scale = 1))
 	dist = ugarchdistribution(fit, n.sim = 2000, n.start = 50, m.sim = 100, 
 			solver = "solnp", fit.control = list(scale = 1), rseed  = rseed, 
 			cluster = cluster)
@@ -190,7 +190,7 @@ rugarch.test8c = function(cluster=NULL)
 	options(width=100)
 	zz <- file("test8c1.txt", open="wt")
 	sink(zz)
-	print(all.equal(sim1@path$seriesSim[1:10,1:10], sim2@path$seriesSim[1:10,1:10]))
+	print(all.equal(sim1@path$seriesSim[1:10,1:10],  sim2@path$seriesSim[1:10,1:10]))
 	print(all.equal(sim1@path$seriesSim[11:15,1:10], sim2@path$seriesSim[11:15,1:10]))
 	sink(type="message")
 	sink()
@@ -204,7 +204,7 @@ rugarch.test8c = function(cluster=NULL)
 			variance.model = list(model = vmodel, submodel = vsubmodel),
 			distribution.model = "norm", fixed.pars = truecoef1)
 	sim1 = ugarchpath(spec1, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 125)
-	data1 = as.data.frame(sim1, which = "series")
+	data1 = fitted(sim1)
 	spec1 = ugarchspec( 
 			mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = TRUE), 
 			variance.model = list(model = vmodel, submodel = vsubmodel),
@@ -221,7 +221,7 @@ rugarch.test8c = function(cluster=NULL)
 			variance.model = list(model = vmodel, submodel = vsubmodel),
 			distribution.model = "norm", fixed.pars = truecoef2)
 	sim2 = ugarchpath(spec2, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 125)
-	data2 = as.data.frame(sim2, which = "series")
+	data2 = fitted(sim2)
 	spec2 = ugarchspec( 
 			mean.model = list(armaOrder = c(2,0), include.mean = TRUE, arfima = TRUE), 
 			variance.model = list(model = vmodel, submodel = vsubmodel),
@@ -238,7 +238,7 @@ rugarch.test8c = function(cluster=NULL)
 			variance.model = list(model = vmodel, submodel = vsubmodel),
 			distribution.model = "norm", fixed.pars = truecoef3)
 	sim3 = ugarchpath(spec3, n.sim = 5000, n.start = 100, m.sim = 1, rseed = 125)
-	data3 = as.data.frame(sim3, which = "series")
+	data3 = fitted(sim3)
 	spec3 = ugarchspec( 
 			mean.model = list(armaOrder = c(0,2), include.mean = TRUE, arfima = TRUE), 
 			variance.model = list(model = vmodel, submodel = vsubmodel),

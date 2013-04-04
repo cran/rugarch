@@ -1,7 +1,9 @@
 \name{uGARCHpath-class}
 \docType{class}
 \alias{uGARCHpath-class}
-\alias{as.data.frame,uGARCHpath-method}
+\alias{sigma,uGARCHpath-method}
+\alias{fitted,uGARCHpath-method}
+\alias{quantile,uGARCHpath-method}
 \alias{plot,uGARCHpath,missing-method}
 \alias{show,uGARCHpath-method}
 \title{class: Univariate GARCH Path Simulation Class}
@@ -13,16 +15,24 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHpath", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.data.frame}{\code{signature(x = "uGARCHpath")}: extracts the simulated path values (see note).}
+    \item{sigma}{\code{signature(object = "uGARCHpath")}: 
+	Extracts the conditional sigma simulated values as a matrix of size n.sim x m.sim.}
+	\item{fitted}{\code{signature(object = "uGARCHpath")}: 
+	Extracts the conditional mean simulated values as a matrix of size n.sim x m.sim.}
+	\item{quantile}{\code{signature(x = "uGARCHpath")}: 
+	Calculates and returns, given a scalar for the probability (additional argument 
+	\dQuote{probs}), the conditional quantile of the simulated object as an
+	n.sim by m.sim matrix (with the same type of headings as the sigma and
+	fitted methods).}
     \item{plot}{\code{signature(x = "uGARCHpath", y = "missing")}: path simulation plots. }
     \item{show}{\code{signature(object = "uGARCHpath")}: path simulation summary. }
 	 }
 }
 \note{
-The \code{as.data.frame} function takes optionally 1 additional arguments, namely \code{which},
-indicating the type of simulation path series to extract. Valid values are \dQuote{sigma} for the simulated 
-sigma, \dQuote{series} for the simulated series and \dQuote{residuals} for the simulated residuals.
-The dimension of the \code{data.frame} will be \code{n.sim} by \code{m.sim}.
+The \code{sigma} and \code{fitted} methods are used to extract the matrix of 
+simulated conditional sigma and mean values. The \code{as.data.frame}
+method is globally deprecated as an extractor method in rugarch with the 
+exception of a few classes which still makes sense to use them.
 }
 \author{Alexios Ghalanos}
 \seealso{

@@ -303,3 +303,38 @@ void csgarchsimC(int *model, double *pars, int *idx, double *h, double *q, doubl
 		e[i] = res[i]*res[i];
 	}
 }
+
+void mcsgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *res, double *e,
+		double *s, double *v, double *vexdata, int *m, int *T, double *h, double *z, double *llh, double *LHT)
+{
+	int i;
+	double lk=0;
+	double hm = 0;
+	for(i=0; i<*m; i++)
+	{
+		h[i] = *hEst;
+		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		lk = lk - LHT[i];
+	}
+	for (i=*m; i<*T; i++)
+	{
+		sgarchfilter(model, pars, idx, vexdata, e, *T, i, h);
+		hm = sqrt(fabs(h[i])*s[i]*v[i]);
+		z[i] = res[i]/sqrt(fabs(h[i]));
+		LHT[i] = log(garchdistribution(z[i], hm, pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		lk = lk - LHT[i];
+	}
+	*llh=lk;
+}
+
+void mcsgarchsimC(int *model, double *pars, int *idx, double *h, double *z, double *eres, double *e,
+		double *vexdata, int *T, int *m)
+{
+	int i;
+	for (i=*m; i<*T; i++)
+	{
+		sgarchfilter(model, pars, idx, vexdata, e, *T, i, h);
+		eres[i]=pow(h[i], 0.5)*z[i];
+		e[i] = eres[i]*eres[i];
+	}
+}

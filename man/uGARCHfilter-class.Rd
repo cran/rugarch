@@ -1,7 +1,6 @@
 \name{uGARCHfilter-class}
 \docType{class}
 \alias{uGARCHfilter-class}
-\alias{as.data.frame,uGARCHfilter-method}
 \alias{coef,uGARCHfilter-method}
 \alias{fitted,uGARCHfilter-method}
 \alias{likelihood,uGARCHfilter-method}
@@ -15,6 +14,8 @@
 \alias{residuals,uGARCHfilter-method}
 \alias{sigma,uGARCHfilter-method}
 \alias{uncmean,uGARCHfilter-method}
+\alias{quantile,uGARCHfilter-method}
+\alias{pit,uGARCHfilter-method}
 \alias{uncvariance,uGARCHfilter,missing,missing,missing,missing,missing-method}
 \alias{show,uGARCHfilter-method}
 \title{class: Univariate GARCH Filter Class}
@@ -25,9 +26,6 @@ Class \code{"\linkS4class{rGARCH}"}, by class "GARCHfilter", distance 2.
 }
 \section{Methods}{
  \describe{
-\item{as.data.frame}{\code{signature(x = "uGARCHfilter")}: 
-	Extracts the position (dates), data, fitted values, residuals and 
-	conditional sigma.}
 \item{fitted}{\code{signature(object = "uGARCHfilter")}: 
 	Extracts the fitted values.}
 \item{residuals}{\code{signature(object = "uGARCHfilter")}: 
@@ -60,9 +58,15 @@ distribution = "missing", model = "missing")}:
 	Calculates and returns the unconditional mean of the conditional mean 
 	equation (constant, ARMAX, arch-in-mean). }
 \item{uncvariance}{\code{signature(object = "uGARCHfilter", pars = "missing", 
-distribution = "missing", model = "missing", submodel = "missing")}: 
+	distribution = "missing", model = "missing", submodel = "missing")}: 
 	Calculates and  returns the long run unconditional variance of the garch 
 	filter given a \code{\linkS4class{uGARCHfilter}} object.}
+\item{quantile}{\code{signature(x = "uGARCHfilter")}: 
+	Calculates and returns, given a vector of probabilities (additional argument 
+	\dQuote{probs}), the conditional quantiles of the filtered object (x).}
+\item{pit}{\code{signature(object = "uGARCHfilter")}: 
+Calculates and returns the conditional probability integral transform given the
+data and estimated density.}
 \item{plot}{\code{signature(x = "uGARCHfilter", y = "missing")}:
 	Filter plots}
 \item{show}{\code{signature(object = "uGARCHfilter")}: 

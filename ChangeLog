@@ -1,4 +1,96 @@
-2012-01-15  Alexios Ghalanos <alexios@4dscape.com>
+2013-04-04  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.02.
+	* Version number bump for upload to CRAN for R-3.0.0.
+
+2013-03-22  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-6.
+	* Added the multiplicative component GARCH (mcsGARCH) model of Engle and 
+	Sokalska (2012) for intraday GARCH modelling (takes into account the
+	intraday seasonality component of the absolute returns). Requires regularly
+	sampled intraday data (e.g. 1min, 5min etc). Vignette updated with model 
+	details.
+ 	
+2013-02-22  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-5.
+	* Added a "quantile" and "pit" method for certain objects to return the 
+	conditional quantiles and probability integral transform (cdf transformation).
+	* Added the skdomain function/plot to graph the skewness-kurtosis authorized
+	domain of the skewed and shaped distributions.
+	* Added a "reduce" method to automatically zero (and exclude) non-significant 
+	parameters and re-estimate a model.
+
+2013-02-04  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-4.
+	* Added/Exported a couple of Date/Time utility functions (move and generatefwd) 
+	for working with the returned forecast objects. Examples are in the help file.
+	* Small fix to fixed parameter return vector in post-estimation (when both 
+	fixed parameters and variance targeting used, the coef method did not output
+	the omega value creating problems for other methods which depended on this).
+	* Small fix to GMMTest when skew and shape are time varying (does not affect
+	GARCH models). Updated documentation on returned object (was outdated).
+	* HYP likelihood now handled separately from GHYP for speed in C code (i.e.
+	when choosing GHYP with fixed par for ghlambda of 1).
+
+2013-01-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-3.
+	* Methods 'sigma' and 'fitted' are now uniformly implemented for most uGARCH 
+	classes for extracting the conditional sigma and mean from all objects. The 
+	as.data.frame method is now deprecated. In particular, for the uGARCHforecast 
+	object, these methods now return the n.ahead by (n.roll+1) matrix of 
+	conditional forecasts where the column names are the T[0] time index prior 
+	to the forecast, and the row names labelled as T+1, T+2, to T+n.ahead. The 
+	as.data.frame still remains for some objects which do not return regular 
+	exclusive time series objects (e.g. uGARCHdistribution, uGARCHroll, and 
+	uGARCHboot).
+	* xts is now the only supported data "format" accepted by the package. Numeric,
+	data.frame and matrix data which does not have a proper time based index is
+	coerced into one by assuming the numerical index of the supplied data represents
+	number of days since 1970-01-01 (the warning is turned off at present).
+	* Removed some functions, namely ForwardDates and WeekDayDummy, since the move
+	to xts makes them obsolete.
+	* Removed the as.array and as.list extractor functions in the multi-function 
+	object classes (replaced by sigma and fitted).
+	* Consolidated code on methods (using mostly 'switch' functionality), to 
+	eliminate some of the code redundancy.
+	* Added VaRplot function for plotting the VaR exceedances.
+	* Added VaRloss function for calculating and returning the VaR loss used in
+	Gonzalez-Rivera, Lee, and Mishra (2004).
+	* Fix to ugarchboot when using a uGARCHspec object with the csGARCH model.
+	The fix allows to pass the previous permanent component of the variance
+	(preq) in the ugarchpath method as an additional argument via the dots(...).
+	The vignette now includes a step by step recipe of how the full bootstrap is
+	constructed.
+	* Turned off warning about NaN's in post-estimation numerical derivative 
+	calculation and added a note in the ugarchfit-methods explaining its purpose
+	and how it relates to the optimal solution.
+	* ugarchroll now also flags as a non-converged estimation windows one where
+	the Hessian cannot be inverted (indicating a local solution).
+
+	
+2013-01-24  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-2.
+	* Distribution functions re-written to take advantage of vectorization (some
+	of them were not vectorized), and where deemed appropriate, parallel evaluation
+	(for non-analytic quantile/distribution functions e.g. qghst). This is needed
+	in particular for another package in development. Functions ddist, qdist, 
+	pdist, rdist, dskewness and dkurtosis now take advantage of location and 
+	scaling property of standardized NIG/GH distributions for faster evaluation.
+	* rugarch-distributions.R file housekeeping. Elimination of redundant code.
+	* Some cleanup to plots (now return old par setup on exit).
+	* Analytic skewness and kurtosis expressions for Fernandez and Steel's sstd
+	distribution.
+	* Small fix to ugarchroll resume method.
+
+2013-01-18  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.01-1.
+	* Version numbering bump.
+	* Analytic skewness and kurtosis expressions for Johnson's SU 
+	distribution.
+	* distplot function provides skewness-kurtosis plots (surfaces) for 
+	skew-shape combinations of different distributions.
+	* Corrected some typos in documentation/vignette thanks to D.E.
+
+2013-01-15  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-16.
 	* Fix to bug in autoarfima for method partial (convergence check
 	failed)
@@ -9,6 +101,7 @@
 	* Fix in some methods in the presence of variance targeting.
 	* Fix to some simulation methods when using external regressors in variance
 	equation and unconditional choice for starting the recursion.
+
 
 2012-11-30  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-14.

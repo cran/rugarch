@@ -99,7 +99,6 @@ void egarchfilter(int *model, double *pars, int *idx, double meanz, double *z, d
 	}
 	for( j=0; j<model[7]; j++ )
 	{
-
 		h[i] = h[i] + pars[idx[7]+j]*z[i-(j+1)] + pars[idx[9]+j]*( fabs(z[i-(j+1)]) - meanz );
 	}
 	for( j=0; j<model[8]; j++ )
@@ -155,7 +154,6 @@ void csgarchfilter(int *model, double *pars, int *idx, double *e, double *vexdat
 		h[i] = h[i] + pars[idx[8]+j]*(h[i-(j+1)] - q[i-(j+1)]);
 	}
 }
-
 
 void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 		double *mexdata, double *zrf, double *constm, double *condm, double h,

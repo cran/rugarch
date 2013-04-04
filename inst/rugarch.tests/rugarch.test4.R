@@ -31,11 +31,11 @@ rugarch.test4a = function(cluster=NULL)
 	# sGARCH(1,1) + MU + XREG(V) + ARMA(1,1) + XREG(M)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	
@@ -79,8 +79,8 @@ rugarch.test4a = function(cluster=NULL)
 	options(width=150)
 	zz <- file("test4a.txt", open="wt")
 	sink(zz)
-	print(as.data.frame(sgarch.pred3, rollframe="all", prepad = FALSE))
-	print(as.data.frame(sgarch.pred3, rollframe=1, prepad = FALSE))
+	print(head(sigma(sgarch.pred3)))
+	print(head(fitted(sgarch.pred3)))
 	sink(type="message")
 	sink()
 	close(zz)
@@ -99,11 +99,11 @@ rugarch.test4b = function(cluster=NULL)
 	data(dji30ret)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	
@@ -196,16 +196,31 @@ rugarch.test4b = function(cluster=NULL)
 			external.forecasts = list(mregfor = xregm, vregfor = xregv)) 
 	
 	# compare the 1-step ahead rolling forecasts (10 rolls)
-	# using the as.array extractor
-	sgarch.fmu  = cbind(as.array(sgarch.pred1)[1,2,], as.array(sgarch.pred2)[1,2,],
-			as.array(sgarch.pred3)[1,2,],as.array(sgarch.pred4)[1,2,],
-			as.array(sgarch.pred5)[1,2,], as.array(sgarch.pred6)[1,2,])
-	sgarch.fsigma = cbind(as.array(sgarch.pred1)[1,1,], as.array(sgarch.pred2)[1,1,],
-			as.array(sgarch.pred3)[1,1,],as.array(sgarch.pred4)[1,1,],
-			as.array(sgarch.pred5)[1,1,], as.array(sgarch.pred6)[1,1,])
-	sgarch.shape = cbind(rep(coef(sgarch.fit1)["shape"],10), rep(coef(sgarch.fit2)["shape"],10),
-			rep(coef(sgarch.fit3)["shape"],10), rep(coef(sgarch.fit4)["shape"],10),
-			rep(coef(sgarch.fit5)["shape"],10), rep(coef(sgarch.fit6)["shape"],10))
+	sgarch.fmu  = cbind(
+			fitted(sgarch.pred1)[1,], 
+			fitted(sgarch.pred2)[1,],
+			fitted(sgarch.pred3)[1,], 
+			fitted(sgarch.pred4)[1,], 
+			fitted(sgarch.pred5)[1,], 
+			fitted(sgarch.pred6)[1,])
+	
+	sgarch.fsigma = cbind(
+			sigma(sgarch.pred1)[1,], 
+			sigma(sgarch.pred2)[1,],
+			sigma(sgarch.pred3)[1,], 
+			sigma(sgarch.pred4)[1,], 
+			sigma(sgarch.pred5)[1,], 
+			sigma(sgarch.pred6)[1,])
+	
+	sgarch.shape = cbind(
+			rep(coef(sgarch.fit1)["shape"],10), 
+			rep(coef(sgarch.fit2)["shape"],10), 
+			rep(coef(sgarch.fit3)["shape"],10), 
+			rep(coef(sgarch.fit4)["shape"],10), 
+			rep(coef(sgarch.fit5)["shape"],10), 
+			rep(coef(sgarch.fit6)["shape"],10))
+	
+	
 	# plot the forecast 1-step rolling density
 	postscript("test4b.eps", width = 12, height = 8)
 	zseq = seq(-0.2, 0.2, length.out = 1000)
@@ -240,11 +255,11 @@ rugarch.test4c = function(cluster=NULL)
 	data(dji30ret)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	# gjrGARCH(1,1)
@@ -331,24 +346,22 @@ rugarch.test4c = function(cluster=NULL)
 	xregv = matrix(friday[5322:(5322+50+10 - 1)], ncol=1)
 	gjrgarch.pred6 = ugarchforecast(gjrgarch.fit6, n.ahead = 50, n.roll = 10, 
 			external.forecasts = list(mregfor = xregm, vregfor = xregv)) 
-	
-	# compare the 1-step ahead rolling forecasts (10 rolls) using the as.array extractor
-	
+		
 	gjrgarch.fmu  = cbind(
-			as.array(gjrgarch.pred1)[1,2,], 
-			as.array(gjrgarch.pred2)[1,2,],
-			as.array(gjrgarch.pred3)[1,2,], 
-			as.array(gjrgarch.pred4)[1,2,], 
-			as.array(gjrgarch.pred5)[1,2,], 
-			as.array(gjrgarch.pred6)[1,2,])
+			fitted(gjrgarch.pred1)[1,], 
+			fitted(gjrgarch.pred2)[1,],
+			fitted(gjrgarch.pred3)[1,], 
+			fitted(gjrgarch.pred4)[1,], 
+			fitted(gjrgarch.pred5)[1,], 
+			fitted(gjrgarch.pred6)[1,])
 	
 	gjrgarch.fsigma = cbind(
-			as.array(gjrgarch.pred1)[1,1,], 
-			as.array(gjrgarch.pred2)[1,1,],
-			as.array(gjrgarch.pred3)[1,1,], 
-			as.array(gjrgarch.pred4)[1,1,], 
-			as.array(gjrgarch.pred5)[1,1,], 
-			as.array(gjrgarch.pred6)[1,1,])
+			sigma(gjrgarch.pred1)[1,], 
+			sigma(gjrgarch.pred2)[1,],
+			sigma(gjrgarch.pred3)[1,], 
+			sigma(gjrgarch.pred4)[1,], 
+			sigma(gjrgarch.pred5)[1,], 
+			sigma(gjrgarch.pred6)[1,])
 	
 	gjrgarch.skew = cbind(
 			rep(coef(gjrgarch.fit1)["skew"],10), 
@@ -404,7 +417,7 @@ rugarch.test4d = function(cluster=NULL)
 			mean.model = list(armaOrder = c(1,1), include.mean = TRUE), 
 			distribution.model = "std")
 	
-	fit1 = ugarchfit(data = dmbp[,1], out.sample = 50, spec = spec)
+	fit1 = ugarchfit(data = dmbp[,1,drop=FALSE], out.sample = 50, spec = spec)
 	
 	pred1 = ugarchforecast(fit1, n.ahead = 50, n.roll = 2)
 	pred2 = ugarchforecast(fit1, n.ahead = 1, n.roll = 50)

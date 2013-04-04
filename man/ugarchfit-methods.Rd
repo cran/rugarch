@@ -38,7 +38,9 @@ uses all the values for the unconditional variance calculation, an integer
 greater than or equal to 1 denoting the number of data points to use for the 
 calculation, or a positive numeric value less than one which determines the 
 weighting for use in an exponential smoothing backcast.}
-\item{...}{ . }
+\item{...}{ For the multiplicative component sGARCH model (mcsGARCH), the
+additional argument \sQuote{DailyVar} is required and should be an xts object of 
+the daily forecasted variance to use with the intraday data.}
 }
 \value{
 A \code{\linkS4class{uGARCHfit}} object containing details of the GARCH fit.
@@ -56,20 +58,33 @@ measures. In the \code{\link{ugarchforecast}} routine the n.ahead may also be
 greater than the out.sample number resulting in a combination of out of sample 
 data points matched against actual data and some without, which the forecast 
 performance tests will ignore.\cr
-The \dQuote{gosolnp} solver allows for the initialization of multiple restarts of the solnp 
-solver with randomly generated parameters (see documentation in the Rsolnp-package 
-for details of the strategy used). The solver.control list then accepts the following 
-additional (to the solnp) arguments: \dQuote{n.restarts} is the number of solver restarts 
-required (defaults to 1), \dQuote{parallel} (logical), \dQuote{pkg} (either snowfall or 
-multicore) and \dQuote{cores} (the number of cores or workers to use) for use of 
-parallel functionality, \dQuote{rseed} is the seed to initialize the random number 
-generator, and \dQuote{n.sim} is the number of simulated parameter vectors to 
-generate per n.restarts. The \dQuote{hybrid} strategy solver first tries the 
-\dQuote{solnp} solver, in failing to converge then tries then \dQuote{nlminb}, 
-the \dQuote{gosolnp} and finally the \dQuote{nloptr} solvers. Solver control parameters 
-can be passed for all the solvers in the solver.control list as one long list which will be 
-filtered for each solver's specific options as and when that solver is called during the 
-hybrid strategy optimization.
+The \dQuote{gosolnp} solver allows for the initialization of multiple restarts 
+of the solnp solver with randomly generated parameters (see documentation in 
+the Rsolnp-package for details of the strategy used). The solver.control list 
+then accepts the following additional (to the solnp) arguments: \dQuote{n.restarts} 
+is the number of solver restarts required (defaults to 1), \dQuote{parallel} 
+(logical), \dQuote{pkg} (either snowfall or multicore) and \dQuote{cores} 
+(the number of cores or workers to use) for use of parallel functionality, 
+\dQuote{rseed} is the seed to initialize the random number generator, and 
+\dQuote{n.sim} is the number of simulated parameter vectors to generate per 
+n.restarts.\cr 
+The \dQuote{hybrid} strategy solver first tries the \dQuote{solnp} solver, in 
+failing to converge then tries then \dQuote{nlminb}, the \dQuote{gosolnp} and 
+finally the \dQuote{nloptr} solvers. Solver control parameters can be passed for 
+all the solvers in the solver.control list as one long list which will be 
+filtered for each solver's specific options as and when that solver is called 
+during the hybrid strategy optimization. It is still possible that the Hessian
+at the optimal found cannot be inverted, in which case a warning is printed and
+there will not be any standard errors. In this case it is suggested that the
+problem is re-run with different solver parameters. It is also possible that the
+solution, while still \sQuote{almost} optimal may be at a saddle-point very near
+the global optimum in which case the Hessian may still be invertible but one 
+eigenvalue is negative. The uGARCHfit object has a value in the fit slot 
+called condH (object@fit$condH) which indicates the approximate number of decimal 
+places lost to roundoff/numerical estimation error. When this is NaN, this 
+indicates the case just described of one negative eigenvalue/saddlepoint (this
+previously flagged a warning but is now silenced and it is upto to the user to
+decide whether it is worth investigating further).
 }
 \note{
 The nloptr solver takes the following options in the solver.control list:\cr
@@ -103,7 +118,7 @@ spec = ugarchspec()
 fit = ugarchfit(data = dmbp[,1], spec = spec)
 fit
 coef(fit)
-head(as.data.frame(fit))
+head(sigma(fit))
 #plot(fit,which="all")
 # in order to use fpm (forecast performance measure function)
 # you need to select a subsample of the data:

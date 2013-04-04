@@ -27,7 +27,9 @@ For comparison with uGARCHfit models using the out.sample argument, this is the
 length of the original dataset (see details).}
 \item{rec.init}{ The recursion initialization method (see \code{\link{ugarchfit}}
 for explanation).}
-\item{...}{ . }
+\item{...}{ For the multiplicative component sGARCH model (mcsGARCH), the
+additional argument \sQuote{DailyVar} is required and should be an xts object of 
+the daily forecasted variance to use with the intraday data.}
 }
 \value{
 A \code{\linkS4class{uGARCHfilter}} object containing details of the GARCH filter.

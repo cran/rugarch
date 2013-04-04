@@ -21,7 +21,7 @@ Bollerslev and Ghysels for the standard and exponential GARCH models on the dmbp
 data.
 }
 \source{
-sQuote{http://www.stanford.edu/~clint/bench/index.htm}
+\sQuote{http://www.stanford.edu/~clint/bench/index.htm}
 }
 \references{
 Brooks, C. 1997, GARCH Modelling in Finance: A review of the Software Options,

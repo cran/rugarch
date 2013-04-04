@@ -25,7 +25,7 @@ rugarch.test9a = function(cluster=NULL)
 	tic = Sys.time()	
 	data(dji30ret)
 	# Individual Stock
-	X = dji30ret[1:1000,2]
+	X = dji30ret[1:1000,2,drop=FALSE]
 	# The 'Market'
 	M = apply(dji30ret[1:1000,], 1, "mean")
 	# Add Random Regressor, and scale M
@@ -44,13 +44,13 @@ rugarch.test9a = function(cluster=NULL)
 	
 	# check:
 	Ycheck1 = rep(0,10)
-	sigmafor = as.numeric(as.data.frame(forc1, which = "sigma", rollframe = "all", aligned=FALSE))
+	sigmafor = sigma(forc1)
 	for(i in 1:10){
 		Ycheck1[i] = coef(fit)["mu"] + coef(fit)["mxreg1"]*Yforc[i,1] + coef(fit)["mxreg2"]*Yforc[i,2]*sigmafor[i]
 	}
 	
 	# Individual Stock
-	X = dji30ret[1:1000,1]
+	X = dji30ret[1:1000,1,drop=FA:SE]
 	# The 'Market'
 	M = apply(dji30ret[1:1000,], 1, "mean")
 	# Add 2 Random Regressor, and scale M
@@ -69,13 +69,13 @@ rugarch.test9a = function(cluster=NULL)
 	
 	# check:
 	Ycheck2 = rep(0,10)
-	sigmafor = as.numeric(as.data.frame(forc2, which = "sigma", rollframe = "all", aligned=FALSE))
+	sigmafor = sigma(forc2)
 	for(i in 1:10){
 		Ycheck2[i] = coef(fit)["mu"] + coef(fit)["mxreg1"]*Yforc[i,1] + coef(fit)["mxreg2"]*Yforc[i,2]*sigmafor[i] + coef(fit)["mxreg3"]*Yforc[i,3]*sigmafor[i]
 	}	
 	
 	# Individual Stock
-	X = dji30ret[1:1000,3]
+	X = dji30ret[1:1000,3,drop=FALSE]
 	# The 'Market'
 	M = apply(dji30ret[1:1000,], 1, "mean")
 	# Add 2 Random Regressor, and scale M
@@ -93,7 +93,7 @@ rugarch.test9a = function(cluster=NULL)
 	
 	# check:
 	Ycheck3 = rep(0,10)
-	sigmafor = as.numeric(as.data.frame(forc3, which = "sigma", rollframe = "all", aligned=FALSE))
+	sigmafor = sigma(forc3)
 	for(i in 1:10){
 		Ycheck3[i] = coef(fit)["mu"] + coef(fit)["mxreg1"]*Yforc[i,1]*sigmafor[i]
 	}
@@ -101,11 +101,11 @@ rugarch.test9a = function(cluster=NULL)
 	z4 <- file("test9a.txt", open="wt")
 	sink(z4)
 	cat("\n[1] Forecast Check with archex.\n Pass:\n")
-	print( all.equal(Ycheck1, as.numeric(as.data.frame(forc1, which = "series", rollframe = "all", aligned=FALSE))))
+	print( all.equal(Ycheck1, as.numeric(fitted(forc1))))
 	cat("\n[2] Forecast Check with archex.\n Pass:\n")
-	print( all.equal(Ycheck2, as.numeric(as.data.frame(forc2, which = "series", rollframe = "all", aligned=FALSE))))
+	print( all.equal(Ycheck2,  as.numeric(fitted(forc2))))
 	cat("\n[3] Forecast Check with archex.\n Pass:\n")
-	print( all.equal(Ycheck3, as.numeric(as.data.frame(forc3, which = "series", rollframe = "all", aligned=FALSE))))
+	print( all.equal(Ycheck3,  as.numeric(fitted(forc3))))
 	sink(type="message")
 	sink()
 	close(z4)
@@ -121,7 +121,7 @@ rugarch.test9b = function(cluster=NULL)
 	tic = Sys.time()	
 	data(dji30ret)
 	# Individual Stock
-	X = dji30ret[1:1000,2]
+	X = dji30ret[1:1000,2,drop=FALSE]
 	# The 'Market'
 	M = apply(dji30ret[1:1000,], 1, "mean")
 	# Add Random Regressor, and scale M
@@ -147,8 +147,7 @@ rugarch.test9b = function(cluster=NULL)
 	cat("\nFilter Test.\nPass:\n")
 	all.equal(fitted(fit), fitted(filt))
 	cat("\nForecast Test.\nPass:\n")
-	all.equal(as.numeric(as.data.frame(forc1, which = "series", rollframe = "all", align = FALSE)), 
-			as.numeric(as.data.frame(forc2, which = "series", rollframe = "all", align = FALSE)))
+	all.equal(as.numeric(fitted(forc1)), as.numeric(fitted(forc2)))
 	sink(type="message")
 	sink()
 	close(z4)

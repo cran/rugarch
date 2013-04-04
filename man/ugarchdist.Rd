@@ -7,12 +7,14 @@
 \alias{fitdist}
 \alias{dskewness}
 \alias{dkurtosis}
+\alias{distplot}
+\alias{skdomain}
 \title{Distribution: rugarch distribution functions}
 \description{
 Density, distribution function, quantile function, random generation and fitting 
 from the univariate distributions implemented in the rugarch package, with 
 functions for skewness and excess kurtosis given density skew and shape 
-parameters.    
+parameters.
     \tabular{ll}{
     \code{rgarchdist} \tab rugarch univariate distributions, \cr
 	\code{fitdist} \tab MLE parameter fit for the rugarch univariate distributions, \cr
@@ -30,6 +32,10 @@ shape = 5)
 fitdist(distribution = "norm", x, control=list())
 dskewness(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 dkurtosis(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
+distplot(distribution = "snorm", skewbounds = NULL, shapebounds = NULL, 
+		n.points = NULL)
+skdomain(distribution = "nig", kurt.max = 30, n.points = 25, lambda = 1, 
+plot = TRUE, legend = NULL)
 }
 \arguments{
 \item{distribution}{
@@ -50,7 +56,31 @@ A numeric vector of quantiles.}
 \item{x}{
 A univariate dataset (for fitting routine).}
 \item{control}{
-Control parameters passed to the \code{solnp} solver.}   
+Control parameters passed to the \code{solnp} solver.}
+\item{skewbounds}{
+The skewed distribution skew bounds for the plot. Leaving it NULL will use a good set of
+defaults for display purposes.
+}
+\item{shapebounds}{
+The shaped distribution shape bounds for the plot. Leaving it NULL will use a good set of
+defaults for display purposes.
+}
+\item{n.points}{
+The number of points between the lower and upper bounds of the skew and shape
+parameters for which to evaluate the skewness and excess kurtosis. For the
+skdomain function this determines the kurtosis interval (3-max.kurt) for which
+to determine (using a solver) the maximum skewness.
+}
+\item{kurt.max}{
+The maximum kurtosis for which to determine the bounds for the skewness-kurtosis
+domain.
+}
+\item{plot}{
+Whether to plot the results.
+}
+\item{legend}{
+Whether to include a legend with the plot in the skdomain.
+}
 }
 \value{
     \code{d*} returns the density,
@@ -82,10 +112,11 @@ Control parameters passed to the \code{solnp} solver.}
     	distribution fit problems).
     }
     \code{dskewness} returns the skewness of the distribution. 
-    \code{dkurtosis} returns the excess kurtosis of the distribution. 
+    \code{dkurtosis} returns the excess kurtosis of the distribution.
+    \code{skdomain} returns the authorized domain of the distribution.
 }
 \details{
-For the dQuote{nig} and \dQuote{ghyp} distributions, the shape, skew and lambda
+For the \dQuote{nig} and \dQuote{ghyp} distributions, the shape, skew and lambda
 are transformed from the \sQuote{zeta-rho} to the \sQuote{alpha-beta} 
 parametrization and then scaled by the mean and standard deviation. The fitting 
 routines use the \code{solnp} solver and minimize the negative of the 
@@ -94,6 +125,9 @@ The \dQuote{dskewness} and \dQuote{dkurtosis} functions take as inputs the
 distribution name, skew and shape parameters and return the skewneness and 
 excess kurtosis of the distribution. The functions are not at present 
 vectorized.
+The distplot provides illustrative plots (or surfaces) of skewness and kurtosis 
+for any of the distributions supported (with the exception of the GH which has
+2 shape and 1 skew parameters and hence is impractical to represent).\cr
 }
 \references{
 Johnson, N. L. 1954, Systems of frequency curves derived from the first law of 

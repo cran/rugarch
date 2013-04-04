@@ -2,7 +2,7 @@
 \Rdversion{1.1}
 \docType{class}
 \alias{ARFIMAsim-class}
-\alias{as.data.frame,ARFIMAsim-method}
+\alias{fitted,ARFIMAsim-method}
 \alias{show,ARFIMAsim-method}
 \title{class: ARFIMA Simulation Class}
 \description{
@@ -21,15 +21,10 @@ Class \code{"\linkS4class{rGARCH}"}, by class "ARFIMA", distance 2.
 }
 \section{Methods}{
   \describe{
-    \item{as.data.frame}{\code{signature(x = "ARFIMAsim")}: extracts the simulated values (see note).}
+    \item{fitted}{\code{signature(x = "ARFIMAsim")}: extracts the simulated values 
+    as a matrix of dimension n.sim by m.sim.}
     \item{show}{\code{signature(object = "ARFIMAsim")}: simulation summary. }
 	 }
-}
-\note{
-The \code{as.data.frame} function takes optionally 1 additional arguments, namely \code{which},
-indicating the type of simulation series to extract. Valid values are \dQuote{series} for the 
-simulated series and \dQuote{residuals} for the simulated residuals. The dimension of the 
-\code{data.frame} will be \code{n.sim} by \code{m.sim}.
 }
 \author{Alexios Ghalanos}
 \keyword{classes}

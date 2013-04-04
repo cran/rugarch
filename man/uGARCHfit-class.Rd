@@ -1,7 +1,6 @@
 \name{uGARCHfit-class}
 \docType{class}
 \alias{uGARCHfit-class}
-\alias{as.data.frame,uGARCHfit-method}
 \alias{residuals,uGARCHfit-method}
 \alias{fitted,uGARCHfit-method}
 \alias{vcov,uGARCHfit-method}
@@ -25,6 +24,10 @@
 \alias{gof,ANY,ANY-method}
 \alias{gof,uGARCHfit,numeric-method}
 \alias{gof}
+\alias{quantile,uGARCHfit-method}
+\alias{pit,uGARCHfit-method}
+\alias{pit,ANY-method}
+\alias{pit}
 \alias{likelihood,uGARCHfit-method}
 \alias{likelihood,ANY-method}
 \alias{likelihood}
@@ -49,6 +52,9 @@
 \alias{convergence,uGARCHfit-method}
 \alias{convergence,ANY-method}
 \alias{convergence}
+\alias{reduce,uGARCHfit-method}
+\alias{reduce,ANY-method}
+\alias{reduce}
 \alias{plot,uGARCHfit,missing-method}
 \alias{show,uGARCHfit-method}
 \title{class: Univariate GARCH Fit Class}
@@ -68,9 +74,6 @@ Class \code{\linkS4class{rGARCH}}, by class \code{\linkS4class{GARCHfit}}, dista
 }
 \section{Methods}{
 \describe{
-\item{as.data.frame}{\code{signature(x = "uGARCHfit")}: 
-Extracts the position (dates), data, fitted values, residuals and conditional 
-sigma.}
 \item{coef}{\code{signature(object = "uGARCHfit")}: 
 Extracts the coefficients. }
 \item{vcov}{\code{signature(object = "uGARCHfit")}: 
@@ -136,6 +139,17 @@ type such as fGARCH.}
 \item{convergence}{\code{signature(object = "uGARCHfit")}: 
 Returns the solver convergence code for the fitted object (zero denotes
 convergence). }
+\item{quantile}{\code{signature(x = "uGARCHfit")}: 
+Calculates and returns, given a vector of probabilities (additional argument 
+\dQuote{probs}), the conditional quantiles of the fitted object (x).}
+\item{pit}{\code{signature(object = "uGARCHfit")}: 
+Calculates and returns the conditional probability integral transform given the
+data and estimated density.}
+\item{reduce}{\code{signature(object = "uGARCHfit")}: 
+Zeros parameters (fixing to zero in rugarch is equivalent to eliminating them 
+in estimation) with p-values (optional argument \dQuote{pvalue}) greater 
+than 0.1 (default), and re-estimates the model. Additional arguments are passed
+to \code{\link{ugarchfit}}.}
 \item{plot}{\code{signature(x = "uGARCHfit", y = "missing")}: 
 Fit plots. }
 \item{show}{\code{signature(object = "uGARCHfit")}: 
@@ -150,10 +164,6 @@ Method for show gives detailed summary of GARCH fit with various tests.\cr
 Method for plot provides for interactive choice of plots, option of choosing
 a particular plot (option \dQuote{which} equal to a valid plot number) or a 
 grand plot including all subplots on one page (option \dQuote{which}=\dQuote{all}).\cr
-The data.frame method returns a data frame with 4 columns, the original data, 
-the fitted data, the residuals and the sigma values, indexed (rownames) by the 
-same values as provided in the original data provided to the fit function 
-(e.g. dates).\cr
 The infocriteria method calculates and returns the information criteria 
 (AIC, BIC etc) of the GARCH fit.\cr
 The nyblom method calculates and returns the Hansen-Nyblom joint and individual 
@@ -188,18 +198,15 @@ data(dmbp)
 spec = ugarchspec()
 fit = ugarchfit(data = dmbp[,1], spec = spec)
 fit
-
 # object fit:
 slotNames(fit)
 # sublist fit@fit
 names(fit@fit)
-
 coef(fit)
 infocriteria(fit)
 likelihood(fit)
 nyblom(fit)
 signbias(fit)
-head(as.data.frame(fit))
 head(sigma(fit))
 head(residuals(fit))
 head(fitted(fit))
@@ -207,7 +214,6 @@ gof(fit,c(20,30,40,50))
 uncmean(fit)
 uncvariance(fit)
 #plot(fit,which="all")
-
 # news impact example
 spec = ugarchspec(variance.model=list(model="apARCH"))
 fit = ugarchfit(data = dmbp[,1], spec = spec)

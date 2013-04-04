@@ -84,7 +84,6 @@
 		external.forecasts =  list(mregfor = NULL, vregfor = NULL), 
 		mexsimdata = NULL, vexsimdata = NULL, cluster = NULL, verbose = FALSE)
 {
-	
 	# inputs:
 	# n.bootfit		: the number of simulations for which we will generate the parameter 
 	#				uncertainty distribution (i.e. no of refits)
@@ -96,6 +95,7 @@
 	if(is.na(match(sampling, c("raw", "kernel", "spd")))) stop("\nsampling method not recognized")
 	fit = fitORspec
 	model = fit@model
+	vmodel = fit@model$modeldesc$vmodel
 	m = model$maxOrder
 	data = model$modeldata$data
 	N = model$modeldata$T
@@ -123,13 +123,13 @@
 	empz = matrix(0, ncol = n.bootfit, nrow = N)
 	empz = apply(as.data.frame(1:n.bootfit), 1, FUN=function(i) {
 				set.seed(sseed1[i]);
-				.bsample(fz, N, sampling, zfit);})	
+				.bsample(fz, N, sampling, zfit);})
 	
 	if(ns > 0) {
 		spec = getspec(fit)
 		setfixed(spec) <- as.list(coef(fit))
 		realized.x = fit@model$modeldata$data[(N+1):(N+ns)]
-		filtered.s = tail(sigma(ugarchfilter(data = fit@model$modeldata$data, spec = spec)), fit@model$n.start)
+		filtered.s = tail(ugarchfilter(data = .numeric2xts(fit@model$modeldata$data), spec = spec)@filter$sigma, fit@model$n.start)
 	} else{
 		realized.x = NULL
 		filtered.s = NULL
@@ -146,29 +146,27 @@
 			custom.dist = list(name = "sample", distfit = as.matrix(empz)),
 			rseed = sseed1, mexsimdata = mexsimdata, vexsimdata = vexsimdata)
 	fitlist = vector(mode="list", length = n.bootfit)
-	path.df = as.data.frame(paths, which = "series")
+	simseries = fitted(paths)
 	spec = getspec(fit)
-	rownames(path.df) = as.character(model$modeldata$dates[1:N])
 	# help the optimization with good starting parameters
 	spec@model$start.pars = as.list(coef(fit))
-	nx = dim(path.df)[2]
+	nx = NCOL(simseries)
 	
 	# get the distribution of the parameters (by fitting to the new path data)
 	#-------------------------------------------------------------------------
 	if( verbose ) cat("\nfitting stage...")
 	if( !is.null(cluster) ){
-		nx = dim(path.df)[2]
 		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("path.df", "spec", "solver", 
+		parallel::clusterExport(cluster, c("simseries", "spec", "solver", 
 						"solver.control", "fit.control"), envir = environment())
 		fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(i){
-					rugarch:::.safefit(spec = spec, data = path.df[, i, drop = FALSE], 
+					rugarch:::.safefit(spec = spec, data = .numeric2xts(simseries[,i]), 
 							out.sample = 0, solver = solver, fit.control = fit.control, 
 							solver.control = solver.control)
 				})
 	} else{
-		fitlist = lapply(as.list(1:nx), fun = function(i){
-					.safefit(spec = spec, data = path.df[, i, drop = FALSE], 
+		fitlist = lapply(as.list(1:nx), FUN = function(i){
+					.safefit(spec = spec, data = .numeric2xts(simseries[,i]), 
 							out.sample = 0, solver = solver, fit.control = fit.control, 
 							solver.control = solver.control)
 				})
@@ -186,7 +184,7 @@
 	coefdist = matrix(NA, ncol = length(coef(fit)), nrow = n.bootfit)
 	speclist = vector(mode = "list", length = n.bootfit)
 	for(i in 1:n.bootfit){
-		coefdist[i,] = coef(fitlist[[i]])
+		coefdist[i,]  = coef(fitlist[[i]])
 		speclist[[i]] = spec
 		speclist[[i]]@model$fixed.pars = as.list(coef(fitlist[[i]]))
 	}
@@ -209,12 +207,35 @@
 	if( !is.null(cluster) ){
 		nx = length(speclist)
 		parallel::clusterExport(cluster, c("speclist", "data", "m", "N"), envir = environment())
-		st = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					rugarch:::.sigmat(spec = speclist[[i]], origdata =  data[1:N], m)
+		xtmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(data[1:N]), m)
+					st = ans$st
+					if(vmodel=="csGARCH"){
+						qx = ans$qx
+					} else{
+						qx = rep(NA, m)
+					}
+					rx = ans$res
+					return(list(st = st, rx = rx, qx = qx))
 				})
-		st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
+		st = matrix(sapply(xtmp, FUN = function(x) x$st), ncol = n.bootfit)
+		qx = matrix(sapply(xtmp, FUN = function(x) x$qx), ncol = n.bootfit)
+		rx = matrix(sapply(xtmp, FUN = function(x) x$rx), ncol = n.bootfit)
 	} else{
-		st = matrix(sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata =  data[1:N], m)), ncol = n.bootfit)
+		xtmp = lapply(speclist, FUN=function(x){
+					ans = .sigmat(spec = x, origdata = .numeric2xts(data[1:N]), m)
+					st = ans$st
+					if(vmodel=="csGARCH"){
+						qx = ans$qx
+					} else{
+						qx = rep(NA, m)
+					}
+					rx = ans$res
+					return(list(st = st, rx = rx, qx = qx))
+		})
+		st = matrix(sapply(xtmp, FUN = function(x) x$st), ncol = n.bootfit)
+		qx = matrix(sapply(xtmp, FUN = function(x) x$qx), ncol = n.bootfit)
+		rx = matrix(sapply(xtmp, FUN = function(x) x$rx), ncol = n.bootfit)
 	}
 	forcseries = NULL
 	forcsigma  = NULL
@@ -223,25 +244,33 @@
 	xdat = tail( data[1:N], m )
 	if( !is.null(cluster) ){
 		parallel::clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
-						"st", "xdat", "sseed", "empzlist","mexsimdata", "vexsimdata"), 
+						"st", "rx", "qx", "xdat", "sseed", "empzlist","mexsimdata", "vexsimdata"), 
 				envir = environment())
 		tmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
+					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat, 
+							preresiduals = rx[,i],
 							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-							mexsimdata = mexsimdata, vexsimdata = vexsimdata)
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = qx[,i]), silent = TRUE)
 				})
-	} else{	
+	} else{
 		tmp = lapply(as.list(1:n.bootfit), FUN = function(i){
-					.quicksimulate(fit = fitlist[[i]], n.sim = n.ahead, 
+					try(.quicksimulate(fit = fitlist[[i]], n.sim = n.ahead, 
 					m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
+					preresiduals = rx[,i],	
 					n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 					custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-					mexsimdata = mexsimdata, vexsimdata = vexsimdata)
+					mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = qx[,i]), silent=TRUE)
 		})
 	}
-
+	# we will have (n.bootfit x n.bootpred) x n.ahead matrix
+	# eliminate errors:
+	idxer = which(sapply(tmp, function(x) is(x, "try-error")))
+	if(length(idxer)>0){
+		tmp = tmp[-idxer]
+		n.bootfit = length(tmp)
+	}
 	# we will have (n.bootfit x n.bootpred) x n.ahead matrix
 	forcseries = lapply(tmp, FUN = function(x) x[1:n.ahead, ,drop = F])
 	meanseriesfit = t(sapply(forcseries, FUN = function(x) apply(t(x), 2, "mean")))
@@ -272,7 +301,7 @@
 	model$modeldata$meanfit.s = meansigmafit
 	model$seeds = sseed
 	model$type = "full"
-	model$dateT = model$modeldata$dates[N]
+	model$indexT = model$modeldata$index[N]
 	ans = new("uGARCHboot",
 			fseries = forcseries,
 			fsigma = forcsigma,
@@ -295,9 +324,9 @@
 	if(is.na(match(sampling, c("raw", "kernel", "spd")))) stop("\nsampling method not recognized")
 	spec = fitORspec
 	model = spec@model
+	vmodel = model$modeldesc$vmodel
 	if(is.null(data))
 		stop("\nugarchboot-->error: data must be supplied if SPEC object used.", call. = FALSE)	
-	
 	flt = ugarchfilter(data = data, spec = spec, out.sample = out.sample)
 	xdata = flt@model$modeldata$data
 	m = spec@model$maxOrder
@@ -317,13 +346,11 @@
 	if(out.sample > 0) {
 		flt2 = ugarchfilter(data = data, spec = spec, out.sample = 0)
 		realized.x = tail(xdata, out.sample)
-		filtered.s = tail(sigma(flt2), out.sample)
+		filtered.s = tail(flt2@filter$sigma, out.sample)
 	} else{
 		realized.x = NULL
 		filtered.s = NULL
 	}
-	
-	
 	# generate paths of equal length to data based on empirical re-sampling of z
 	# p.2296 equation (5)
 	# use of filter when using spec/this will also check whether the fixed.pars are correctly
@@ -345,14 +372,18 @@
 	# presigma uses the same starting values as the original fit
 	# -> in paper they use alternatively the unconditional long run sigma (P.2296 paragraph 2
 	# "...marginal variance...")
+	if(spec@model$modeldesc$vmodel=="csGARCH"){
+		preq = tail(flt@filter$q, m)
+	} else{
+		preq = NULL
+	}
 	paths = ugarchpath(spec, n.sim = N, m.sim = n.bootfit, presigma = tail(flt@filter$sigma, m), 
 			prereturns = tail(xdata[1:N], m), preresiduals = tail(residuals(flt), m), rseed = sseed1,
 			n.start = 0, custom.dist = list(name = "sample", distfit = as.matrix(empz)), 
-			mexsimdata = mexsimdata, vexsimdata = vexsimdata)
+			mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = preq)
 	fitlist = vector(mode="list", length = n.bootfit)
-	path.df = as.data.frame(paths, which = "series")
-	rownames(path.df) = as.character(flt@model$modeldata$dates[1:N])
-	nx = dim(path.df)[2]
+	simseries = fitted(paths)
+	nx = NCOL(simseries)
 	
 	# help the optimization with good starting parameters
 	spex = spec
@@ -363,17 +394,17 @@
 	if( verbose ) cat("\nfitting stage...")
 	if( !is.null(cluster) ){
 			parallel::clusterEvalQ(cluster, library(rugarch))
-			nx = dim(path.df)[2]
-			parallel::clusterExport(cluster, c("path.df", "spex", "solver", "out.sample", 
+			nx = NCOL(simseries)
+			parallel::clusterExport(cluster, c("simseries", "spex", "solver", "out.sample", 
 							"solver.control", "fit.control"), envir = environment())
 			fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(i){
-						rugarch:::.safefit(spec = spex, data = path.df[,i,drop = FALSE], 
+						rugarch:::.safefit(spec = spex, data = .numeric2xts(simseries[,i]), 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
 					})
 	} else{
 		fitlist = lapply(as.list(1:nx), FUN = function(i){
-					.safefit(spec = spex, data = path.df[,i,drop = FALSE], 
+					.safefit(spec = spex, data = .numeric2xts(simseries[,i]), 
 							out.sample = 0, solver = solver, fit.control = fit.control, 
 							solver.control = solver.control)
 				})
@@ -384,7 +415,7 @@
 		fitlist = fitlist[-exc]
 		n.bootfit = n.bootfit - length(exc)
 		# in case something went very wrong:
-		if(n.bootfit == 0) stop("\nugarchboot-->error: the fitting routine failed. No convergene at all!\n", call. = FALSE)
+		if(n.bootfit == 0) stop("\nugarchboot-->error: the fitting routine failed. No convergence at all!\n", call. = FALSE)
 	}
 	if( verbose ) cat("done!\n")
 	
@@ -414,16 +445,39 @@
 	# we start all forecasts from the last value of sigma based on the original series but
 	# the pertrubed parameters as in equation (7) in PRR paper.
 	if( !is.null(cluster) ){
-			nx = length(speclist)
-			parallel::clusterExport(cluster, c("speclist", "xdata", "m", "N"), envir = environment())
-			st = parallel::parLapply(cluster, as.list(1:nx), fun = function(i){
-						rugarch:::.sigmat(spec = speclist[[i]], origdata = xdata[1:N], m)
-					})
-			st = matrix(sapply(st, FUN = function(x) x), ncol = n.bootfit)
+		nx = length(speclist)
+		parallel::clusterExport(cluster, c("speclist", "xdata", "m", "N"), envir = environment())
+		xtmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(xdata[1:N]), m)
+					st = ans$st
+					if(vmodel=="csGARCH"){
+						qx = ans$qx
+					} else{
+						qx = rep(NA, m)
+					}
+					rx = ans$res
+					return(list(st = st, rx = rx, qx = qx))
+				})
+		
+		st = matrix(sapply(xtmp, FUN = function(x) x$st), ncol = n.bootfit)
+		qx = matrix(sapply(xtmp, FUN = function(x) x$qx), ncol = n.bootfit)
+		rx = matrix(sapply(xtmp, FUN = function(x) x$rx), ncol = n.bootfit)
 	} else{
-		st = matrix(sapply(speclist, FUN=function(x) .sigmat(spec = x, origdata =  xdata[1:N], m)), ncol = n.bootfit)		
+		xtmp = lapply(speclist, FUN=function(x){
+					ans = .sigmat(spec = x, origdata = .numeric2xts(xdata[1:N]), m)
+					st = ans$st
+					if(vmodel=="csGARCH"){
+						qx = ans$qx
+					} else{
+						qx = rep(NA, m)
+					}
+					rx = ans$res
+					return(list(st = st, rx = rx, qx = qx))
+				})
+		st = matrix(sapply(xtmp, FUN = function(x) x$st), ncol = n.bootfit)
+		qx = matrix(sapply(xtmp, FUN = function(x) x$qx), ncol = n.bootfit)
+		rx = matrix(sapply(xtmp, FUN = function(x) x$rx), ncol = n.bootfit)
 	}
-
 	forcseries = NULL
 	forcsigma  = NULL
 	forcseries = NULL
@@ -434,25 +488,33 @@
 	xdat =  tail(xdata[1:N], m)
 	if( !is.null(cluster) ){
 		parallel::clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
-						"st", "xdat", "sseed", "empzlist", "mexsimdata", "vexsimdata"), 
+						"st", "rx", "qx", "xdat", "sseed", "empzlist", "mexsimdata", "vexsimdata"), 
 				envir = environment())
 		tmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
-							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,  
-							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
+					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,
+							preresiduals = rx[,i], n.start = 0, 
+							rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-							mexsimdata = mexsimdata, vexsimdata = vexsimdata)
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = qx[,i]), silent = TRUE)
 				})
 	} else{
 		tmp = lapply(as.list(1:n.bootfit), FUN = function(i){
-					.quicksimulate(fitlist[[i]], n.sim = n.ahead, m.sim = n.bootpred, 
-							presigma = st[,i], prereturns = xdat,  n.start = 0, 
+					try(.quicksimulate(fitlist[[i]], n.sim = n.ahead, m.sim = n.bootpred, 
+							presigma = st[,i], prereturns = xdat,  
+							preresiduals = rx[,i], n.start = 0, 
 							rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
 							custom.dist = list(name = "sample", distfit = as.matrix(empzlist[[i]])), 
-							mexsimdata = mexsimdata, vexsimdata = vexsimdata)
+							mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = qx[,i]), silent = TRUE)
 				})
 	}
 	# we will have (n.bootfit x n.bootpred) x n.ahead matrix
+	# eliminate errors:
+	idxer = which(sapply(tmp, function(x) is(x, "try-error")))
+	if(length(idxer)>0){
+		tmp = tmp[-idxer]
+		n.bootfit = length(tmp)
+	}
 	forcseries = lapply(tmp, FUN = function(x) x[1:n.ahead, ,drop = F])
 	meanseriesfit = t(sapply(forcseries, FUN = function(x) apply(t(x), 2, "mean")))
 	forcseries = matrix(unlist(forcseries), nrow = n.ahead, ncol = n.bootpred * n.bootfit, byrow = FALSE)
@@ -481,7 +543,7 @@
 	model$modeldata$meanfit.s = meansigmafit
 	model$seeds = sseed
 	model$type = "full"
-	model$dateT = flt@model$modeldata$dates[N]
+	model$indexT = flt@model$modeldata$index[N]	
 	ans = new("uGARCHboot",
 			fseries = forcseries,
 			fsigma = forcsigma,
@@ -505,8 +567,7 @@
 	model = fit@model
 	m = fit@model$maxOrder
 	ns = fit@model$n.start
-	data = data.frame(fit@model$modeldata$data)
-	rownames(data) = as.character( fit@model$modeldata$dates )
+	data = xts(fit@model$modeldata$data, fit@model$modeldata$index)
 	xdata = fit@model$modeldata$data
 	N = length(xdata) - ns
 	spec = getspec(fit)
@@ -540,11 +601,11 @@
 	
 	# we start all forecasts from the last value of sigma based on the original series
 	setfixed(spec) <- as.list(coef(fit))
-	st = .sigmat(spec, xdata[1:N], m)
+	#st = .sigmat(spec, data[1:N], m)
 	
 	if(ns > 0){
-		realized.x = xdata[(N+1):(N+ns)]
-		filtered.s = tail(sigma(ugarchfilter(data = xdata, spec = spec)), ns)
+		realized.x = data[(N+1):(N+ns)]
+		filtered.s = tail(sigma(ugarchfilter(data = data, spec = spec)), ns)
 	} else{
 		realized.x = NULL
 		filtered.s = NULL
@@ -554,7 +615,9 @@
 	forcsigma  = matrix(NA, ncol = n.ahead, nrow = n.bootpred)
 	sim = vector(mode = "list", length = 1)
 	sim = ugarchsim(fit, n.sim = n.ahead, m.sim = n.bootpred, 
-				presigma = st, prereturns = tail(xdata[1:N], m), preresiduals = tail(residuals(fit), m),
+				presigma = tail(fit@fit$sigma, m), 
+				prereturns = tail(data[1:N], m), 
+				preresiduals = tail(residuals(fit), m),
 				rseed = sseed, n.start = 0, startMethod = "sample", 
 				custom.dist = list(name = "sample", distfit = empz),
 				mexsimdata = mexsimdata, vexsimdata = vexsimdata)
@@ -573,7 +636,7 @@
 	model$n.bootfit = n.bootfit
 	model$n.bootpred = n.bootpred
 	model$type = "partial"
-	model$dateT = model$modeldata$dates[N]
+	model$indexT = model$modeldata$index[N]
 	ans = new("uGARCHboot",
 			fseries = (forcseries),
 			fsigma = (forcsigma),
@@ -599,9 +662,9 @@
 	model = spec@model
 	flt = ugarchfilter(data = data, spec = spec, out.sample = out.sample)
 	tmp = .extractdata(data)
-	dates = tmp$dates
 	xdata = tmp$data
-	dformat = tmp$dformat
+	index = tmp$index
+	period = tmp$period
 	ns = out.sample
 	N = length(xdata) - out.sample
 	sigma = flt@filter$sigma
@@ -641,14 +704,18 @@
 	# we start all forecasts from the last value of sigma based on the original series
 	#st = .sigmat(spec, data, m)
 	
-	
+	if(spec@model$modeldesc$vmodel=="csGARCH"){
+		preq = tail(flt@filter$q, m)
+	} else{
+		preq = NULL
+	}
 	forcseries = matrix(NA, ncol = n.ahead, nrow = n.bootpred)
 	forcsigma  = matrix(NA, ncol = n.ahead, nrow = n.bootpred)
 	sim = ugarchpath(spec, n.sim = n.ahead, m.sim = n.bootpred, presigma = tail(sigma, m),
 				prereturns = tail(xdata[1:N], m), preresiduals = tail(flt@filter$residuals, m),
 				rseed = sseed, n.start = 0, custom.dist = list(name = "sample", 
 						distfit = as.matrix(empz)), mexsimdata = mexsimdata, 
-				vexsimdata = vexsimdata)
+				vexsimdata = vexsimdata, preq = preq)
 	# we transpose to get n.boot x n.ahead
 	forcseries = t(sim@path$seriesSim)
 	forcsigma =  t(sim@path$sigmaSim)
@@ -665,7 +732,7 @@
 	model$n.bootpred = n.bootpred
 	coefdist = data.frame(NULL)
 	model$type = "partial"
-	model$dateT = flt@model$modeldata$dates[N]
+	model$indexT = flt@model$modeldata$index[N]
 	ans = new("uGARCHboot",
 			fseries = (forcseries),
 			fsigma = (forcsigma),
@@ -680,16 +747,21 @@
 .sigmat = function(spec, origdata, m)
 {
 	flt = ugarchfilter(data = origdata, spec = spec)
-	st = tail(sigma(flt), m)
-	return(st)
+	st = tail(flt@filter$sigma, m)
+	res = tail(flt@filter$residuals, m)
+	if(spec@model$modeldesc$vmodel=="csGARCH") qx = tail(flt@filter$q, m) else qx = NULL
+	return(list(st = st, res = res, qx = qx))
 }
 
-.quicksimulate = function(fit, n.sim, m.sim, presigma = NA, prereturns = NA,  n.start = 0, 
-		rseed = NA, custom.dist = list(name = "sample", distfit = NULL), mexsimdata = NULL, vexsimdata = NULL)
+.quicksimulate = function(fit, n.sim, m.sim, presigma = NA, prereturns = NA,  
+		preresiduals = NA, n.start = 0, rseed = NA, 
+		custom.dist = list(name = "sample", distfit = NULL), mexsimdata = NULL, 
+		vexsimdata = NULL, preq = NULL)
 {
-	ans = ugarchsim(fit = fit, n.sim = n.sim, m.sim = m.sim, presigma = presigma, prereturns = prereturns,  
-			n.start = n.start, rseed = rseed, custom.dist = custom.dist, mexsimdata = mexsimdata, 
-			vexsimdata = vexsimdata)
+	ans = ugarchsim(fit = fit, n.sim = n.sim, m.sim = m.sim, presigma = presigma, 
+			prereturns = prereturns, preresiduals = preresiduals, 
+			n.start = n.start, rseed = rseed, custom.dist = custom.dist, 
+			mexsimdata = mexsimdata, vexsimdata = vexsimdata, preq = preq)
 	ret = rbind(ans@simulation$seriesSim, ans@simulation$sigmaSim)
 	return(ret)
 }

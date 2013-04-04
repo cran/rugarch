@@ -22,18 +22,18 @@ feature rich distributions are used for modelling innovations and documented in
 the vignette.\cr
 This package is part of what used to be the rgarch package, which was split 
 into univariate (rugarch) and multivariate (rmgarch) models for easier 
-maintenance and use.
+maintenance and use, both of which are now hosted on google code.
 }
 \details{
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.0-16\cr
-Date: \tab 2013-01-15\cr
+Version: \tab 1.02\cr
+Date: \tab 2013-04-04\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
-Depends: \tab R (>= 2.10.0), Rcpp, RcppArmadillo, methods, parallel, numDeriv, chron, Rsolnp\cr
-Suggests:\tab zoo, xts, timeSeries, nloptr, spd, ks\cr }
+Depends: \tab R (>= 3.0.0), Rcpp, RcppArmadillo, xts, methods, parallel, numDeriv, Rsolnp\cr
+Suggests:\tab nloptr, spd, ks\cr }
 While the package has implemented some safeguards, both during pre-estimation 
 as well as the estimation phase, there is no guarantee of convergence in the 
 fitting procedure. As a result, the fit method allows the user to input starting 
@@ -70,20 +70,10 @@ transformation and scaling methods for moving from the location scale invariant
 \sQuote{rho-zeta} parametrization with mean and standard deviation, to the 
 standard \sQuote{alpha-beta-delta-mu} parametrization of the Generalized 
 Hyperbolic Distribution family.\cr
-The type of data handled by the package is quite varied, accepting \dQuote{timeSeries}, 
-\dQuote{xts}, \dQuote{zoo}, \dQuote{zooreg}, \dQuote{data.frame} with dates as 
-rownames, \dQuote{matrix} and \dQuote{numeric} vector with dates as names. 
-For the \dQuote{numeric} vector and \dQuote{data.frame} with character dates in 
-names or rownames, the package tries a variety of methods to try to recognize 
-the type and format of the date else will index the data numerically. The 
-package holds dates internally as class \code{\link{Date}}. This mostly impacts 
-the plots and forecast summary methods. For high frequency data, the user should 
-make use of a non-named representation such as \dQuote{matrix} or \dQuote{numeric} 
-as the package has yet to implement methods for checking and working with 
-frequencies higher than daily (and is unlikely to do so). Finally, the functions
-\code{\link{ForwardDates}} and \code{\link{WeekDayDummy}} offer some simple Date 
-manipulation methods for working with forecast dates and creating day of the 
-week dummy variables for use in GARCH modelling.\cr
+The type of data handled by the package is now completely based on the xts package, 
+and only data which can be coerced to such will be accepted by the package. For
+the estimation and filter routines, some of the main extractors methods will
+now also return xts objects.\cr
 Some benchmarks (published and comparison with commercial package), are 
 available through the \code{\link{ugarchbench}} function. The \sQuote{inst} 
 folder of the source distribution also contains various tests which can be 
@@ -91,19 +81,24 @@ sourced and run by the user, also exposing some finer details of the
 functionality of the package. The user should really consult the examples 
 supplied in this folder which are quite numerous and instructive with some 
 comments.\cr
-Since version 1.0-14, all parallel estimation is carried out through a user-supplied
-cluster object, created from the parallel package, meaning that the user is now in 
-control of managing the cluster lifecycle. This greatly simplifies the parallel estimation 
-process and adds a layer of flexibility to the type of resources supported. 
+Since version 1.0-14, all parallel estimation is carried out through a 
+user-supplied cluster object, created from the parallel package, meaning that 
+the user is now in control of managing the cluster lifecycle. This greatly 
+simplifies the parallel estimation process and adds a layer of flexibility to 
+the type of resources supported.\cr
+Finally, the global extractor functions \code{sigma} and \code{fitted} will now
+work with almost all returned classes and the return the conditional sigma and
+mean values, whether these are from an estimated, filtered, forecast, or 
+simulated object (and their multi- function equivalents).
 }
 \section{How to cite this package}{
   Whenever using this package, please cite as\cr
 
- \preformatted{@Manual{Ghalanos_2012,
+ \preformatted{@Manual{Ghalanos_2013,
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
- year         = {2012},
- note 	      = {R package version 1.0-16.},}}
+ year         = {2013},
+ note 	      = {R package version 1.02.},}}
 \emph{}
 }
 \section{License}{
@@ -123,7 +118,10 @@ Ding, Z., Granger, C.W.J. and Engle, R.F. 1993, A Long Memory Property of Stock
 Market Returns and a New Model, \emph{Journal of Empirical Finance}, \bold{1}, 
 83--106.\cr
 Engle, R.F. and Ng, V. K. 1993, Measuring and Testing the Impact of News on 
-Volatility, \emph{Journal of Finance}, \bold{48}, 1749--1778.\cr
+Volatility, \emph{Journal of Finance}, \bold{48}, 1749--1778.\cr	
+Engle, R. F., and Sokalska, M. E. 2012, Forecasting intraday volatility in the 
+US equity market. Multiplicative component GARCH. \emph{Journal of Financial 
+Econometrics}, \bold{10(1)}, 54--83.\cr
 Glosten, L.R., Jagannathan, R. and Runkle, D.E. 1993, On the Relation between 
 the Expected Value and the Volatility of the Nominal Excess Return on Stocks, 
 \emph{Journal of Finance}, \bold{48(5)}, 1779--1801.\cr

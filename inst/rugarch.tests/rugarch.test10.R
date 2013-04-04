@@ -277,11 +277,11 @@ rugarch.test10d = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 	data(dji30ret)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"MSFT", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	
@@ -374,19 +374,37 @@ rugarch.test10d = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 			external.forecasts = list(mregfor = xregm, vregfor = xregv)) 
 	
 	# compare the 1-step ahead rolling forecasts (10 rolls)
-	# using the as.array extractor
-	sgarch.fmu  = cbind(as.array(sgarch.pred1)[1,2,], as.array(sgarch.pred2)[1,2,],
-			as.array(sgarch.pred3)[1,2,],as.array(sgarch.pred4)[1,2,],
-			as.array(sgarch.pred5)[1,2,], as.array(sgarch.pred6)[1,2,])
-	sgarch.fsigma = cbind(as.array(sgarch.pred1)[1,1,], as.array(sgarch.pred2)[1,1,],
-			as.array(sgarch.pred3)[1,1,],as.array(sgarch.pred4)[1,1,],
-			as.array(sgarch.pred5)[1,1,], as.array(sgarch.pred6)[1,1,])
-	sgarch.shape = cbind(rep(coef(sgarch.fit1)["shape"],10), rep(coef(sgarch.fit2)["shape"],10),
-			rep(coef(sgarch.fit3)["shape"],10), rep(coef(sgarch.fit4)["shape"],10),
-			rep(coef(sgarch.fit5)["shape"],10), rep(coef(sgarch.fit6)["shape"],10))
-	sgarch.skew = cbind(rep(coef(sgarch.fit1)["skew"],10), rep(coef(sgarch.fit2)["skew"],10),
-			rep(coef(sgarch.fit3)["skew"],10), rep(coef(sgarch.fit4)["skew"],10),
-			rep(coef(sgarch.fit5)["skew"],10), rep(coef(sgarch.fit6)["skew"],10))
+	sgarch.fmu  = cbind(
+			fitted(sgarch.pred1)[1,], 
+			fitted(sgarch.pred2)[1,],
+			fitted(sgarch.pred3)[1,],
+			fitted(sgarch.pred4)[1,],
+			fitted(sgarch.pred5)[1,], 
+			fitted(sgarch.pred6)[1,])
+	
+	sgarch.fsigma = cbind(
+			sigma(sgarch.pred1)[1,], 
+			sigma(sgarch.pred2)[1,],
+			sigma(sgarch.pred3)[1,],
+			sigma(sgarch.pred4)[1,],
+			sigma(sgarch.pred5)[1,], 
+			sigma(sgarch.pred6)[1,])
+	
+	sgarch.shape = cbind(
+			rep(coef(sgarch.fit1)["shape"],10), 
+			rep(coef(sgarch.fit2)["shape"],10),
+			rep(coef(sgarch.fit3)["shape"],10), 
+			rep(coef(sgarch.fit4)["shape"],10),
+			rep(coef(sgarch.fit5)["shape"],10), 
+			rep(coef(sgarch.fit6)["shape"],10))
+	
+	sgarch.skew = cbind(
+			rep(coef(sgarch.fit1)["skew"],10), 
+			rep(coef(sgarch.fit2)["skew"],10),
+			rep(coef(sgarch.fit3)["skew"],10), 
+			rep(coef(sgarch.fit4)["skew"],10),
+			rep(coef(sgarch.fit5)["skew"],10), 
+			rep(coef(sgarch.fit6)["skew"],10))
 	# plot the forecast 1-step rolling density
 	postscript(paste("test10d-",dist,".eps",sep=""), width = 12, height = 8)
 	zseq = seq(-0.2, 0.2, length.out = 1000)
@@ -426,11 +444,11 @@ rugarch.test10e = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 	# basic simulation (no external regressors in simulation)
 	# use external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = WeekDayDummy(dates, date.format="%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format="%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	# define the specification
@@ -458,13 +476,13 @@ rugarch.test10e = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 			preresiduals = NA, rseed = 100)
 	
 	# use external regressors
-	fwd1200 = ForwardDates(dates, n.ahead = 1200, date.format="%Y-%m-%d", 
+	fwd1200 = rugarch:::.ForwardDates(dates, n.ahead = 1200, date.format="%Y-%m-%d", 
 			periodicity="days")
 	
 	# create a dummy vector for those forward days which are Mondays and Fridays
-	fwdMonday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdMonday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Monday")
-	fwdFriday = WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
+	fwdFriday = rugarch:::.WeekDayDummy(as.character(fwd1200), date.format="%Y-%m-%d", 
 			weekday="Friday")
 	
 	sgarch.sim4 = ugarchsim(sgarch.fit, n.start = 0, n.sim = 1200, m.sim = 1, 
