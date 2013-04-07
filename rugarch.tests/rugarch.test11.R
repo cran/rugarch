@@ -29,7 +29,7 @@ rugarch.test11a = function(cluster=NULL)
 			m.sim = 200,  recursive = TRUE, recursive.length = 6000, recursive.window = 1000,
 			fit.control = list(), solver = "solnp", solver.control = list(), cluster = cluster)
 	
-	
+
 	options(width=120)
 	zz <- file("test11a.txt", open="wt")
 	sink(zz)
@@ -42,7 +42,7 @@ rugarch.test11a = function(cluster=NULL)
 	plot(dist, which = 1, window=6)
 	dev.off()
 	
-	postscript("test11a-1.eps")
+	png("test11a-1.png", width=800, height=800)
 	plot(dist, which = 2, window = 6)
 	dev.off()
 	

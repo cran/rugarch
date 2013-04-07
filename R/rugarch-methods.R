@@ -1047,7 +1047,7 @@ resume = function(object, ...)
 # Need a special purpose resume function for the mcsGARCH method
 .resume = function(object, ...)
 {
-	if(resume@model$spec@model$modeldesc$vmodel=="mcsGARCH"){
+	if(object@model$spec@model$modeldesc$vmodel=="mcsGARCH"){
 		ans = .resumeroll.mcs(object, ...)
 	} else{
 		ans = .resumeroll1(object, ...)
@@ -3510,14 +3510,21 @@ fpm = function( object, summary = TRUE, ...)
 		ns = object@forecast$n.start
 		if(n.roll == 0 | n.roll<4) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (n.roll>3).")
 		# get only the forecasts for which out.of.sample data is available
-		forecast = as.numeric(fitted(object))[1:ns]
-		actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll+1)]
+		if(n.roll >= ns){
+			forecast = as.numeric(fitted(object))[1:(ns)]
+			actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll)]
+			rwn = as.character(object@model$modeldata$index[(N - ns + 1):(N - ns + n.roll)])
+		} else{
+			forecast = as.numeric(fitted(object))[1:(n.roll+1)]
+			actual = object@model$modeldata$data[(N - ns + 1):(N - ns + n.roll+1)]
+			rwn = as.character(object@model$modeldata$index[(N - ns + 1):(N - ns + n.roll+1)])
+		}
 		DAC = apply(cbind(actual, forecast), 1, FUN = function(x) as.integer(sign(x[1]) == sign(x[2])))
 		if(summary){
 			ans = data.frame(MSE = mean((forecast - actual)^2), MAE = mean(abs(forecast - actual)), DAC = mean(DAC))
 		} else{
 			ans = data.frame(SE = (forecast - actual)^2, AE = abs(forecast - actual), DAC = DAC)
-			rownames(ans) = object@model$modeldata$dates[(N - ns + 1):(N - ns + n.roll+1)]
+			rownames(ans) = rwn
 		}
 	} else{
 		if(n.ahead<4) stop("\nfpm-->error: Forecast Performance Measures require at least 5 out of sample data points (n.ahead>4).")
@@ -3526,7 +3533,7 @@ fpm = function( object, summary = TRUE, ...)
 		N = NROW(Realized)
 		Ser = fitted(object)
 		T0 = as.POSIXct(colnames(Ser))
-		index = as.POSIXct(object@model$modeldata$index)
+		index = as.POSIXct(as.character(object@model$modeldata$index))
 		T1 = sapply(T0, function(x) min(which(x<index)))
 		# if last value of T0>index[length(index)] we get Inf
 		# but N - Inf + 1 = -Inf < 4 so excluded.

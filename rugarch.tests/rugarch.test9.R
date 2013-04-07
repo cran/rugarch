@@ -50,7 +50,7 @@ rugarch.test9a = function(cluster=NULL)
 	}
 	
 	# Individual Stock
-	X = dji30ret[1:1000,1,drop=FA:SE]
+	X = dji30ret[1:1000,1,drop=FALSE]
 	# The 'Market'
 	M = apply(dji30ret[1:1000,], 1, "mean")
 	# Add 2 Random Regressor, and scale M

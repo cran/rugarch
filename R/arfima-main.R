@@ -1283,13 +1283,13 @@
 	}
 	fitlist = vector( mode = "list", length = m.sim )
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
 				envir = environment())
 		for(i in 1:nwindows){
 			nx = NCOL(swindow[[i]]$path.df)
-			parallel::clusterExport(cluster, "i", envir = environment())
-			rwindow[[i]]$fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(j){
+			clusterExport(cluster, "i", envir = environment())
+			rwindow[[i]]$fitlist = parLapply(cluster, as.list(1:nx), fun = function(j){
 						rugarch:::.fitandextractarfima(spec, swindow[[i]]$path.df[,j], 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
@@ -1408,10 +1408,10 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
 	fitlist = vector(mode = "list", length = n)
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("d", "Data", "n", "solver", "solver.control", 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("d", "Data", "n", "solver", "solver.control", 
 						"fit.control"), envir = environment())
-		fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		fitlist = parLapply(cluster, as.list(1:n), fun = function(i){
 						spec = arfimaspec(
 								mean.model = list(armaOrder = c(d[i,1], d[i,2]),
 										include.mean =  as.logical(d[i,3]), 
@@ -1513,12 +1513,12 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 	IC = match(criterion[1], c("AIC", "BIC", "SIC", "HQIC"))
 	fitlist = vector(mode = "list", length = n)
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("d", "Data", "n", "solver", 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("d", "Data", "n", "solver", 
 						"external.regressors",  "distribution.model",
 						"ar.max", "ma.max", "solver.control", "fit.control"), 
 				envir = environment())
-		fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		fitlist = parLapply(cluster, as.list(1:n), fun = function(i){
 						if(ar.max>0){
 							arr = d[i,1:ar.max]
 							if(ma.max>0){

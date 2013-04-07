@@ -1,6 +1,15 @@
-2013-04-04  Alexios Ghalanos <alexios@4dscape.com>
-	* DESCRIPTION (Version): New version is 1.02.
+2013-04-06  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-2.
 	* Version number bump for upload to CRAN for R-3.0.0.
+	* Small fix to fpm (failed for some timezones-related to as.POSIXct use and 
+	internal represenation of time/dates).
+	* Small fix to mcsGARCH model again related to timezones and use of 
+	as.POSIXct function.
+	* Updated some of the tests in the rugarch.tests folder (and moved folder to
+	main directory). Added the folder to the .Rinstignore file to avoid 
+	installation [suggestion of B.R.].
+	* Moved 'Requires' packages to 'Imports' in DESCRIPTION file and 
+	more extensive use of importFrom in NAMESPACE [suggestion of B.R.]. 
 
 2013-03-22  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.01-6.
@@ -88,7 +97,7 @@
 	distribution.
 	* distplot function provides skewness-kurtosis plots (surfaces) for 
 	skew-shape combinations of different distributions.
-	* Corrected some typos in documentation/vignette thanks to D.E.
+	* Corrected some typos in documentation/vignette [thanks to D.E].
 
 2013-01-15  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.0-16.

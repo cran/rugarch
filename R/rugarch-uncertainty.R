@@ -76,13 +76,13 @@
 
 	fitlist = vector( mode = "list", length = m.sim )
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("spec", "swindow", "solver", "fit.control", "solver.control"), 
 				envir = environment())
 		for(i in 1:nwindows){
-			parallel::clusterExport(cluster, c("i"), envir = environment())
+			clusterExport(cluster, c("i"), envir = environment())
 			nx = NCOL(swindow[[i]]$simseries)
-			rwindow[[i]]$fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(j){
+			rwindow[[i]]$fitlist = parLapply(cluster, as.list(1:nx), fun = function(j){
 						rugarch:::.fitandextract(spec, .numeric2xts(swindow[[i]]$simseries[,j]), 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)

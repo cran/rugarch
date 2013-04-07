@@ -101,7 +101,7 @@ has.intercept.matrix <- function (model, ...) {
 					'" is not well formed: contains non-numeric coefficients.')
 		rv
 	}
-	rhs <- rep(rhs, length.out = length(hypothesis))
+	if(!is.null(rhs)) rhs <- rep(rhs, length.out = length(hypothesis))
 	if (length(hypothesis) > 1)
 		return(rbind(Recall(cnames, hypothesis[1], rhs[1]), 
 						Recall(cnames, hypothesis[-1], rhs[-1])))

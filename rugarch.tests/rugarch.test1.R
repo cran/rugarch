@@ -226,19 +226,18 @@ rugarch.test1c = function(cluster=NULL){
 	postscript("test1c.eps", width = 12, height = 5)
 	# generate FWD dates:
 	dx = as.POSIXct(tail(rownames(sp500ret),50)) 
-	df = .genxts(tail(dx, 1), length.out = 100+1, period = forc[[1]]@model$modeldata$period)[-1]
-		
+	df = generatefwd(tail(dx, 1), length.out = 100+1, by = forc[[1]]@model$modeldata$period)[-1]		
 	dd = c(dx, df)
 	clrs = rainbow(9, alpha = 1, start = 0.4, end = 0.95)
-	plot(xts(c(tail(sp500ret[,1], 50), nforc[,1]), dd), type = "l", ylim = c(-0.02, 0.02), col = "lightgrey",
+	plot(xts::xts(c(tail(sp500ret[,1], 50), nforc[,1]), dd), type = "l", ylim = c(-0.02, 0.02), col = "lightgrey",
 			ylab = "", xlab = "", main = "100-ahead Unconditional Forecasts", 
 			minor.ticks=FALSE, auto.grid=FALSE)
 	for(i in 1:9){
 		tmp = c(tail(sp500ret[,1], 50), rep(NA, 100))
 		tmp[51:150] = nforc[1:100,i]
-		lines(xts(c(rep(NA, 50), tmp[-(1:50)]),dd), col = clrs[i])
+		lines(xts::xts(c(rep(NA, 50), tmp[-(1:50)]),dd), col = clrs[i])
 	}
-	legend("topleft", legend = dist, col = clrs, fill = clrs, bty = "n")
+	legend("topright", legend = dist, col = clrs, fill = clrs, bty = "n")
 	dev.off()
 	toc = Sys.time()-tic
 	cat("Elapsed:", toc, "\n")
@@ -284,14 +283,14 @@ rugarch.test1d = function(cluster=NULL){
 	par(mfrow = c(1,2))
 	dd = as.POSIXct(tail(rownames(sp500ret), 1250)) 
 	clrs = rainbow(9, alpha = 1, start = 0.4, end = 0.95)
-	plot(xts(tail(sp500ret[,1], 1250), dd), type = "l", ylim = c(-0.02, 0.02), 
+	plot(xts::xts(tail(sp500ret[,1], 1250), dd), type = "l", ylim = c(-0.02, 0.02), 
 			col = "lightgrey", ylab = "", xlab = "", 
 			main = "Rolling 1-ahead Forecasts\nvs Actual", minor.ticks=FALSE, 
 			auto.grid=FALSE)
 	for(i in 1:9){
 		tmp = tail(sp500ret[,1], 1250)
 		tmp[251:1250] = rollforc[1:1000,i]
-		lines(xts(c(rep(NA, 250), tmp[-(1:250)]), dd), col = clrs[i])
+		lines(xts::xts(c(rep(NA, 250), tmp[-(1:250)]), dd), col = clrs[i])
 	}
 	legend("topleft", legend = dist, col = clrs, fill = clrs, bty = "n")
 	
@@ -491,8 +490,8 @@ rugarch.test1g = function(cluster=NULL){
 	zz <- file("test1g-1.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA and ARMA simulation tests:\n")
-	print(head(as.data.frame(sim1)), digits = 5)
-	print(head(as.data.frame(sim2)), digits = 5)
+	print(head(fitted(sim1)), digits = 5)
+	print(head(fitted(sim2)), digits = 5)
 	sink(type="message")
 	sink()
 	close(zz)
@@ -532,12 +531,13 @@ rugarch.test1g = function(cluster=NULL){
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = c(-0.7, 0.3)), n = 1000,
 			n.start = 4, start.innov = c(0,0,0,0), innov = inn*0.0123)
 	
+	# set fracdiff setting to n.start=0 and allow.0.nstart=TRUE
 	sim4 = fracdiff.sim(n=1000, ar = c(0.6, 0.21), ma = c(0.7, -0.3), d = 0,
-			innov = c(0,0,inn*0.0123), n.start = NA, backComp = TRUE, allow.0.nstart = FALSE,
+			innov = c(0,0,inn*0.0123), n.start = 0, backComp = TRUE, allow.0.nstart = TRUE,
 			 mu = 0)
 	
-	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(sim4$series), head(as.data.frame(simx, which = "series")))
-	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(sim4$series), tail(as.data.frame(simx, which = "series")))
+	tst1 = cbind(head(fitted(sim1)), head(fitted(sim2)), head(sim3), head(sim4$series), head(fitted(simx)))
+	tst2 = cbind(tail(fitted(sim1)), tail(fitted(sim2)), tail(sim3), tail(sim4$series), tail(fitted(simx)))
 	
 	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "fracdiff", "GARCH(0,0)")
 	
@@ -582,8 +582,8 @@ rugarch.test1g = function(cluster=NULL){
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = c(-0.7)), n = 1000,
 			n.start = 3, start.innov = c(0,0,0), innov = inn*0.0123)
 	
-	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
-	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	tst1 = cbind(head(fitted(sim1)), head(fitted(sim2)), head(sim3), head(fitted(simx)))
+	tst2 = cbind(tail(fitted(sim1)), tail(fitted(sim2)), tail(sim3), tail(fitted(simx)))
 	
 	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
@@ -627,8 +627,9 @@ rugarch.test1g = function(cluster=NULL){
 	sim3 = arima.sim(model = list(ar = c(0.6, 0.21), ma = NULL), n = 1000,
 			n.start = 2, start.innov = c(0,0), innov = inn*0.0123)
 	
-	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
-	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	tst1 = cbind(head(fitted(sim1)), head(fitted(sim2)), head(sim3), head(fitted(simx)))
+	tst2 = cbind(tail(fitted(sim1)), tail(fitted(sim2)), tail(sim3), tail(fitted(simx)))
+	
 	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
 	zz <- file("test1g-4.txt", open="wt")
@@ -674,8 +675,8 @@ rugarch.test1g = function(cluster=NULL){
 	sim3 = arima.sim(model = list(ar = NULL, ma = c(0.6, -0.21)), n = 1000,
 			n.start = 2, start.innov = c(0,0), innov = inn*0.0123)
 	
-	tst1 = cbind(head(as.data.frame(sim1)), head(as.data.frame(sim2)), head(as.data.frame(sim3)), head(as.data.frame(simx, which = "series")) )
-	tst2 = cbind(tail(as.data.frame(sim1)), tail(as.data.frame(sim2)), tail(as.data.frame(sim3)), tail(as.data.frame(simx, which = "series")) )
+	tst1 = cbind(head(fitted(sim1)), head(fitted(sim2)), head(sim3), head(fitted(simx)))
+	tst2 = cbind(tail(fitted(sim1)), tail(fitted(sim2)), tail(sim3), tail(fitted(simx)))
 	colnames(tst1) = colnames(tst2) = c("ARFIMA(d = 0)", "ARMA", "arima.sim", "GARCH(0,0)")
 	
 	zz <- file("test1g-5.txt", open="wt")

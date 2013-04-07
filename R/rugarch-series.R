@@ -81,7 +81,7 @@ ftseq = function(T0, length.out, by, interval, exclude.weekends = TRUE)
 		if(warn) warning("\nrugarch-->warning: data indexing not recognized by xts...coercing to Date with origin 1970-01-01.")
 		if(is.data.frame(data) | is.matrix(data)) data = as.numeric(data[,1]) else data = as.numeric(data)
 		data = unname(data)
-		xdata = xts(data, as.Date(seq_along(data), origin="1970-01-01"))
+		xdata = xts(data, as.POSIXct(as.Date(seq_along(data), origin="1970-01-01")))
 	}
 	obj = list()
 	obj$data = as.numeric(coredata(xdata))
@@ -104,9 +104,6 @@ ftseq = function(T0, length.out, by, interval, exclude.weekends = TRUE)
 # make generatefwd search for available dates from original set
 .generatefwd = function(Dates, N, dformat, periodicity = "days")
 {
-	if(!require(chron)){
-		stop("\nchron is required for this...")
-	}
 	if(is.numeric(Dates[1])){
 		n = length(Dates)
 		fwd = (Dates[n]+1):(n+N)
@@ -133,9 +130,6 @@ ftseq = function(T0, length.out, by, interval, exclude.weekends = TRUE)
 
 .ForwardDates = function(Dates, n.ahead, date.format, periodicity="days")
 {
-	if(!require(chron)){
-		stop("\nchron is required for this...")
-	}
 	if(is.numeric(Dates[1])){
 		n = length(Dates)
 		fwd = (Dates[n]+1):(n+n.ahead)

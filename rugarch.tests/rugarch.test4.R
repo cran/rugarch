@@ -31,11 +31,11 @@ rugarch.test4a = function(cluster=NULL)
 	# sGARCH(1,1) + MU + XREG(V) + ARMA(1,1) + XREG(M)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	
@@ -99,11 +99,11 @@ rugarch.test4b = function(cluster=NULL)
 	data(dji30ret)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	
@@ -255,11 +255,11 @@ rugarch.test4c = function(cluster=NULL)
 	data(dji30ret)
 	# create weekday dummies for external regressors
 	dates = rownames(dji30ret[,"AA", drop = FALSE])
-	monday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
+	monday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Monday")
 	# convert to matrix which is what the specification expects
 	monday = matrix(monday, ncol = 1)
 	# create a dummy day-of-week variable for the variance regression (Friday)
-	friday = rugarch:::WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
+	friday = rugarch:::.WeekDayDummy(dates, date.format = "%Y-%m-%d", weekday = "Friday")
 	# convert to matrix which is what the specification expects
 	friday = matrix(friday, ncol = 1)
 	# gjrGARCH(1,1)

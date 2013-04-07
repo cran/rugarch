@@ -106,11 +106,11 @@
 	if(doparallel){
 		require(parallel)
 		if(pkg=="multicore"){
-			cl = parallel::makeForkCluster(nnodes = as.integer(cores))
-			parallel::clusterEvalQ(cl, library(rugarch))
+			cl = makeForkCluster(nnodes = as.integer(cores))
+			clusterEvalQ(cl, library(rugarch))
 		} else{
-			cl = parallel::makePSOCKcluster(as.integer(cores))
-			parallel::clusterEvalQ(cl, library(rugarch))
+			cl = makePSOCKcluster(as.integer(cores))
+			clusterEvalQ(cl, library(rugarch))
 		}
 		# set parallel mode on (pmode=1) to tell the likelihood function not to use
 		# environment assignment
@@ -124,7 +124,7 @@
 			distr.opt = distr.opt, n.restarts = n.restarts, n.sim = n.sim, 
 			cluster = cl, rseed = rseed, arglist),
 	silent = TRUE)
-	if(doparallel) parallel::stopCluster(cl)
+	if(doparallel) stopCluster(cl)
 	# return to normal mode
 	arglist$pmode = 0
 	if(inherits(ans,"try-error")){
@@ -161,11 +161,7 @@
 
 # nloptr solver requires named (...)!
 .nloptrsolver = function(pars, fun, control, LB, UB, arglist){
-	if(!exists("nloptr")){
-		warning("\nLoading package nloptr...")
-		require('nloptr')
-	}
-	ans = try(nloptr::nloptr(x0 = pars, eval_f = fun,  eval_grad_f = NULL, 
+	ans = try(nloptr(x0 = pars, eval_f = fun,  eval_grad_f = NULL, 
 					eval_g_ineq = NULL, lb = LB, ub = UB, eval_jac_g_ineq = NULL, 
 					eval_g_eq = NULL, eval_jac_g_eq = NULL, opts = control, arglist = arglist), 
 			silent=TRUE)

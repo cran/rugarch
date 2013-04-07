@@ -65,7 +65,10 @@
 	if(!matchD) stop("\nugarchfit-->error: DailyVar dates do not match the data dates (unique days).\n")
 	Tb = lapply(1:M, function(i) RIndex[which(DIndex==UIndex[i])])
 	DVar = lapply(1:M, function(i) rep(DailyVar[i], length(Tb[[i]])))
-	DVar = xts(unlist(DVar), as.POSIXct(unlist(unclass(Tb)), origin="1970-01-01"))
+	# can't unlist a POSIXct object...need to manually concatentate (can't use 'c' with recursive option either)
+	dTT = Tb[[1]]
+	if(length(Tb)>1) for(i in 2:length(Tb)) dTT = c(dTT, Tb[[i]])
+	DVar = xts(as.numeric(unlist(DVar)), dTT)
 	xdata = .extractdata(data)
 	if(!is.numeric(out.sample)) stop("\nugarchfit-->error: out.sample must be numeric\n")
 	if(as.numeric(out.sample)<0) stop("\nugarchfit-->error: out.sample must be positive\n")
@@ -189,7 +192,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(as.numeric(zdata)))
 		if(modelinc[7] > 0) parscale["omega"] = var(as.numeric(zdata))
 		arglist$returnType = "llh"
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.mcsgarchLLH, 
+		solution = rugarch:::.garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.mcsgarchLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], 
 				UB = ipars[estidx, 6], ux = NULL, ci = NULL, mu = NULL, arglist)
@@ -435,7 +438,10 @@
 	if(!matchD) stop("\nugarchfilter-->error: DailyVar dates do not match the data dates (unique days).\n")
 	Tb = lapply(1:M, function(i) RIndex[which(DIndex==UIndex[i])])
 	DVar = lapply(1:M, function(i) rep(DailyVar[i], length(Tb[[i]])))
-	DVar = xts(unlist(DVar), as.POSIXct(unlist(unclass(Tb)), origin="1970-01-01"))
+	# can't unlist a POSIXct object...need to manually concatentate (can't use 'c' with recursive option either)
+	dTT = Tb[[1]]
+	if(length(Tb)>1) for(i in 2:length(Tb)) dTT = c(dTT, Tb[[i]])
+	DVar = xts(as.numeric(unlist(DVar)), dTT)	
 	xdata = .extractdata(data)
 	data = xdata$data
 	index = xdata$index
@@ -636,7 +642,10 @@
 				DIndex = format(index(DiurnalVar), format="%Y-%m-%d")
 				Tb = lapply(1:M, function(i) RIndex[which(DIndex==UIndex[i])])
 				DVar = lapply(1:M, function(i) rep(DV[i], length(Tb[[i]])))
-				DVar = xts(unlist(DVar), as.POSIXct(unlist(unclass(Tb)), origin="1970-01-01"))
+				# can't unlist a POSIXct object...need to manually concatentate (can't use 'c' with recursive option either)
+				dTT = Tb[[1]]
+				if(length(Tb)>1) for(i in 2:length(Tb)) dTT = c(dTT, Tb[[i]])
+				DVar = xts(as.numeric(unlist(DVar)), dTT)
 			}
 		}
 	} else{
@@ -666,7 +675,10 @@
 			DIndex = format(index(DiurnalVar), format="%Y-%m-%d")
 			Tb = lapply(1:M, function(i) RIndex[which(DIndex==UIndex[i])])
 			DVar = lapply(1:M, function(i) rep(DV[i], length(Tb[[i]])))
-			DVar = xts(unlist(DVar), as.POSIXct(unlist(unclass(Tb)), origin="1970-01-01"))
+			# can't unlist a POSIXct object...need to manually concatentate (can't use 'c' with recursive option either)
+			dTT = Tb[[1]]
+			if(length(Tb)>1) for(i in 2:length(Tb)) dTT = c(dTT, Tb[[i]])
+			DVar = xts(as.numeric(unlist(DVar)), dTT)
 		}
 	}
 	ns = fit@model$n.start
@@ -1091,14 +1103,14 @@
 	if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
 	
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cl = cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("data", "index", "s","refit.every", 
+		clusterEvalQ(cl = cluster, library(rugarch))
+		clusterExport(cluster, c("data", "index", "s","refit.every", 
 						"keep.coef", "shaped", "skewed", "ghyp", 
 						"rollind", "spec", "out.sample", "mex", "vex",
 						"solver", "solver.control", "fit.control", "DailyV"), envir = environment())
-		if(mex) parallel::clusterExport(cluster, c("mexdata"), envir = environment())
-		if(vex)  parallel::clusterExport(cluster, c("vexdata"), envir = environment())
-		tmp = parallel::parLapply(cl = cluster, 1:m, fun = function(i){
+		if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
+		if(vex) clusterExport(cluster, c("vexdata"), envir = environment())
+		tmp = parLapply(cl = cluster, 1:m, fun = function(i){
 					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 					if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
 					fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
@@ -1331,15 +1343,15 @@
 		if(any(distribution==c("std","sstd","ged","sged","jsu","nig","ghyp","ghst"))) shaped = TRUE else shaped = FALSE
 		if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
 		if( !is.null(cluster) ){
-			parallel::clusterEvalQ(cl = cluster, library(rugarch))
-			parallel::clusterExport(cluster, c("data", "index","s","refit.every",
+			clusterEvalQ(cl = cluster, library(rugarch))
+			clusterExport(cluster, c("data", "index","s","refit.every",
 							"keep.coef", "shaped", "skewed", "ghyp", 
 							"rollind", "spec", "out.sample", "mex", "vex", 
 							"noncidx", "solver", "solver.control", "fit.control", "DailyV"),
 					envir = environment())
-			if(mex) parallel::clusterExport(cluster, c("mexdata"), envir = environment())
-			if(vex)  parallel::clusterExport(cluster, c("vexdata"), envir = environment())
-			tmp = parallel::parLapply(cl = cluster, as.list(noncidx), fun = function(i){
+			if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
+			if(vex)  clusterExport(cluster, c("vexdata"), envir = environment())
+			tmp = parLapply(cl = cluster, as.list(noncidx), fun = function(i){
 						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 						if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
 						fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 

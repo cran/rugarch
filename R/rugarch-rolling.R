@@ -93,14 +93,14 @@
 	if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
 	
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cl = cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("data", "index", "s","refit.every", 
+		clusterEvalQ(cl = cluster, library(rugarch))
+		clusterExport(cluster, c("data", "index", "s","refit.every", 
 						"keep.coef", "shaped", "skewed", "ghyp", 
 						"rollind", "spec", "out.sample", "mex", "vex",
 						"solver", "solver.control", "fit.control"), envir = environment())
-		if(mex) parallel::clusterExport(cluster, c("mexdata"), envir = environment())
-		if(vex)  parallel::clusterExport(cluster, c("vexdata"), envir = environment())
-		tmp = parallel::parLapply(cl = cluster, 1:m, fun = function(i){
+		if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
+		if(vex)  clusterExport(cluster, c("vexdata"), envir = environment())
+		tmp = parLapply(cl = cluster, 1:m, fun = function(i){
 					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 					if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
 					fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
@@ -324,15 +324,15 @@
 		if(any(distribution==c("std","sstd","ged","sged","jsu","nig","ghyp","ghst"))) shaped = TRUE else shaped = FALSE
 		if(any(distribution==c("ghyp"))) ghyp = TRUE else ghyp = FALSE
 		if( !is.null(cluster) ){
-			parallel::clusterEvalQ(cl = cluster, library(rugarch))
-			parallel::clusterExport(cluster, c("data", "index","s","refit.every",
+			clusterEvalQ(cl = cluster, library(rugarch))
+			clusterExport(cluster, c("data", "index","s","refit.every",
 							"keep.coef", "shaped", "skewed", "ghyp", 
 							"rollind", "spec", "out.sample", "mex", "vex", 
 							"noncidx", "solver", "solver.control", "fit.control"),
 					envir = environment())
-			if(mex) parallel::clusterExport(cluster, c("mexdata"), envir = environment())
-			if(vex)  parallel::clusterExport(cluster, c("vexdata"), envir = environment())
-			tmp = parallel::parLapply(cl = cluster, as.list(noncidx), fun = function(i){
+			if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
+			if(vex)  clusterExport(cluster, c("vexdata"), envir = environment())
+			tmp = parLapply(cl = cluster, as.list(noncidx), fun = function(i){
 						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 						if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
 						fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 

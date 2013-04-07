@@ -108,9 +108,9 @@ modeghst = function(mean = 0, sd = 1, skew = 1, shape = 8){
 psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, cluster = NULL, ...){
 	if(!is.null(cluster)){
 		if(length(q)>1) stop("\ncluster evaluation cannot have length(q)>1")
-		parallel::clusterExport(cluster, c(".paramGHST", "modeghst", 
+		clusterExport(cluster, c(".paramGHST", "modeghst", 
 						"dsghst", ".dsghst", ".skewhypStepSize"), envir = environment())
-		ans = parallel::clusterMap(cluster, .psghst, q = q, mean=mean, sd=sd, 
+		ans = clusterMap(cluster, .psghst, q = q, mean=mean, sd=sd, 
 				skew=skew, shape=shape, lower.tail = lower.tail, log = log, 
 				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
 				.scheduling = c("static", "dynamic")[2])
@@ -161,9 +161,9 @@ psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FAL
 qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, cluster = NULL, ...){
 	if(!is.null(cluster)){
 		if(length(p)>1) stop("\ncluster evaluation cannot have length(p)>1")
-		parallel::clusterExport(cluster, c(".paramGHST", "modeghst", "psghst", 
+		clusterExport(cluster, c(".paramGHST", "modeghst", "psghst", 
 						".psghst", "dsghst", ".dsghst", ".skewhypStepSize"), envir = environment())
-		ans = parallel::clusterMap(cluster, .qsghst, p = p, mean=mean, sd=sd, skew=skew, shape=shape, 
+		ans = clusterMap(cluster, .qsghst, p = p, mean=mean, sd=sd, skew=skew, shape=shape, 
 				lower.tail = lower.tail, SIMPLIFY = TRUE, USE.NAMES = TRUE, 
 				.scheduling = c("static", "dynamic")[2])
 	} else{
@@ -1411,8 +1411,8 @@ pgh = function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, cluster = 
 {
 	if(!is.null(cluster)){
 		if(length(q)>1) stop("\ncluster evaluation cannot have length(q)>1")
-		parallel::clusterExport(cluster, c(".dgh"), envir = environment())
-		ans = parallel::clusterMap(cluster, .pgh, q = q, alpha=alpha, beta=beta, 
+		clusterExport(cluster, c(".dgh"), envir = environment())
+		ans = clusterMap(cluster, .pgh, q = q, alpha=alpha, beta=beta, 
 				delta=delta, mu=mu, lambda = lambda, 
 				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
 				.scheduling = c("static", "dynamic")[2])
@@ -1455,8 +1455,8 @@ pgh = function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, cluster = 
 qgh = function(p, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, cluster = NULL){
 	if(!is.null(cluster)){
 		if(length(p)>1) stop("\ncluster evaluation cannot have length(p)>1")
-		parallel::clusterExport(cluster, c(".pgh", ".dgh", ".unitroot"), envir = environment())
-		ans = parallel::clusterMap(cluster, .qgh, p = p, alpha=alpha, beta=beta, 
+		clusterExport(cluster, c(".pgh", ".dgh", ".unitroot"), envir = environment())
+		ans = clusterMap(cluster, .qgh, p = p, alpha=alpha, beta=beta, 
 				delta=delta, mu=mu, lambda = lambda, 
 				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
 				.scheduling = c("static", "dynamic")[2])

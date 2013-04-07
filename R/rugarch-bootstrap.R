@@ -34,8 +34,6 @@
 		external.forecasts =  list(mregfor = NULL, vregfor = NULL), 
 		mexsimdata = NULL, vexsimdata = NULL, cluster = NULL, verbose = FALSE)
 {
-	if(tolower(sampling[1]) == "kernel") if(!require(ks)) stop("\nPackage 'ks' must be installed") 
-	if(tolower(sampling[1]) == "spd") if(!require(spd)) stop("\nPackage 'spd' must be installed") 
 	method = tolower(method)
 	ans = switch(method,
 			partial = .ub1p1(fitORspec, data = data, sampling = sampling, spd.options = spd.options,
@@ -156,10 +154,10 @@
 	#-------------------------------------------------------------------------
 	if( verbose ) cat("\nfitting stage...")
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("simseries", "spec", "solver", 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("simseries", "spec", "solver", 
 						"solver.control", "fit.control"), envir = environment())
-		fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(i){
+		fitlist = parLapply(cluster, as.list(1:nx), fun = function(i){
 					rugarch:::.safefit(spec = spec, data = .numeric2xts(simseries[,i]), 
 							out.sample = 0, solver = solver, fit.control = fit.control, 
 							solver.control = solver.control)
@@ -206,8 +204,8 @@
 	# the pertrubed parameters as in equation (7) in PRR paper.
 	if( !is.null(cluster) ){
 		nx = length(speclist)
-		parallel::clusterExport(cluster, c("speclist", "data", "m", "N"), envir = environment())
-		xtmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+		clusterExport(cluster, c("speclist", "data", "m", "N"), envir = environment())
+		xtmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
 					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(data[1:N]), m)
 					st = ans$st
 					if(vmodel=="csGARCH"){
@@ -243,10 +241,10 @@
 	if( verbose ) cat("\nprediction stage...")
 	xdat = tail( data[1:N], m )
 	if( !is.null(cluster) ){
-		parallel::clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
+		clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
 						"st", "rx", "qx", "xdat", "sseed", "empzlist","mexsimdata", "vexsimdata"), 
 				envir = environment())
-		tmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+		tmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
 					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat, 
 							preresiduals = rx[,i],
@@ -393,11 +391,11 @@
 	#-------------------------------------------------------------------------
 	if( verbose ) cat("\nfitting stage...")
 	if( !is.null(cluster) ){
-			parallel::clusterEvalQ(cluster, library(rugarch))
+			clusterEvalQ(cluster, library(rugarch))
 			nx = NCOL(simseries)
-			parallel::clusterExport(cluster, c("simseries", "spex", "solver", "out.sample", 
+			clusterExport(cluster, c("simseries", "spex", "solver", "out.sample", 
 							"solver.control", "fit.control"), envir = environment())
-			fitlist = parallel::parLapply(cluster, as.list(1:nx), fun = function(i){
+			fitlist = parLapply(cluster, as.list(1:nx), fun = function(i){
 						rugarch:::.safefit(spec = spex, data = .numeric2xts(simseries[,i]), 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
@@ -446,8 +444,8 @@
 	# the pertrubed parameters as in equation (7) in PRR paper.
 	if( !is.null(cluster) ){
 		nx = length(speclist)
-		parallel::clusterExport(cluster, c("speclist", "xdata", "m", "N"), envir = environment())
-		xtmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+		clusterExport(cluster, c("speclist", "xdata", "m", "N"), envir = environment())
+		xtmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
 					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(xdata[1:N]), m)
 					st = ans$st
 					if(vmodel=="csGARCH"){
@@ -487,10 +485,10 @@
 	
 	xdat =  tail(xdata[1:N], m)
 	if( !is.null(cluster) ){
-		parallel::clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
+		clusterExport(cluster, c("fitlist", "n.ahead", "n.bootpred", "n.bootfit", 
 						"st", "rx", "qx", "xdat", "sseed", "empzlist", "mexsimdata", "vexsimdata"), 
 				envir = environment())
-		tmp = parallel::parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
+		tmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
 					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,
 							preresiduals = rx[,i], n.start = 0, 
@@ -770,8 +768,8 @@
 {
 	return(switch(tolower(method),
 			"raw" = sample(Z, n, replace = TRUE),
-			"kernel" = ks::rkde(n, fit),
-			"spd" = spd::rspd(n, fit)))
+			"kernel" = rkde(n, fit),
+			"spd" = rspd(n, fit)))
 }
 
 .bfit = function(Z, method, spd.options){
@@ -782,7 +780,7 @@
 
 .kfit = function(Z){
 	H.pi = hpi(Z)
-	fit = ks::kde(Z, h=H.pi)
+	fit = kde(Z, h=H.pi)
 	return(fit)
 }
 
@@ -798,6 +796,6 @@
 	if(is.null(spd.options$upper)) lower = 0.1 else lower = spd.options$lower
 	if(is.null(spd.options$type)) type = "pwm" else type  = spd.options$type[1]
 	if(is.null(spd.options$kernel)) kernel = "normal" else kernel  = spd.options$kernel[1]
-	fit = spd::spdfit(Z, upper = upper, lower = lower, type = type, kernelfit = kernel)
+	fit = spdfit(Z, upper = upper, lower = lower, type = type, kernelfit = kernel)
 	return(fit)
 }

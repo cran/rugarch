@@ -75,10 +75,10 @@
 	##################
 	# Parallel Execution Prelim Checks
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("multispec", "data", "out.sample", "solver", 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("multispec", "data", "out.sample", "solver", 
 							"solver.control", "fit.control"), envir = environment())
-			fitlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+			fitlist = parLapply(cluster, as.list(1:n), fun = function(i){
 						ugarchfit(spec = multispec@spec[[i]], data = data[, i, drop = FALSE], 
 								out.sample = out.sample[i], solver = solver, 
 								solver.control = solver.control, fit.control = fit.control)
@@ -123,9 +123,9 @@
 		specx[[i]]@model$fixed.pars = as.list(coef(fitlist@fit[[i]]))
 	}
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("specx", "data", "out.sample", "n.old", "rec.init"), envir = environment())
-		filterlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("specx", "data", "out.sample", "n.old", "rec.init"), envir = environment())
+		filterlist = parLapply(cluster, as.list(1:n), fun = function(i){
 					ugarchfilter(data = data[, i, drop = FALSE], spec = specx[[i]], 
 							out.sample =  out.sample[i], n.old = n.old, rec.init = rec.init[i])
 				})
@@ -163,9 +163,9 @@
 	if(length(rec.init) == 1 | length(rec.init) < n) rec.init = rep(rec.init, n)
 	
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("speclist", "data", "out.sample", "n.old", "rec.init"), envir = environment())
-		filterlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("speclist", "data", "out.sample", "n.old", "rec.init"), envir = environment())
+		filterlist = parLapply(cluster, as.list(1:n), fun = function(i){
 					ugarchfilter(data = data[, i, drop = FALSE], spec = speclist@spec[[i]], 
 							out.sample =  out.sample[i], n.old = n.old, rec.init = rec.init[i])
 				})
@@ -195,9 +195,9 @@
 	asset.names = multifit@desc$asset.names
 	forecastlist = vector(mode = "list", length = n)
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("multifit", "n.ahead", "n.roll", "external.forecasts"), envir = environment())
-		forecastlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("multifit", "n.ahead", "n.roll", "external.forecasts"), envir = environment())
+		forecastlist = parLapply(cluster, as.list(1:n), fun = function(i){
 					ugarchforecast(fitORspec = multifit@fit[[i]], data = NULL, n.ahead = n.ahead, 
 							n.roll = n.roll, external.forecasts = external.forecasts)
 				})
@@ -237,10 +237,10 @@
 		stop("\nmultiforecast GARCH-->error: out.sample length not equal to data length", call. = FALSE)
 	
 	if( !is.null(cluster) ){
-		parallel::clusterEvalQ(cluster, library(rugarch))
-		parallel::clusterExport(cluster, c("multispec", "data", "n.ahead", "n.roll", 
+		clusterEvalQ(cluster, library(rugarch))
+		clusterExport(cluster, c("multispec", "data", "n.ahead", "n.roll", 
 						"out.sample", "external.forecasts"), envir = environment())
-		forecastlist = parallel::parLapply(cluster, as.list(1:n), fun = function(i){
+		forecastlist = parLapply(cluster, as.list(1:n), fun = function(i){
 					ugarchforecast(fitORspec = multispec@spec[[i]], 
 							data = data[, i, drop = FALSE], n.ahead = n.ahead, n.roll = n.roll, 
 							out.sample = out.sample[i], external.forecasts = external.forecasts)
