@@ -451,7 +451,7 @@ VaRDurTest = function(alpha, actual, VaR, conf.level = 0.95){
 		D = c(which(VaR.ind==1)[1], D)
 	}
 	# right-censored
-	if(VaR.ind[N]==0){
+	if(VaR.ind[TN]==0){
 		C = c(C, 1)
 		# the number of days after the last one in the hit sequence
 		D = c(D, TN - tail(which(VaR.ind==1), 1))
@@ -483,8 +483,8 @@ VaRDurTest = function(alpha, actual, VaR, conf.level = 0.95){
 # When b=1 we get the exponential
 .dweibull = function(D, a, b, log = FALSE){
 	# density of Weibull
-	pdf = (a^b)*b*(D^(b-1))*exp(-(a*D)^b)
-	if(log) pdf = log(pdf)
+	pdf = b * log(a) + log(b) + (b - 1) * log(D) - (a * D)^b
+	if(!log) pdf = exp(pdf)
 	return(pdf)
 }
 .pweibull = function(D, a, b, survival = FALSE){
@@ -545,10 +545,10 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 	Decision = NULL
 	Decision[1] = ifelse(orthmat[3, 5]<critical.values[1], "Fail to Reject H0", "Reject H0")
 	Decision[2] = ifelse(orthmat[3, 6]<critical.values[2], "Fail to Reject H0", "Reject H0")
-	Decision[2] = ifelse(orthmat[3, 7]<critical.values[3], "Fail to Reject H0", "Reject H0")
-	Decision[2] = ifelse(orthmat[3, 8]<critical.values[4], "Fail to Reject H0", "Reject H0")
+	Decision[3] = ifelse(orthmat[3, 7]<critical.values[3], "Fail to Reject H0", "Reject H0")
+	Decision[4] = ifelse(orthmat[3, 8]<critical.values[4], "Fail to Reject H0", "Reject H0")
 	
-	H0 = "[Moment Conditions] Model is Correctly Specified"
+	H0 = "[Q-Moment Conditions] Model is Correctly Specified"
 	moment.mat = orthmat[1:3,1:4]
 	joint.mat = rbind(orthmat[3,5:8], critical.values)
 	rownames(joint.mat) = c("t-value", "critical.value")

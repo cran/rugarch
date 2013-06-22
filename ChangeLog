@@ -1,3 +1,47 @@
+2013-06-22  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-6.
+	* Change defaults for switching between C and Cpp code for simulation, for 
+	faster execution (with implications for rmgarch simulation methods).
+	* Small correction in censoring calculation of the VaR Duration Test
+	[thanks to David Ardia].
+
+2013-05-26  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-5.
+	* Major cleanup of distribution code (C source and R). Most R distribution
+	functions linked to underlying C code for speedup (affects distfit and 
+	related methods). Also reversed automatic vectorization of dpqr	functions
+	via vectorize function (created too much overhead), and implemented custom
+	solution.
+	* Fix to rgig C code.
+	* Standardized residuals plot now make use of residuals method to be 
+	consistent with other methods (previously used 'z' value from likelihood
+	which has zeros in the initial startup values).
+
+2013-04-24  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-4.
+	* Small fix to ugarchsim for csGARCH model. The option for using startMethod 
+	'unconditional' did not apply to the permanent component of variance and used
+	instead the sample based value which led to a small discrepancy between the 
+	results run against an equivalent ugarchpath formulation [ thanks to P.B ].
+	* Small fix to uGARCHdistribution bivariate plots when no ARMA was used.
+	* Re-wrote the C code likelihood for the NIG to use the simplified version
+	rather than calling the GH distribution with lambda=-0.5, slightly improving
+	speed.
+	* Fix to starting parameters of eGARCH model (alpha set too high causing problems
+	when using variance targeting).
+	* Fix to lower/upper bounds of constant (mu) parameter of arfimafit to catch
+	cases where the mean is zero.
+	
+
+2013-04-12  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-3.
+	* Changed calculation of diurnal component of mcsGARCH to use the median 
+	instead of the mean for robustness purposes given the type and size of data
+	used. Small fix in forecast function for mcsGARCH when completely out of 
+	sample forecast requested (resulted in an error).
+	* makevars and makevars.win written using portable (backticks) representation 
+	and therefore removed GNU make requirement from DESCRIPTION.
+
 2013-04-06  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.2-2.
 	* Version number bump for upload to CRAN for R-3.0.0.

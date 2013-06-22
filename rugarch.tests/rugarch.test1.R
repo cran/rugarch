@@ -134,9 +134,6 @@ rugarch.test1b = function(cluster=NULL){
 	cat("\nlikelihood method:\n")
 	print(cbind(likelihood(filt[[1]]), likelihood(fit[[1]])))
 	cat("\nresiduals method:\n")
-	# Note that we the package will always return the full length residuals and fitted
-	# object irrespective of the lags (i.e. since this is an ARMA(1,1) i.e. max lag = 1,
-	# the first row is zero and should be discarded.
 	print(cbind(head(residuals(filt[[1]])), head(residuals(fit[[1]]))))
 	cat("\nuncmean method:\n")
 	print(cbind(uncmean(filt[[1]]), uncmean(fit[[1]])))

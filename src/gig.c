@@ -206,26 +206,22 @@ double rgig(const double lambda, const double chi, const double psi)
   GetRNGstate();
   double ans, alpha, beta, beta2, m, m1, lm1, lm12, upper, yM, yP, a, b, c, R1, R2, Y;
   int need;
-  alpha = sqrt(chi/psi);
+  alpha = sqrt(psi/chi);
   beta2 = psi*chi;
   beta = sqrt(psi*chi);
   lm1 = lambda - 1.0;
   lm12 = lm1*lm1;
   m = (lm1 + sqrt(lm12 + beta2))/beta;
   m1 = m + 1.0/m;
-
   upper = m;
   while (gig_y_gfn(upper, m, beta, lambda) <= 0) { upper *= 2.0; }
-
   yM = zeroin_gig(0.0, m, gig_y_gfn, ZTOL, m, beta, lambda);
   yP = zeroin_gig(m, upper, gig_y_gfn, ZTOL, m, beta, lambda);
-
   a = (yP - m) * pow(yP/m, 0.5 * lm1);
   a *=  exp(-0.25 * beta * (yP + 1.0/yP - m1));
   b = (yM - m) * pow(yM/m, 0.5 * lm1);
   b *= exp(-0.25 * beta * (yM + 1/yM - m1));
   c = -0.25 * beta * m1 + 0.5 * lm1 * log(m);
-
   need = 1;
   while (need) {
       R1 = unif_rand();
@@ -238,6 +234,6 @@ double rgig(const double lambda, const double chi, const double psi)
       }
    }
    PutRNGstate();
-   ans = Y*alpha;
+   ans = Y/alpha;
    return(ans);
 }

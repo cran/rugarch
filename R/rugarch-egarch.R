@@ -275,7 +275,7 @@
 	hEst = mvar
 	if(modelinc[7]==0){
 		mvar2 = ifelse(!is.na(modelinc[22]), modelinc[22]/dscale, mvar)
-		ipars[idx["omega",1],1] = log(mvar2)*max(1-persist, 0.001) - mv
+		ipars[idx["omega",1],1] = log(mvar2) * max(1 - persist, 0.001) - mv
 		assign("omega", ipars[idx["omega",1],1], garchenv)
 	}
 	if(is.na(hEst) | !is.finite(hEst) | is.nan(hEst)) hEst = var(data)
@@ -672,7 +672,7 @@
 		preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA), 
 		mexsimdata = NULL, vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 100 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .egarchsim2(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 				startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
 				preresiduals = preresiduals, rseed = rseed, custom.dist = custom.dist, 
@@ -1022,7 +1022,7 @@
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, 
 		vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 20 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .egarchpath2(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim,
 				presigma = presigma, prereturns = prereturns, preresiduals = preresiduals, 
 				rseed = rseed, custom.dist = custom.dist, mexsimdata = mexsimdata, 

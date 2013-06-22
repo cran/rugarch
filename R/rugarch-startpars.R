@@ -83,8 +83,14 @@
 	}
 	
 	if(modelinc[1]>0){
-		pars[idx["mu", 1]:idx["mu", 2], 5] = -100*abs(mean(data))
-		pars[idx["mu", 1]:idx["mu", 2], 6] =  100*abs(mean(data))
+		# Need to control for this special case which sometimes occurs
+		if(mean(data)==0){
+			if(is.na(pars[idx["mu", 1]:idx["mu", 2], 5])) pars[idx["mu", 1]:idx["mu", 2], 5] = -2*sd(data)
+			if(is.na(pars[idx["mu", 1]:idx["mu", 2], 6])) pars[idx["mu", 1]:idx["mu", 2], 6] =  2*sd(data)
+		} else{
+			if(is.na(pars[idx["mu", 1]:idx["mu", 2], 5])) pars[idx["mu", 1]:idx["mu", 2], 5] = -100*abs(mean(data))
+			if(is.na(pars[idx["mu", 1]:idx["mu", 2], 6])) pars[idx["mu", 1]:idx["mu", 2], 6] =  100*abs(mean(data))
+		}
 		if(!is.null(start.pars$mu)) pars[idx["mu", 1]:idx["mu", 2], 1] = start.pars$mu[1]/dscale
 		if(any(substr(fixed.names, 1, 2)=="mu")){
 			pars[idx["mu", 1]:idx["mu", 2], 1] = as.numeric(fixed.pars$mu)
@@ -996,7 +1002,7 @@
 		if(length(pxd)>0) pars[(idx["alpha", 1]:idx["alpha", 2])[pxd], 5] = -10
 		pxd = which(is.na(pars[idx["alpha", 1]:idx["alpha", 2], 6]))
 		if(length(pxd)>0) pars[(idx["alpha", 1]:idx["alpha", 2])[pxd], 6] =  10
-		pars[idx["alpha", 1]:idx["alpha", 2], 1] = rep(0.4/modelinc[8], modelinc[8])
+		pars[idx["alpha", 1]:idx["alpha", 2], 1] = rep(0.05/modelinc[8], modelinc[8])
 		sp = na.omit(match(start.names, gpnames))
 		if(length(sp)>0){
 			for(i in 1:length(sp)) pars[gpnames[sp[i]], 1] = as.numeric(start.pars[gpnames[sp[i]]])

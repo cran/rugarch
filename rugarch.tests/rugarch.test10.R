@@ -57,16 +57,14 @@ rugarch.test10a = function(dist = "ghst", skew = -0.5, shape = 8.1, cluster=NULL
 					submodel = "ALLGARCH"), 
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE, 
 					archm = FALSE, archpow = 2), distribution.model = dist, 
-			fixed.pars = fpars, start.pars = list(skew = -1))
+			fixed.pars = fpars, start.pars = list(skew = -0.8))
 	# alternative use setfixed(spec)<-fpars
-	# this is pretty hard, nloptr seems to do best here
-	fgarch.fit2 = ugarchfit(data = sp500ret, spec = spec, solver = "nloptr", 
-			fit.control=list(scale=0),solver.control=list(print_level=1))
-	
+	fgarch.fit2 = ugarchfit(data = sp500ret, spec = spec, solver = "solnp", 
+			fit.control=list(scale=0))	
 	# notice that the standard errors of the fixed parameters is NA (they are fixed!).
 	# However, we can calculate those post estimation with the fixed.se argument:
 	
-	fgarch.fit3 = ugarchfit(data = sp500ret, spec = spec, solver = "nloptr", 
+	fgarch.fit3 = ugarchfit(data = sp500ret, spec = spec, solver = "solnp", 
 			fit.control = list(fixed.se = TRUE))
 	
 	# All Parameters Fixed (we obtain from fgarch.fit1)
@@ -547,8 +545,8 @@ rugarch.test10f= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
 	if(!is.null(cluster)){
 		set.seed(10121)
 		mu = 0.015
-		sd = 0.035
-		x = matrix(rdist(dist, n = 100000, mu = mu, sigma = sd, skew = skew, shape = shape), ncol = 100)
+		sigma = 0.035
+		x = matrix(rdist(dist, n = 100000, mu = mu, sigma = sigma, skew = skew, shape = shape), ncol = 100)
 		parallel::clusterEvalQ(cluster, require(rugarch))
 		parallel::clusterExport(cluster, c("x","dist"), envir = environment())
 		pars = parallel::parLapply(cluster, as.list(1:100), fun = function(i){
@@ -561,6 +559,10 @@ rugarch.test10f= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
 					return(ans)
 				})
 	} else{
+		set.seed(10121)
+		mu = 0.015
+		sigma = 0.035
+		x = matrix(rdist(dist, n = 100000, mu = mu, sigma = sigma, skew = skew, shape = shape), ncol = 100)
 		pars = lapply(as.list(1:100), FUN = function(i){
 					fit = try(fitdist(dist, x[,i], control=list(trace=0, tol=1e-10)))
 					if(!inherits(fit, 'try-error') && fit$convergence==0){
@@ -572,8 +574,8 @@ rugarch.test10f= function(dist = "ghst", skew = -1, shape = 8.2, cluster=NULL)
 				})
 	}
 	pars = matrix(unlist(pars), ncol = 4, byrow = TRUE)
-	retmat = rbind(c(mu, sd, skew, shape), apply(pars, 2, "mean"), apply(pars, 2, "sd"))
-	colnames(retmat) = c("mu", "sd", "skew", "shape")
+	retmat = rbind(c(mu, sigma, skew, shape), apply(pars, 2, "mean"), apply(pars, 2, "sd"))
+	colnames(retmat) = c("mu", "sigma", "skew", "shape")
 	rownames(retmat) = c("real", "esimated", "s.d.")
 	
 	options(width=120)

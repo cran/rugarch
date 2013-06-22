@@ -80,7 +80,7 @@
 	origdata = xdata$data
 	origindex = xdata$index
 	period = xdata$period
-	# for the msGARCH model we need to work with xts
+	# for the mcsGARCH model we need to work with xts
 	data = xts(data, index)
 	itime = .unique_intraday(data)
 	DV = DVar[1:(n-n.start)]
@@ -192,7 +192,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(as.numeric(zdata)))
 		if(modelinc[7] > 0) parscale["omega"] = var(as.numeric(zdata))
 		arglist$returnType = "llh"
-		solution = rugarch:::.garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.mcsgarchLLH, 
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.mcsgarchLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], 
 				UB = ipars[estidx, 6], ux = NULL, ci = NULL, mu = NULL, arglist)
@@ -203,7 +203,7 @@
 			ipars[estidx, 1] = sol$par
 			if(modelinc[7]==0){
 				# call it once more to get omega
-				tmpx = rugarch:::.mcsgarchLLH(sol$par, arglist)
+				tmpx = .mcsgarchLLH(sol$par, arglist)
 				ipars[pidx["omega",1], 1] = get("omega", garchenv)
 			}
 			if(sum(ipars[,2]) == 0){
@@ -490,26 +490,23 @@
 	dist = model$modeldesc$distno
 	kappa = 1
 	persist = (sum(ipars[idx["alpha",1]:idx["alpha",2],1]) + sum(ipars[idx["beta",1]:idx["beta",2],1]))
-	
 	rx = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata, h = 0, data = as.numeric(data), N = N)
 	res = rx$res
 	zrf = rx$zrf
 	
 	# 1. Create the diurnal series (bins)
 	# 2. Adjust res by denominator
+	dseries = .diurnal_series_aligned(res, as.numeric(DV), idx1, idx2)
+	eres = res/sqrt(as.numeric(DV)*dseries)
 	if(!is.null(n.old)){
 		rx2 = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata[1:Nx, , drop = FALSE], h = 0, data = origdata[1:Nx], N = c(m, Nx))
 		res2 = rx2$res
-		dseries = .diurnal_series_aligned(res2, as.numeric(DV), idx1, idx2)
-		eres = res2/sqrt(as.numeric(DV[1:Nx])*dseries[1:Nx])
-		mvar = ifelse(recinit$type==1, mean(eres[1:recinit$n]*eres[1:recinit$n]), backcastv(eres, Nx, recinit$n))
+		xdseries = .diurnal_series_aligned(res2, as.numeric(DV), idx1, idx2)
+		xeres = res2/sqrt(as.numeric(DV[1:Nx])*xdseries[1:Nx])
+		mvar = ifelse(recinit$type==1, mean(xeres[1:recinit$n]*xeres[1:recinit$n]), backcastv(xeres, Nx, recinit$n))
 	} else{
-		xidx1 = idx1
-		xidx2 = idx2
 		mvar = ifelse(recinit$type==1, mean(eres[1:recinit$n]*eres[1:recinit$n]), backcastv(eres, T, recinit$n))
 	}
-	dseries = .diurnal_series_aligned(res, as.numeric(DV), idx1, idx2)
-	eres = res/sqrt(as.numeric(DV)*dseries)
 	
 	hEst = mvar
 	if(modelinc[15]>0) {
@@ -652,7 +649,7 @@
 		# completely out of the sample
 		outD = ftseq(T0 = as.POSIXct(tail(index, 1)), 
 				length.out = n.ahead+n.roll, by = period, 
-				interval = fit@model$itime, 
+				interval = fit@model$dtime, 
 				exclude.weekends = TRUE)
 		Dmatch = match(format(outD, "%H:%M:%S"), dtime)
 		D2 = xts(dvalues[Dmatch], outD)
@@ -661,7 +658,7 @@
 		DVar = .intraday2daily(fit@model$DailyVar)
 		# Check to see whether we need DailyVar Forecast
 		U = unique(format(index(DiurnalVar), "%Y-%m-%d"))
-		Y = unique(c(format(index(DVar), "%Y-%m-%d"), if(!missing(DailyVar)) index(DailyVar) else NULL))
+		Y = unique(c(format(index(DVar), "%Y-%m-%d"), if(!missing(DailyVar)) format(index(DailyVar), "%Y-%m-%d") else NULL))
 		DV = c(as.numeric(DVar), if(!missing(DailyVar)) as.numeric(DailyVar) else NULL)
 		test = match(U, Y)
 		if(any(is.na(test))){
@@ -1113,7 +1110,7 @@
 		tmp = parLapply(cl = cluster, 1:m, fun = function(i){
 					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 					if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
-					fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
+					fit = try(ugarchfit(spec, xts::xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
 									solver = solver, solver.control = solver.control, 
 									fit.control = fit.control, DailyVar = DailyV[[i]]), silent=TRUE)
 					# 3 cases: General Error, Failure to Converge, Failure to invert Hessian (bad solution)
@@ -1354,7 +1351,7 @@
 			tmp = parLapply(cl = cluster, as.list(noncidx), fun = function(i){
 						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 						if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
-						fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
+						fit = try(ugarchfit(spec, xts::xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
 										solver=solver, solver.control = solver.control, 
 										fit.control = fit.control, DailyVar = DailyV[[i]]), silent=TRUE)
 						if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
@@ -1560,13 +1557,13 @@
 # x = residuals
 .diurnal_series_aligned = function(x, v, idx1, idx2)
 {
-	s = sapply(idx1, function(i) mean((x[i]^2)/v[i]))
+	s = sapply(idx1, function(i) median((x[i]^2)/v[i]))
 	sx = as.numeric(unlist(sapply(idx2, function(x) na.omit(s*x))))
 	return(sx)
 }
 
 .diurnal_series = function(x, v, idx1)
 {
-	s = sapply(idx1, function(i) mean(x[i]^2/v[i]))
+	s = sapply(idx1, function(i) median(x[i]^2/v[i]))
 	return(s)
 }

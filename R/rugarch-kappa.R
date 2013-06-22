@@ -34,28 +34,28 @@ fgarchKappa<-function(lambda, delta, eta1, eta2, fk, ghlambda, shape, skew, cond
 		fun = (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dnorm(x)
 	}
 	else if(cond.density == "ged") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dged(x, nu = shape)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dged(x, shape = shape)
 	}
 	else if(cond.density == "std") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dstd(x, nu = shape)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dstd(x, shape = shape)
 	}
 	else if(cond.density == "snorm") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsnorm(x, xi = skew)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsnorm(x, skew = skew)
 	}
 	else if(cond.density == "sged") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsged(x, nu = shape, xi = skew)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsged(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "sstd") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsstd(x, nu = shape, xi = skew)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsstd(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "nig") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsnig(x, zeta = shape, rho = skew)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsnig(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "ghyp") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsgh(x, zeta = shape, rho = skew, lambda = ghlambda)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsgh(x, shape = shape, skew = skew, lambda = ghlambda)
 	}
 	else if(cond.density == "jsu") {
-		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * djsu(x, skew = skew, shape = shape)
 	}
 	else if(cond.density == "ghst") {
 		fun =  (((abs(x - eta2) - eta1*(x - eta2)))^kdelta) * dsghst(x, skew = skew, shape = shape)
@@ -88,28 +88,28 @@ gjrgarchKappa<-function(gm, ghlambda, shape, skew, cond.density,...)
 		fun = (x^2 + gm*(x^2)*(x<0)) * dnorm(x)
 	}
 	else if(cond.density == "ged") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dged(x, nu = shape)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dged(x, shape = shape)
 	}
 	else if(cond.density == "std") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dstd(x, nu = shape)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dstd(x, shape = shape)
 	}
 	else if(cond.density == "snorm") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dsnorm(x, xi = skew)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsnorm(x, skew = skew)
 	}
 	else if(cond.density == "sged") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dsged(x, nu = shape, xi = skew)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsged(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "sstd") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dsstd(x, nu = shape, xi = skew)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsstd(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "nig") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dsnig(x, zeta = shape, rho = skew)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsnig(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "ghyp") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * dsgh(x, zeta = shape, rho = skew, lambda = ghlambda)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * dsgh(x, shape = shape, skew = skew, lambda = ghlambda)
 	}
 	else if(cond.density == "jsu") {
-		fun =  (x^2 + gm*(x^2)*(x<0)) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+		fun =  (x^2 + gm*(x^2)*(x<0)) * djsu(x, skew = skew, shape = shape)
 	}
 	else if(cond.density == "ghst") {
 		fun =  (x^2 + gm*(x^2)*(x<0)) * dsghst(x, skew = skew, shape = shape)
@@ -144,28 +144,28 @@ pneg<-function(ghlambda, shape, skew, cond.density,...)
 		fun = dnorm(x)
 	}
 	else if(cond.density == "ged") {
-		fun = dged(x, nu = shape)
+		fun = dged(x, shape = shape)
 	}
 	else if(cond.density == "std") {
-		fun = dstd(x, nu = shape)
+		fun = dstd(x, shape = shape)
 	}
 	else if(cond.density == "snorm") {
-		fun =dsnorm(x, xi = skew)
+		fun =dsnorm(x, skew = skew)
 	}
 	else if(cond.density == "sged") {
-		fun = dsged(x, nu = shape, xi = skew)
+		fun = dsged(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "sstd") {
-		fun = dsstd(x, nu = shape, xi = skew)
+		fun = dsstd(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "nig") {
-		fun = dsnig(x, zeta = shape, rho = skew)
+		fun = dsnig(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "ghyp") {
-		fun = dsgh(x, zeta = shape, rho = skew, lambda = ghlambda)
+		fun = dsgh(x, shape = shape, skew = skew, lambda = ghlambda)
 	}
 	else if(cond.density == "jsu") {
-		fun = djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+		fun = djsu(x, skew = skew, shape = shape)
 	}
 	else if(cond.density == "ghst") {
 		fun = dsghst(x, skew = skew, shape = shape)
@@ -198,28 +198,28 @@ egarchKappa<-function(ghlambda, shape, skew, cond.density,...)
 		fun = abs(x) * dnorm(x)
 	}
 	else if(cond.density == "ged") {
-		fun = abs(x) * dged(x, nu = shape)
+		fun = abs(x) * dged(x, shape = shape)
 	}
 	else if(cond.density == "std") {
-		fun = abs(x) * dstd(x, nu = shape)
+		fun = abs(x) * dstd(x, shape = shape)
 	}
 	else if(cond.density == "snorm") {
-		fun = abs(x) * dsnorm(x, xi = skew)
+		fun = abs(x) * dsnorm(x, skew = skew)
 	}
 	else if(cond.density == "sged") {
-		fun = abs(x) * dsged(x, nu = shape, xi = skew)
+		fun = abs(x) * dsged(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "sstd") {
-		fun = abs(x) * dsstd(x, nu = shape, xi = skew)
+		fun = abs(x) * dsstd(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "nig") {
-		fun = abs(x) * dsnig(x, zeta = shape, rho = skew)
+		fun = abs(x) * dsnig(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "ghyp") {
-		fun = abs(x) * dsgh(x, zeta = shape, rho = skew, lambda = ghlambda)
+		fun = abs(x) * dsgh(x, shape = shape, skew = skew, lambda = ghlambda)
 	}
 	else if(cond.density == "jsu") {
-		fun = abs(x) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+		fun = abs(x) * djsu(x, skew = skew, shape = shape)
 	}
 	else if(cond.density == "ghst") {
 		fun = abs(x) * dsghst(x, skew = skew, shape = shape)
@@ -252,28 +252,28 @@ aparchKappa<-function(gm, delta, ghlambda, shape, skew, cond.density,...)
 		fun = ((abs(x)-gm*x)^(delta)) * dnorm(x)
 	}
 	else if(cond.density == "ged") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dged(x, nu = shape)
+		fun =  ((abs(x)-gm*x)^(delta)) * dged(x, shape = shape)
 	}
 	else if(cond.density == "std") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dstd(x, nu = shape)
+		fun =  ((abs(x)-gm*x)^(delta)) * dstd(x, shape = shape)
 	}
 	else if(cond.density == "snorm") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dsnorm(x, xi = skew)
+		fun =  ((abs(x)-gm*x)^(delta)) * dsnorm(x, skew = skew)
 	}
 	else if(cond.density == "sged") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dsged(x, nu = shape, xi = skew)
+		fun =  ((abs(x)-gm*x)^(delta)) * dsged(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "sstd") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dsstd(x, nu = shape, xi = skew)
+		fun =  ((abs(x)-gm*x)^(delta)) * dsstd(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "nig") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dsnig(x, zeta = shape, rho = skew)
+		fun =  ((abs(x)-gm*x)^(delta)) * dsnig(x, shape = shape, skew = skew)
 	}
 	else if(cond.density == "ghyp") {
-		fun =  ((abs(x)-gm*x)^(delta)) * dsgh(x, zeta = shape, rho = skew, lambda = ghlambda)
+		fun =  ((abs(x)-gm*x)^(delta)) * dsgh(x, shape = shape, skew = skew, lambda = ghlambda)
 	}
 	else if(cond.density == "jsu") {
-		fun =  ((abs(x)-gm*x)^(delta)) * djsu(x, mu = 0, sigma = 1, nu = skew, tau = shape)
+		fun =  ((abs(x)-gm*x)^(delta)) * djsu(x, skew = skew, shape = shape)
 	}
 	else if(cond.density == "ghst") {
 		fun =  ((abs(x)-gm*x)^(delta)) * dsghst(x, skew = skew, shape = shape)

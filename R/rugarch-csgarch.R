@@ -705,7 +705,7 @@
 		preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA), 
 		mexsimdata = NULL, vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 100 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .csgarchsim2(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 				startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
 				preresiduals = preresiduals, rseed = rseed, custom.dist = custom.dist, 
@@ -810,7 +810,12 @@
 	if(!is.null(list(...)$preq)){
 		preq = tail(list(...)$preq, m)
 	} else{
-		preq = tail(fit@fit$q, m)
+		if(startMethod[1] == "unconditional")
+		{
+			preq = rep(ipars[idx["omega",1],1]/(1 - ipars[idx["eta1",1],1]), m)
+		} else{
+			preq = tail(fit@fit$q, m)
+		}
 	}
 	
 	
@@ -972,7 +977,12 @@
 	if(!is.null(list(...)$preq)){
 		preq = tail(list(...)$preq, m)
 	} else{
-		preq = tail(fit@fit$q, m)
+		if(startMethod[1] == "unconditional")
+		{
+			preq = rep(ipars[idx["omega",1],1]/(1 - ipars[idx["eta1",1],1]), m)
+		} else{
+			preq = tail(fit@fit$q, m)
+		}
 	}
 	# input vectors/matrices
 	h = matrix(c(presigma * presigma, rep(0, n)), nrow = n + m, ncol = m.sim)
@@ -1068,7 +1078,7 @@
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, 
 		vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 20 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .csgarchpath2(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim,
 				presigma = presigma, prereturns = prereturns, preresiduals = preresiduals, 
 				rseed = rseed, custom.dist = custom.dist, mexsimdata = mexsimdata, 

@@ -265,7 +265,7 @@
 .plot.garchfit.8 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@fit$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	distribution = x@model$modeldesc$distribution
 	idx = x@model$pidx
 	pars  = x@fit$ipars[,1]
@@ -274,7 +274,7 @@
 	if(distribution == "ghst") ghlambda = -shape/2 else ghlambda = pars[idx["ghlambda",1]]	
 	xmean 	= mean(zseries)
 	xmedian = median(zseries)
-	xsd 	= sd(zseries)	
+	xsd 	= sd(zseries)
 	xlim 	= c(min(zseries), max(zseries))
 	result 	= hist(x = zseries, col = "grey", border = "white",
 			breaks = "Scott", main = "Empirical Density of Standardized Residuals", xlim = xlim, ylim = c(0,0.6),
@@ -303,7 +303,7 @@
 .plot.garchfit.9 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@fit$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	distribution = x@model$modeldesc$distribution
 	idx = x@model$pidx
 	pars  = x@fit$ipars[,1]
@@ -323,7 +323,7 @@
 .plot.garchfit.10 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@fit$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	zseries[is.na(zseries)] = 0
 	n 		= length(zseries)
 	lag.max = as.integer(10*log10(n))
@@ -349,7 +349,7 @@
 .plot.garchfit.11 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@fit$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	zseries[is.na(zseries)] = 0
 	n 		= length(zseries)
 	lag.max = as.integer(10*log10(n))
@@ -646,7 +646,7 @@
 .plot.garchfilter.8 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@filter$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	distribution = x@model$modeldesc$distribution
 	idx = x@model$pidx
 	pars  = x@filter$ipars[,1]
@@ -684,7 +684,7 @@
 .plot.garchfilter.9 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@filter$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	distribution = x@model$modeldesc$distribution
 	idx = x@model$pidx
 	pars  = x@filter$ipars[,1]
@@ -704,7 +704,7 @@
 .plot.garchfilter.10 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@filter$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	zseries[is.na(zseries)] = 0
 	n 		= length(zseries)
 	lag.max = as.integer(10*log10(n))
@@ -730,7 +730,7 @@
 .plot.garchfilter.11 = function(x, ...)
 {
 	vmodel  = x@model$modeldesc$vmodel
-	zseries = x@filter$z
+	zseries = as.numeric(residuals(x, standardize=TRUE))
 	zseries[is.na(zseries)] = 0
 	n 		= length(zseries)
 	lag.max = as.integer(10*log10(n))

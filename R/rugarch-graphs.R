@@ -494,21 +494,22 @@
 	
 	dv = .divisortable(2+total)
 	par(mfrow=c(dv[1], dv[2]))
-	
-	coefarma = md[,idx["ar",1]:idx["ma",2]]
-	N = dim(coefarma)[1]
-	colnames(coefarma) = colnames(md)[idx["ar",1]:idx["ma",2]]
-	rootlist = apply(coefarma, 1, FUN=function(x) rugarch:::.armaroots(x))
-	colx = topo.colors(N, alpha = 0.7)
-	.arma2dplot(x, window = window)
-	.plotarmaroots(x = rootlist[[1]], col="steelblue")
-	mtext(paste("GARCH model :", vmodel), side = 4, adj = 0, padj=0, col = "gray", 
-			cex = 0.7)
-	if(vmodel == "fGARCH"){
-		mtext(paste("fGARCH submodel: ", vsubmodel,sep=""), side = 4, adj = 0, 
-				padj = 1.5, col = "gray", cex = 0.5)
+	if(sum(modelinc[2:3])>0){	
+		coefarma = md[,idx["ar",1]:idx["ma",2]]
+		N = dim(coefarma)[1]
+		colnames(coefarma) = colnames(md)[idx["ar",1]:idx["ma",2]]
+		rootlist = apply(coefarma, 1, FUN=function(x) rugarch:::.armaroots(x))
+		colx = topo.colors(N, alpha = 0.7)
+		.arma2dplot(x, window = window)
+		.plotarmaroots(x = rootlist[[1]], col="steelblue")
+		mtext(paste("GARCH model :", vmodel), side = 4, adj = 0, padj=0, col = "gray", 
+				cex = 0.7)
+		if(vmodel == "fGARCH"){
+			mtext(paste("fGARCH submodel: ", vsubmodel,sep=""), side = 4, adj = 0, 
+					padj = 1.5, col = "gray", cex = 0.5)
+		}
+		for(i in 2:N) .pointsarmaroots(x = rootlist[[i]], col = colx[i])
 	}
-	for(i in 2:N) .pointsarmaroots(x = rootlist[[i]], col = colx[i])
 	
 	if(modelinc[8]>0)
 	{

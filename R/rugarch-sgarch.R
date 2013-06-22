@@ -698,7 +698,7 @@
 		preresiduals = NA, rseed = NA, custom.dist = list(name = NA, distfit = NA), 
 		mexsimdata = NULL, vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 100 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .sgarchsim2(fit = fit, n.sim = n.sim, n.start = n.start, m.sim = m.sim, 
 				startMethod = startMethod, presigma = presigma, prereturns = prereturns, 
 				preresiduals = preresiduals, rseed = rseed, custom.dist = custom.dist, 
@@ -1039,7 +1039,7 @@
 		custom.dist = list(name = NA, distfit = NA), mexsimdata = NULL, 
 		vexsimdata = NULL, ...)
 {
-	if( (n.sim+n.start) < 20 && m.sim > 100 ){
+	if( (n.sim+n.start) < 1000 && m.sim > 100 ){
 		ans = .sgarchpath2(spec = spec, n.sim = n.sim, n.start = n.start, m.sim = m.sim,
 				presigma = presigma, prereturns = prereturns, preresiduals = preresiduals, 
 				rseed = rseed, custom.dist = custom.dist, mexsimdata = mexsimdata, 

@@ -14,68 +14,79 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################
+
+# This file contains the location-scale invariant parameterization of the
+# distributions used in the rugarch package. Since version 1.2-5, the 
+# dpqr functions are based on the C coded functions and not R. Vectorization
+# is handled internally without resorting to the Vectorize function which 
+# was found to have a large overhead.
+
+# Some of the original standardized distributions, implemented in R and found in 
+# a number of the Rmetrics packages, were based on the work of Diethelm Wuertz 
+# whose contribution is greatly appreciated. Some of the nig and gig C code is
+# based on the work of others and this is carefully aknowledged in the source
+# files.
+
 # ------------------------------------------------------------------------------
 # Skew Generalized Hyberolic Student's T 
 # alpha = abs(beta)+1e-12, lambda = -nu/2
 # ------------------------------------------------------------------------------
-
 # Location-Scale Invariant Parametrization
 .paramGHST = function(betabar, nu){
 	# Alexios Ghalanos 2012
 	# betabar is the skew parameter = beta*delta (parametrization 4 in Prause)
 	# nu is the shape parameter
+	# details can be found in the vignette
 	delta = ( ((2 * betabar^2)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) )^(-0.5)
 	beta = betabar/delta
 	mu = -( (beta * (delta^2))/(nu-2))
 	return( c(mu, delta, beta, nu) )
 }
 
-dsghst = function(x, mean=0, sd=1, skew=1, shape=8, log = FALSE){
-	f = Vectorize( .dsghst )
-	ans =  f(x, mean, sd, skew, shape, log)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
+dsghst = function(x, mu=0, sigma=1, skew=1, shape=8, log = FALSE)
+{
+	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dghst", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					logr = as.integer(log), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
 }
 
-.dsghst = function(x, mean=0, sd=1, skew=1, shape=8, log = FALSE){
-	if(abs(skew)<1e-12) skew = 1e-12
-	z = (x - mean)/sd
-	params = .paramGHST(skew, shape)
-	beta = params[3]
-	delta = params[2]
-	mu = params[1]
-	nu = shape
-	f = 2^(0.5*(1-nu))*(delta^nu)*abs(beta)^(0.5*(nu+1))*besselK(sqrt(beta^2*(delta^2+(z-mu)^2)), 0.5*(nu+1))*exp(beta*(z-mu))
-	f = f/(gamma(nu/2)*sqrt(pi)*(sqrt(delta^2+(z-mu)^2)^(0.5*(nu+1))))
-	f = f/sd
-	if(log) f = log(f)
-	return( f )
+rsghst = function(n, mu=0, sigma=1, skew=1, shape=8)
+{
+	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
+	nn = c(length(mu), length(sigma), length(skew), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rghst", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
 }
-
-rsghst = function(n, mean=0, sd=1, skew=1, shape=8){
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( .rsghst , c("mean","sd","skew","shape"))
-	ans = f(n, mean, sd, skew, shape)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
-}
-
-.rsghst = function(n, mean=0, sd=1, skew=1, shape=8){
-	params = .paramGHST(skew, shape)
-	beta = params[3]
-	delta = params[2]
-	mu = params[1]
-	nu = shape
-	y <- 1/rgamma(n, shape = nu/2, scale = 2/(delta*sd)^2)
-	sigma <- sqrt(y)
-	z <- rnorm(n)
-	f <- mean+(mu*sd) + beta/sd * sigma^2 + sigma * z
-	return( f )
-}
-
-####################################################
-# functions adapted/imported from the SkewHyperbolic of Scott
-
+#------------------------------------------------------------------
+# functions adapted/imported from the SkewHyperbolic of David Scott
+#------------------------------------------------------------------
 .skewhypStepSize = function(dist, delta, beta, nu, side = c("right", "left")) 
 {
 	side <- match.arg(side)
@@ -93,9 +104,9 @@ rsghst = function(n, mean=0, sd=1, skew=1, shape=8){
 	return( step )
 }
 
-modeghst = function(mean = 0, sd = 1, skew = 1, shape = 8){
+modeghst = function(mu = 0, sigma = 1, skew = 1, shape = 8){
 	modeFun <- function(x) {
-		dsghst(x, mean, sd, skew, shape, log = TRUE)
+		dsghst(x, mu, sigma, skew, shape, log = TRUE)
 	}
 	start <- 0
 	options(warn = -1)
@@ -105,25 +116,26 @@ modeghst = function(mean = 0, sd = 1, skew = 1, shape = 8){
 	return( distMode )
 }
 
-psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, cluster = NULL, ...){
-	if(!is.null(cluster)){
-		if(length(q)>1) stop("\ncluster evaluation cannot have length(q)>1")
-		clusterExport(cluster, c(".paramGHST", "modeghst", 
-						"dsghst", ".dsghst", ".skewhypStepSize"), envir = environment())
-		ans = clusterMap(cluster, .psghst, q = q, mean=mean, sd=sd, 
-				skew=skew, shape=shape, lower.tail = lower.tail, log = log, 
-				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
-				.scheduling = c("static", "dynamic")[2])
-	} else{
-		f = Vectorize( .psghst , c("q", "mean","sd","skew","shape", "lower.tail", "log"))
-		ans =  f(q, mean, sd, skew, shape, lower.tail, log, ...)
+psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
+	
+	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
+	n = c(length(q), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	for(i in 1:maxn){
+		ans[i] = .psghst(q[i], mu=mu[i], sigma=sigma[i], skew=skew[i], 
+				shape=shape[i])
 	}
-	if(NCOL(ans)==1) ans = as.numeric(ans)
 	return( ans )
 }
 
-.psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
-	distMode = modeghst(mean, sd, skew, shape)
+.psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
+	distMode = modeghst(mu, sigma, skew, shape)
 	qLess = which((q <= distMode) & (is.finite(q)))
 	qGreater = which((q > distMode) & (is.finite(q)))
 	prob = rep(NA, length(q))
@@ -132,7 +144,7 @@ psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FAL
 	prob[q == Inf]  = 0
 	err[q %in% c(-Inf, Inf)] = 0
 	dskewhypInt = function(q) {
-		dsghst(q, mean, sd, skew, shape)
+		dsghst(q, mu, sigma, skew, shape)
 	}
 	for (i in qLess) {
 		intRes <- integrate(dskewhypInt, -Inf, q[i], ...)
@@ -158,35 +170,36 @@ psghst = function(q, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, log = FAL
 	return( prob )
 }
 
-qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, cluster = NULL, ...){
-	if(!is.null(cluster)){
-		if(length(p)>1) stop("\ncluster evaluation cannot have length(p)>1")
-		clusterExport(cluster, c(".paramGHST", "modeghst", "psghst", 
-						".psghst", "dsghst", ".dsghst", ".skewhypStepSize"), envir = environment())
-		ans = clusterMap(cluster, .qsghst, p = p, mean=mean, sd=sd, skew=skew, shape=shape, 
-				lower.tail = lower.tail, SIMPLIFY = TRUE, USE.NAMES = TRUE, 
-				.scheduling = c("static", "dynamic")[2])
-	} else{
-		f = Vectorize( .qsghst , c("p", "mean","sd","skew","shape", "lower.tail") )
-		ans =  f(p, mean, sd, skew, shape, lower.tail)
+qsghst = function(p, mu=0, sigma=1, skew=1, shape=8){
+	
+	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	for(i in 1:maxn){
+		ans[i] = .qsghst(p[i], mu=mu[i], sigma=sigma[i], skew=skew[i], 
+				shape=shape[i])
 	}
-	if(NCOL(ans)==1) ans = as.numeric(ans)
 	return( ans )
 }
 
-
-.qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, ...){
+.qsghst = function(p, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, ...){
 	if (!lower.tail) {
 		p <- 1 - p
 		lower.tail == TRUE
 	}
 	params = .paramGHST(skew, shape)
 	# scale the parameters
-	beta = params[3]/sd
-	delta = params[2]*sd
-	mu = params[1]*sd + mean
-	distMode = modeghst(mean, sd, skew, shape)
-	pModeDist <- psghst(distMode, mean, sd, skew, shape)
+	beta = params[3]/sigma
+	delta = params[2]*sigma
+	# mu = params[1]*sigma + mean
+	distMode = modeghst(mu, sigma, skew, shape)
+	pModeDist <- psghst(distMode, mu, sigma, skew, shape)
 	ans = rep(NA, length(p))
 	invalid = which(p < 0 | p > 1)
 	pFinite = which((p > 0) & (p < 1))
@@ -196,15 +209,15 @@ qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, cluster =
 	if (length(less) > 0) {
 		pLow = min(p[less])
 		xLow = distMode - .skewhypStepSize(delta, delta, beta, shape, "left")
-		while(psghst(xLow, mean, sd, skew, shape, ...) >= pLow){
+		while(psghst(xLow, mu, sigma, skew, shape, ...) >= pLow){
 			xLow = xLow - .skewhypStepSize(distMode - xLow, delta, beta, shape, "left")
 		}
 		xRange = c(xLow, distMode)
-		zeroFn = function(x, mean, sd, skew, shape, p, ...){
-			return(psghst(x, mean, sd, skew, shape, ...) - p)
+		zeroFn = function(x, mu, sigma, skew, shape, p, ...){
+			return(psghst(x, mu, sigma, skew, shape, ...) - p)
 		}
 		for(i in less){
-			ans[i] = uniroot(zeroFn, mean = mean, sd = sd, skew = skew, 
+			ans[i] = uniroot(zeroFn, mu = mu, sigma = sigma, skew = skew, 
 					shape = shape, p = p[i], interval = xRange, ...)$root
 		}
 	}
@@ -213,35 +226,33 @@ qsghst = function(p, mean=0, sd=1, skew=1, shape=8, lower.tail = TRUE, cluster =
 	if(length(greater) > 0) {
 		pHigh = min(p[greater])
 		xHigh = distMode + .skewhypStepSize(delta, delta, beta, shape, "right")
-		while(psghst(xHigh, mean, sd, skew, shape, lower.tail = FALSE, ...) >= pHigh){
+		while(psghst(xHigh, mu, sigma, skew, shape, lower.tail = FALSE, ...) >= pHigh){
 			xHigh <- xHigh + .skewhypStepSize(xHigh - distMode, delta, beta, shape, "right")
 		}
 		xRange = c(distMode, xHigh)
-		zeroFn = function(x, mean, sd, skew, shape, p, ...){
-			return(psghst(x, mean, sd, skew, shape, lower.tail = FALSE, ...) - p)
+		zeroFn = function(x, mu, sigma, skew, shape, p, ...){
+			return(psghst(x, mu, sigma, skew, shape, lower.tail = FALSE, ...) - p)
 		}
 		for(i in greater){
-			ans[i] = uniroot(zeroFn, mean = mean, sd = sd, skew = skew, 
+			ans[i] = uniroot(zeroFn, mu = mu, sigma = sigma, skew = skew, 
 					shape = shape, p = p[i], interval = xRange, ...)$root
 		}
 	}
 	return( ans )
 }
-####################################################
-
 
 ghstFit = function(x, control){
-	
 	f = function(pars, x){
-		return(sum(-dsghst(x, mean=pars[1], sd=pars[2], skew=pars[3], shape=pars[4], log = TRUE)))
+		return(sum(-dsghst(x, mu=pars[1], sigma=pars[2], skew=pars[3], shape=pars[4], log = TRUE)))
 	}
 	x = as.numeric(x)
 	x0 = c(mean(x), sd(x), 0.2, 8)
+	# ARE THE shape LOWER BOUNDS TOO HIGH?
+	# nu>6 (skewness exist) and nu>8 (kurtosis exist)
 	fit = try(solnp(x0, fun = f, LB = c(-5, 1e-10, -10, 4.001), UB = c(5, 10, 10, 25), control = control, x = x), 
 			silent = TRUE)
-	
 	# Add Names to $par
-	names(fit$par) = c("mean", "sd", "skew", "shape")
+	names(fit$par) = c("mu", "sigma", "skew", "shape")
 	
 	# Return Value:
 	return( fit )
@@ -251,1047 +262,503 @@ ghstFit = function(x, control){
 # 1. dskewhyp(x, mu = (sigma*params[1]+0.5), delta = params[2]*sigma, beta = params[3]/sigma, nu = shape)
 # 2. dskewhyp(z, mu = params[1], delta = params[2], beta = params[3], nu = shape)/sigma
 
-# Local version START
-#################################################################################
-## from fBasics library: normal, skew-normal, student, skew-student, ged, skew-ged,
-## nig, skew-nig, and sgh/gh distributions locally implemented in rugarch
-#################################################################################
-## Distributions functions from Rmetrics Libraries
-## Copyrights (C)
-##   1999 - 2008, Diethelm Wuertz, Rmetrics Foundation, GPL
-##   Diethelm Wuertz <wuertz@itp.phys.ethz.ch>
-##   info@rmetrics.org
-##   www.rmetrics.org
-#################################################################################
-
-
 # ------------------------------------------------------------------------------
-
-.dsnorm <-function(x, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the density function of the "normalized" skew 
-	#   normal distribution
-	
-	# FUNCTION:
-	
-	# Standardize:
-	m1 = 2/sqrt(2*pi)
-	mu = m1 * (xi - 1/xi)
-	sigma = sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = x*sigma + mu  
-	# Compute:
-	Xi = xi^sign(z)
-	g = 2 / (xi + 1/xi) 
-	Density = g * dnorm(x = z/Xi)  
-	# Return Value:
-	return( Density * sigma )
-}
+# Skew Normal Distribution (Fernandez and Steel)
 # ------------------------------------------------------------------------------
-# vectorized: yes
-dsnorm <-function(x, mean = 0, sd = 1, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the density function of the skew normal distribution
-	
-	# Arguments:
-	#   x - a numeric vector of quantiles.
-	#   mean, sd, xi - location parameter, scale parameter, and 
-	#       skewness parameter.
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(x, mean, sd, xi){
-		.dsnorm(x = (x-mean)/sd, xi = xi) / sd
+dsnorm = function(x, mu = 0, sigma = 1, skew = 1.5, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(skew))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dsnorm", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), ans = ans, 
+					n = as.integer(maxn), logr = as.integer(log), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(x, mean, sd, xi)
-	# Return Value:
-	return( result )
-}
-# ------------------------------------------------------------------------------
-.psnorm <-function(q, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Standardize:
-	m1 = 2/sqrt(2*pi)
-	mu = m1 * (xi - 1/xi)
-	sigma = sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = q*sigma + mu
-	# Compute:  
-	Xi = xi^sign(z)
-	g = 2  / (xi + 1/xi)  
-	Probability = Heaviside(z) - sign(z) * g * Xi * pnorm(q = -abs(z)/Xi)
-	# Return Value:
-	return( Probability )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-psnorm <-function(q, mean = 0, sd = 1, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the distribution function of the 
-	#   skew normal distribution
-	
-	# Arguments:
-	#   q - a numeric vector of quantiles.
-	#   mean, sd, xi - location parameter, scale parameter, and 
-	#       skewness parameter.
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(q, mean, sd, xi){
-		.psnorm(q = (q-mean)/sd, xi = xi)
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(q, mean, sd, xi)
-	# Return Value:
-	return( result )
-}
-# ------------------------------------------------------------------------------    
-.qsnorm <-function(p, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Standardize:
-	m1 = 2/sqrt(2*pi)
-	mu = m1 * (xi - 1/xi)
-	sigma = sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	# Compute:  
-	g = 2  / (xi + 1/xi)
-	sig = sign(p-1/2) 
-	Xi = xi^sig         
-	p = (Heaviside(p-1/2)-sig*p) / (g*Xi)
-	Quantile = (-sig*qnorm(p = p, sd = Xi) - mu ) / sigma
-	# Return Value:
-	return( Quantile )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-qsnorm <-function(p, mean = 0, sd = 1, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the quantile function of the 
-	#   skew normal distribution
-	
-	# Arguments:
-	#   p - a numeric vector of probabilities.
-	#   mean, sd, xi - location parameter, scale parameter, and 
-	#       skewness parameter.
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(p, mean, sd, xi){
-		.qsnorm(p = p, xi = xi) * sd + mean
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(p, mean, sd, xi)	
-	# Return Value:
-	return( result )
-}
-# ------------------------------------------------------------------------------
-.rsnorm <-function(n, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Generate Random Deviates:
-	weight = xi / (xi + 1/xi)
-	z = runif(n, -weight, 1-weight)
-	Xi = xi^sign(z)
-	Random = -abs(rnorm(n))/Xi * sign(z)  
-	# Scale:
-	m1 = 2/sqrt(2*pi)
-	mu = m1 * (xi - 1/xi)
-	sigma = sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	Random = (Random - mu ) / sigma   
-	# Return value:
-	return( Random )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-rsnorm <-function(n, mean = 0, sd = 1, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	### modified by Alexios Ghalanos to vectorized form
-	# Description:
-	#   Generate random deviates from the 
-	#   skew normal distribution
-	# Arguments:
-	#   n - an integer value giving the number of observation.
-	#   mean, sd, xi - location parameter, scale parameter, and 
-	#       skewness parameter.
-	fun = function(n, mean, sd, xi) .rsnorm(n = n, xi = xi) * sd + mean
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( fun , c("mean","sd","xi"))
-	ans = f(n, mean, sd, xi)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
 }
 
-normFit <-function(x, control = list())
-{   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Normal distribution
-	
-	# FUNCTION:
-	
-	# Start Value:
-	ctrl = .solnpctrl(control)
-	start = c(mean = mean(x), sd = sqrt(var(x)))
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){ 
-		f = -sum(log(dnorm(y, x[1], x[2])))
-		f }
-	
-	# Minimization:
-	fit = solnp(pars = start, fun = loglik, LB = c(-Inf, 0), UB = c(Inf, Inf), 
-			control = ctrl, y = x)
-	
-	# Add Names to $par
-	names(fit$par) = c("mean", "sd")
-	
-	# Return Value:
-	return( fit )
-}   
-# ------------------------------------------------------------------------------
+psnorm = function(q, mu = 0, sigma = 1, skew = 1.5)
+{
+	n = c(length(q), length(mu), length(sigma), length(skew))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_psnorm", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), ans = ans, 
+					n = as.integer(maxn), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+qsnorm = function(p, mu = 0, sigma = 1, skew = 1.5)
+{
+	n = c(length(p), length(mu), length(sigma), length(skew))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qsnorm", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), ans = ans, 
+					n = as.integer(maxn), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+rsnorm = function(n, mu=0, sigma=1, skew=1.5)
+{
+	nn = c(length(mu), length(sigma), length(skew))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	ans = double(n)
+	sol = try(.C("c_rsnorm", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), ans = ans, 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
 snormFit = function(x, control = list())
 {   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Normal distribution
-	
-	# FUNCTION:
-	
-	# Start Value:
 	ctrl = .solnpctrl(control)
-	start = c(mean = mean(x), sd = sqrt(var(x)), xi = 1)
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){ 
-		f = -sum(log(dsnorm(y, x[1], x[2], x[3])))
+	start = c(mu = mean(x), sigma = sqrt(var(x)), xi = 1)	
+	loglik = function(pars, x){ 
+		f = -sum(log(dsnorm(x, pars[1], pars[2], pars[3])))
 		f }
-	
-	# Minimization:
 	fit = solnp(pars = start, fun = loglik, 
-			LB = c(-Inf, 0, 0), upper = c(Inf, Inf, Inf), control = ctrl, y = x)
-	
-	# Add Names to $par
-	names(fit$par) = c("mean", "sd", "xi")
-	
-	# Return Value:
+			LB = c(-Inf, 0, 0), UB = c(Inf, Inf, Inf), control = ctrl, x = x)
+	names(fit$pars) = c("mu", "sigma", "skew")	
 	return( fit )
 }
-################################################################################
-# vectorized: yes
-dged <-function(x, mean = 0, sd = 1, nu = 2)
-{   
-	# A function imlemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the density for the 
-	#   generalized error distribution.
-	
-	# FUNCTION:
-	
-	# Compute Density:
-	fun = function(x, mean, sd, nu){
-		z = (x - mean ) / sd
-		lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-		g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-		g * exp (-0.5*(abs(z/lambda))^nu) / sd
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(x, mean, sd, nu)
-	# Return Value
-	return( result )
-}
 # ------------------------------------------------------------------------------
-# vectorized: yes
-pged <-function(q, mean = 0, sd = 1, nu = 2)
+# Normal Distribution (estimation function)
+# ------------------------------------------------------------------------------
+normFit <-function(x, control = list())
 {   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the probability for the  
-	#   generalized error distribution.
-	
-	# FUNCTION:
-	
-	# Compute Probability:
-	fun = function(q, mean, sd, nu){
-		q = (q - mean ) / sd
-		lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-		g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-		h = 2^(1/nu) * lambda * g * gamma(1/nu) / nu
-		s = 0.5 * ( abs(q) / lambda )^nu
-		result = 0.5 + sign(q) * h * pgamma(s, 1/nu)
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(q, mean, sd, nu)
-	# Return Value:
-	return( result )
-}
-
+	ctrl = .solnpctrl(control)
+	start = c(mu = mean(x), sigma = sqrt(var(x)))
+	loglik = function(pars, x){ 
+		f = -sum(log(dnorm(x, pars[1], pars[2])))
+		f }
+	fit = solnp(pars = start, fun = loglik, LB = c(-Inf, 0), UB = c(Inf, Inf), 
+			control = ctrl, x = x)
+	names(fit$pars) = c("mu", "sigma")
+	return( fit )
+}   
 
 # ------------------------------------------------------------------------------
-# vectorized: yes
-qged <-function(p, mean = 0, sd = 1, nu = 2)
-{   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the quantiles for the  
-	#   generalized error distribution.
-	
-	# FUNCTION:
-	
-	# Compute Quantiles:
-	fun = function(p, mean, sd, nu){
-		lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-		q = lambda * (2*qgamma((abs(2*p-1)), 1/nu))^(1/nu)
-		q*sign(2*p-1) * sd + mean
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(p, mean, sd, nu)
-	# Return Value:
-	return( result )
-}
-
-
+# Generalized Error Distribution
 # ------------------------------------------------------------------------------
-# vectorized: yes
-rged <- function(n, mean = 0, sd = 1, nu = 2)
-{   
-	# A function implemented by Diethelm Wuertz
-	### modified by Alexios Ghalanos to vectorized form
-	
-	# Description:
-	#   Generate GED random deviates. The function uses the 
-	#   method based on the transformation of a Gamma random 
-	#   variable.
-	
-	# FUNCTION:
-	
-	# Generate Random Deviates:
-	fun = function(n, mean, sd, nu){
-		lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-		r = rgamma(n, 1/nu)
-		z =  lambda * (2*r)^(1/nu) * sign(runif(n)-1/2)
-		return( z * sd + mean )
+
+dged = function(x, mu = 0, sigma = 1, shape = 2, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dged", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn), logr = as.integer(log), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( fun , c("mean","sd","nu"))
-	ans = f(n, mean, sd, nu)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
 }
 
-
-# ------------------------------------------------------------------------------
-.dsged <-function(x, nu, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Standardize:
-	lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-	g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-	m1 = 2^(1/nu) * lambda * gamma(2/nu) / gamma(1/nu)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = x*sigma + mu  
-	
-	# Compute:
-	Xi = xi^sign(z)
-	g = 2  / (xi + 1/xi)    
-	Density = g * dged(x = z/Xi, nu=nu)  
-	
-	# Return Value:
-	return( Density * sigma )
-}
-
-# norm [ nu = 2, xi = 1 ]
-# laplace [ nu = 1, xi = 1 ]
-# vectorized: yes
-dsged <-function(x, mean = 0, sd = 1, nu = 2, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the density function of the 
-	#   skewed generalized error distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(x, mean, sd, nu, xi){
-		.dsged(x = (x-mean)/sd, nu = nu, xi = xi) / sd
+pged = function(q, mu = 0, sigma = 1, shape = 2)
+{
+	n = c(length(q), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_pged", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn),  
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(x, mean, sd, nu, xi)	
-	# Return Value:
-	return( result )
 }
 
-
-# ------------------------------------------------------------------------------
-.psged <-function(q, nu, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Standardize:
-	lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-	g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-	m1 = 2^(1/nu) * lambda * gamma(2/nu) / gamma(1/nu)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = q*sigma + mu
-	
-	# Compute:  
-	Xi = xi^sign(z)
-	g = 2  / (xi + 1/xi)    
-	Probability = Heaviside(z) - sign(z) * g * Xi * pged(q = -abs(z)/Xi, nu=nu)
-	
-	# Return Value:
-	return( Probability )
-}
-# vectorized: yes
-psged <-function(q, mean = 0, sd = 1, nu = 2, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the distribution function of the 
-	#   skewed generalized error distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(q, mean, sd, nu, xi){
-		.psged(q = (q-mean)/sd, nu = nu, xi = xi)
+qged = function(p, mu = 0, sigma = 1, shape = 2)
+{
+	n = c(length(p), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qged", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn),  
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(q, mean, sd, nu, xi)
-	# Return Value:
-	return( result )
 }
 
-
-# ------------------------------------------------------------------------------    
-.qsged <-function(p, nu, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Standardize:
-	lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-	g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-	m1 = 2^(1/nu) * lambda * gamma(2/nu) / gamma(1/nu)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	
-	# Compute:  
-	g = 2  / (xi + 1/xi)
-	sig = sign(p-1/2) 
-	Xi = xi^sig       
-	p = (Heaviside(p-1/2)-sig*p) / (g*Xi)
-	Quantile = (-sig*qged(p=p, sd=Xi, nu=nu) - mu ) / sigma
-	
-	# Return Value:
-	return( Quantile )
-}
-# vectorized: yes
-qsged <-function(p, mean = 0, sd = 1, nu = 2, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Compute the quantile function of the 
-	#   skewed generalized error distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(p, mean, sd, nu, xi){
-		.qsged(p = p, nu = nu, xi = xi) * sd + mean
+rged = function(n, mu = 0, sigma = 1, shape = 2)
+{
+	nn = c(length(mu), length(sigma), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rged", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(p, mean, sd, nu, xi)	
-	# Return Value:
-	return( result )
-}
-
-
-# ------------------------------------------------------------------------------
-.rsged <-function(n, nu, xi) 
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# Generate Random Deviates:
-	weight = xi / (xi + 1/xi)
-	z = runif(n, -weight, 1-weight)
-	Xi = xi^sign(z)
-	Random = -abs(rged(n, nu=nu))/Xi * sign(z)  
-	
-	# Scale:
-	lambda = sqrt ( 2^(-2/nu) * gamma(1/nu) / gamma(3/nu) )
-	g  = nu / ( lambda * (2^(1+1/nu)) * gamma(1/nu) )
-	m1 = 2^(1/nu) * lambda * gamma(2/nu) / gamma(1/nu)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	Random = (Random - mu ) / sigma
-	
-	# Return value:
-	return( Random )
-}
-
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-rsged <-function(n, mean = 0, sd = 1, nu = 2, xi = 1.5)
-{   
-	# A function implemented by Diethelm Wuertz 
-	
-	# Description:
-	#   Generate random deviates from the 
-	#   skewed generalized error distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(n, mean, sd, nu, xi){
-		return( .rsged(n = n, nu = nu, xi = xi) * sd + mean )
-	}
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( fun , c("mean","sd","nu","xi"))
-	ans = f(n, mean, sd, nu, xi)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
 }
 
 gedFit = function(x, control = list())
 {   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Normal distribution
-	
-	# FUNCTION:
-	
-	# Start Value:
 	ctrl = .solnpctrl(control)
-	start = c(mean = mean(x), sd = sqrt(var(x)), nu = 2)
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){ 
-		f = -sum(log(dged(y, x[1], x[2], x[3])))
+	start = c(mu = mean(x), sigma = sqrt(var(x)), shape = 2)
+	loglik = function(pars, x){ 
+		f = -sum(log(dged(x, pars[1], pars[2], pars[3])))
 		f }
-	
-	# Minimization:
 	fit = solnp(pars = start, fun = loglik, 
-			LB = c(-Inf, 0, 0), UB = c(Inf, Inf, Inf), , control  = ctrl, y = x)
-	
-	# Add Names to $par
-	names(fit$par) = c("mean", "sd", "nu")
-	
-	# Return Value:
+			LB = c(-Inf, 0, 0), UB = c(Inf, Inf, Inf), , control  = ctrl, x = x)	
+	names(fit$pars) = c("mu", "sigma", "shape")	
 	return( fit )
-}      
-
-
+}
 # ------------------------------------------------------------------------------
+# Skewed Generalized Error Distribution (Fernandez and Steel)
+# ------------------------------------------------------------------------------
+dsged = function(x, mu = 0, sigma = 1, skew = 1.5, shape = 2, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dsged", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					logr = as.integer(log), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+psged = function(q, mu = 0, sigma = 1, skew = 1.5, shape = 2)
+{
+	n = c(length(q), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_psged", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, 
+					n = as.integer(maxn), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+qsged = function(p, mu = 0, sigma = 1, skew = 1.5, shape = 2)
+{
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qsged", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+
+rsged = function(n, mu=0, sigma = 1, skew = 1.5, shape = 2)
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rsged", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), 
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
 sgedFit = function(x, control = list())
 {   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Normal distribution
-	
-	# FUNCTION:
-	
-	# Start Value:
 	ctrl = .solnpctrl(control)
-	start = c(mean = mean(x), sd = sqrt(var(x)), nu = 2, xi = 1)
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){ 
-		f = -sum(log(dsged(y, x[1], x[2], x[3], x[4])))
+	start = c(mu = mean(x), sigma = sqrt(var(x)), skew = 1, shape = 2)
+	loglik = function(pars, x){ 
+		f = -sum(log(dsged(x, pars[1], pars[2], pars[3], pars[4])))
 		f }
-	
-	# Minimization:
 	fit = solnp(pars = start, fun = loglik, 
-			LB = c(-Inf, 0, 0, 0), UB = c(Inf, Inf, Inf, Inf), , control  = ctrl, y = x)
-	
-	# Add Names to $par
-	names(fit$par) = c("mean", "sd", "nu", "xi")
-	
-	# Return Value:
+			LB = c(-Inf, 0, 0, 0), UB = c(Inf, Inf, Inf, Inf), , control  = ctrl, x = x)
+	names(fit$pars) = c("mu", "sigma", "skew", "shape")
 	return( fit )
 }
 ################################################################################
 Heaviside<-function(x, a = 0) 
 {   
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Computes the Heaviside or unit step function.
-	
-	# Arguments:
-	#   x - a numeric vector.
-	#   a - the location of the break.
-	
-	# Details:
-	#   The Heaviside step function is 1 for x>a, 1/2 for x=a,
-	#   and 0 for x<a.
-	
-	# Notes:
-	#   Heaviside Unit Step Function and Related Functions
-	#   See:  http://mathworld.wolfram.com/HeavisideStepFunction.html
-	#   Note: sign(x) is part of R's base package
-	
-	# FUNCTION:
-	
-	# Compute H:
 	result = (sign(x-a) + 1)/2
-	
-	# Return Value:
 	return( result )
 }
 # ------------------------------------------------------------------------------
-# vectorized: yes
-dstd <- function(x, mean = 0, sd = 1, nu = 5)
+# Student Distribution
+# ------------------------------------------------------------------------------
+dstd = function(x, mu = 0, sigma = 1, shape = 5, log = FALSE)
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the density for the
-	#   Student-t distribution.
-	
-	# FUNCTION:
-	
-	# Compute Density:
-	fun = function(x, mean, sd, nu){
-		s = sqrt(nu/(nu-2))
-		z = (x - mean) / sd
-		# result = .Internal(dnt(x = z*s, df = nu, ncp = 0, log = FALSE)) / (sd/s)
-		dt(x = z*s, df = nu) * s / sd
+	n = c(length(x), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dstd", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn), logr = as.integer(log), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(x, mean, sd, nu)		
-	# Return Value:
-	return( result )
 }
-
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-pstd <-function (q, mean = 0, sd = 1, nu = 5)
+	
+pstd = function(q, mu = 0, sigma = 1, shape = 5)
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the probability for the
-	#   Student-t distribution.
-	
-	# FUNCTION:
-	
-	# Compute Probability:
-	fun = function(q, mean, sd, nu){
-		s = sqrt(nu/(nu-2))
-		z = (q - mean) / sd
-		pt(q = z*s, df = nu)
+	n = c(length(q), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_pstd", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(q, mean, sd, nu)		
-	# Return Value:
-	return( result )
 }
 
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-qstd <-function (p, mean = 0, sd = 1, nu = 5)
+qstd = function(p, mu = 0, sigma = 1, shape = 5)
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the quantiles for the
-	#   Student-t distribution.
-	
-	# FUNCTION:
-	
-	# Compute Quantiles:
-	fun = function(p, mean, sd, nu){
-		s = sqrt(nu/(nu-2))
-		qt(p = p, df = nu) * sd / s + mean
+	n = c(length(p), length(mu), length(sigma), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qstd", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, n = as.integer(maxn), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(p, mean, sd, nu)
-	# Return Value:
-	return( result )
 }
 
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-rstd <-function(n, mean = 0, sd = 1, nu = 5)
+rstd = function(n, mu = 0, sigma = 1, shape = 5)
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Generate random deviates from the
-	#   Student-t distribution.
-	
-	# FUNCTION:
-	
-	# Generate Random Deviates:
-	s = sqrt(nu/(nu-2))
-	# result = .Internal(rt(n = n, df = nu)) * sd / s + mean
-	result = rt(n = n, df = nu) * sd / s + mean
-	
-	# Return Value:
-	result
-}
-# ------------------------------------------------------------------------------
-.dsstd <-function(x, nu, xi)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	
-	# AG: removed SPlus compatibility
-	# For SPlus compatibility:
-	# if (!exists("beta"))
-	#	beta <- function (a, b) exp( lgamma(a) + lgamma(b) -lgamma(a+b) )
-	
-	# Standardize:
-	m1 = 2 * sqrt(nu-2) / (nu-1) / beta(1/2, nu/2)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = x*sigma + mu
-	
-	# Compute:
-	Xi = xi^sign(z)
-	g = 2 / (xi + 1/xi)
-	Density = g * dstd(x = z/Xi, nu = nu)
-	
-	# Return Value:
-	return( Density * sigma )
-}
-
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-dsstd <-function(x, mean = 0, sd = 1, nu = 5, xi = 1.5)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the density function of the
-	#   skewed Student-t distribution
-	
-	# FUNCTION:
-	fun = function(x, mean, sd, nu, xi){
-		.dsstd(x = (x-mean)/sd, nu = nu, xi = xi) / sd
+	nn = c(length(mu), length(sigma), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rstd", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), shape = as.double(shape), 
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(x, mean, sd, nu, xi)
-	
-	# Return Value:
-	return( result )
-}
-
-
-# ------------------------------------------------------------------------------
-.psstd <-function(q, nu, xi)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	# AG: removed SPlus compatibility
-	# For SPlus compatibility:
-	# if (!exists("beta"))
-	#	beta <- function (a, b) exp( lgamma(a) + lgamma(b) -lgamma(a+b) )
-	
-	# Standardize:
-	m1 = 2 * sqrt(nu-2) / (nu-1) / beta(1/2, nu/2)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	z = q*sigma + mu
-	
-	# Compute:
-	Xi = xi^sign(z)
-	g = 2 / (xi + 1/xi)
-	Probability = Heaviside(z) - sign(z) * g * Xi * pstd(q = -abs(z)/Xi, nu = nu)
-	
-	# Return Value:
-	return( Probability )
-}
-
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-psstd <-function(q, mean = 0, sd = 1, nu = 5, xi = 1.5)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the distribution function of the
-	#   skewed Student-t distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(q, mean, sd, nu, xi){
-		.psstd(q = (q-mean)/sd, nu = nu, xi = xi)
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(q, mean, sd, nu, xi)
-	
-	# Return Value:
-	return( result )
-}
-# ------------------------------------------------------------------------------
-.qsstd <-function(p, nu, xi)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	# AG: removed SPlus compatibility
-	# For SPlus compatibility:
-	#if (!exists("beta"))
-	#	beta <- function (a, b) exp( lgamma(a) + lgamma(b) -lgamma(a+b) )
-	
-	# Standardize:
-	m1 = 2 * sqrt(nu-2) / (nu-1) / beta(1/2, nu/2)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	
-	# Compute:
-	g = 2  / (xi + 1/xi)
-	sig = sign(p-1/2)
-	Xi = xi^sig
-	p = (Heaviside(p-1/2)-sig*p) / (g*Xi)
-	Quantile = (-sig*qstd(p = p, sd = Xi, nu = nu) - mu ) / sigma
-	
-	# Return Value:
-	return( Quantile )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-qsstd <-function(p, mean = 0, sd = 1, nu = 5, xi = 1.5)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Compute the quantile function of the
-	#   skewed Student-t distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(p, mean, sd, nu, xi){
-		.qsstd(p = p, nu = nu, xi = xi) * sd + mean
-	}
-	# Shift and Scale:
-	f = Vectorize(fun)
-	result = f(p, mean, sd, nu, xi)	
-	# Return Value:
-	return( result )
-}
-
-
-# ------------------------------------------------------------------------------
-.rsstd <-function(n, nu, xi)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Internal Function
-	
-	# FUNCTION:
-	# AG: removed SPlus compatibility
-	# For SPlus compatibility:
-	#if (!exists("beta"))
-	#	beta <- function (a, b) exp( lgamma(a) + lgamma(b) -lgamma(a+b) )
-	
-	# Generate Random Deviates:
-	weight = xi / (xi + 1/xi)
-	z = runif(n, -weight, 1-weight)
-	Xi = xi^sign(z)
-	Random = -abs(rstd(n, nu = nu))/Xi * sign(z)
-	
-	# Scale:
-	m1 = 2 * sqrt(nu-2) / (nu-1) / beta(1/2, nu/2)
-	mu = m1*(xi-1/xi)
-	sigma =  sqrt((1-m1^2)*(xi^2+1/xi^2) + 2*m1^2 - 1)
-	Random = (Random - mu ) / sigma
-	
-	# Return value:
-	return( Random )
-}
-
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-
-rsstd <-function(n, mean = 0, sd = 1, nu = 5, xi = 1.5)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Generate random deviates from the
-	#   skewed Student-t distribution
-	
-	# FUNCTION:
-	
-	# Shift and Scale:
-	fun = function(n, mean, sd, nu, xi){
-		return(.rsstd(n = n, nu = nu, xi = xi) * sd + mean)
-	}
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( fun , c("mean","sd","nu", "xi"))
-	ans = f(n, mean, sd, nu, xi)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
 }
 
 stdFit = function(x, control = list())
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Normal distribution
-	
-	# FUNCTION:
-	
-	# Start Value:
 	ctrl = .solnpctrl(control)
-	start = c(mean = mean(x), sd = sqrt(var(x)), nu = 4)
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){
-		f = -sum(log(dstd(y, x[1], x[2], x[3])))
-		f }
-	
-	# Minimization:
+	start = c(mu = mean(x), sigma = sqrt(var(x)), shape = 4)
+	loglik = function(pars, x){
+		f = -sum(log(dstd(x, pars[1], pars[2], pars[3])))
+		f }	
 	fit = solnp(pars = start, fun = loglik,
-			LB = c(-Inf, 0, 2.01), UB = c(Inf, Inf, Inf), control = ctrl, y = x)
-	
-	# Add Names to $par
-	names(fit$par) = c("mean", "sd", "nu")
-	
-	# Return Value:
+			LB = c(-Inf, 0, 2.01), UB = c(Inf, Inf, Inf), control = ctrl, x = x)	
+	names(fit$pars) = c("mu", "sigma", "shape")
 	return( fit )
 }
-
 
 # ------------------------------------------------------------------------------
+# Skewed Student Distribution (Fernandez and Steel)
+# ------------------------------------------------------------------------------
+dsstd = function(x, mu = 0, sigma = 1, skew = 1.5, shape = 5, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dsstd", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					logr = as.integer(log), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+psstd = function(q, mu = 0, sigma = 1, skew = 1.5, shape = 5)
+{
+	n = c(length(q), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_psstd", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn),
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+qsstd = function(p, mu = 0, sigma = 1, skew = 1.5, shape = 5)
+{
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qsstd", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn),
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
+rsstd = function(n, mu = 0, sigma = 1, skew = 1.5, shape = 5)
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rsstd", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), 
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+
 sstdFit = function(x, control = list())
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Fit the parameters for a skew Sudent-t distribution
-	#   with unit variance
-	
-	# FUNCTION:
-	
 	ctrl = .solnpctrl(control)
-	
-	# Start Value:
-	start = c(mean = mean(x), sd = sqrt(var(x)), nu = 4, xi = 1)
-	
-	# Log-likelihood Function:
-	loglik = function(x, y = x){
-		f = -sum(log(dsstd(y, x[1], x[2], x[3], x[4])))
-		f }
-	
-	# Minimization:
-	#fit = nlm(f = loglik, p = p, y = x, ...)
-	fit = solnp(pars = start, fun = loglik, LB = c(-Inf, 0, 2.01, 0.1), 
-			UB = c(Inf, Inf, Inf, Inf), control = ctrl, y = x)
-	Names = c("mean", "sd", "nu", "xi")
-	names(fit$par) = Names
-	#names(fit$gradient) = Names
-	
-	# Return Value:
+	start = c(mu = mean(x), sigma = sqrt(var(x)), skew = 1.5, shape = 4)	
+	loglik = function(pars, x){
+		f = -sum(log(dsstd(x, pars[1], pars[2], pars[3], pars[4])))
+		f }	
+	fit = solnp(pars = start, fun = loglik, LB = c(-Inf, 0, 0.1, 2.01), 
+			UB = c(Inf, Inf, Inf, Inf), control = ctrl, x = x)
+	names(fit$pars) = c("mu", "sigma", "skew", "shape")
 	return( fit )
 }
-################################################################################
-.unitroot<-function(f, interval, lower = min(interval), upper = max(interval), 
+# ------------------------------------------------------------------------------
+# Generalized Hyperbolic Distribution (standard representation)
+# ------------------------------------------------------------------------------
+.unitroot = function(f, interval, lower = min(interval), upper = max(interval), 
 		tol = .Machine$double.eps^0.25, ...)
 {   
 	if (is.null(args(f))) {
@@ -1303,17 +770,12 @@ sstdFit = function(x, control = list())
 			upper = upper, tol = tol, ...)
 	return( ans$root )
 }
-
 .kappaGH <-function(x, lambda = 1)
 {    
 	# A function implemented by Diethelm Wuertz
-	# Description:
 	#   Returns modified Bessel function ratio
-	# FUNCTION:
-	# Check:
 	stopifnot(x >= 0)
 	stopifnot(length(lambda) == 1)
-	# Ratio:
 	if (lambda == -0.5) {
 		# NIG:
 		kappa = 1/x
@@ -1321,37 +783,16 @@ sstdFit = function(x, control = list())
 		# GH:
 		kappa = (besselK(x, lambda+1, expon.scaled = TRUE)/besselK(x, lambda, expon.scaled = TRUE) ) / x
 	}
-	# Return Value:
 	return( kappa )
 }
-# ------------------------------------------------------------------------------
 .deltaKappaGH<-function(x, lambda = 1)
 {
-	# A function implemented by Diethelm Wuertz
-	# Description:
-	#   Returns difference of Bessel functions ratios
-	# FUNCTION:
-	# Difference in Ratios:
-	if (lambda == -0.5) {
-		# NIG:
-		# Replace this with the recursion relation ...
-		deltaKappa = .kappaGH(x, lambda+1) - .kappaGH(x, lambda)
-	} else {
-		# GH:
-		deltaKappa = .kappaGH(x, lambda+1) - .kappaGH(x, lambda)
-	}
-	
-	# Return Value:
-	return( deltaKappa )
+	return( .kappaGH(x, lambda+1) - .kappaGH(x, lambda) )
 }
-# ------------------------------------------------------------------------------
-.paramGH <-function(zeta = 1, rho = 0 , lambda = 1)
+.paramGH = function(rho = 0, zeta = 1, lambda = 1)
 {
 	# A function implemented by Diethelm Wuertz
-	# Description:
 	#   Change parameterizations to alpha(zeta, rho, lambda)
-	# FUNCTION:
-	# Transformation:
 	Rho2 = 1 - rho^2
 	alpha = zeta^2 * .kappaGH(zeta, lambda) / Rho2 
 	alpha = alpha * ( 1 + rho^2 * zeta^2 * .deltaKappaGH(zeta, lambda) / Rho2)
@@ -1359,266 +800,35 @@ sstdFit = function(x, control = list())
 	beta = alpha * rho
 	delta = zeta / ( alpha * sqrt(Rho2) )
 	mu = -beta * delta^2 * .kappaGH(zeta, lambda)
-	# Return Value:
 	return( c(alpha = alpha, beta = beta, delta = delta, mu = mu) )
 }
-
-# vectorized: yes
-dgh = function(x, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, log = FALSE)
-{
-	f = Vectorize( .dgh  )
-	ans =  f(x, alpha, beta, delta, mu, lambda, log)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
-}
-
-.dgh<-function(x, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, log = FALSE)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Returns density for the generalized hyperbolic distribution
-	
-	# FUNCTION:
-	
-	# Checks:
-	if (alpha <= 0) stop("alpha must be greater than zero")
-	if (delta <= 0) stop("delta must be greater than zero")
-	if (abs(beta) >= alpha) stop("abs value of beta must be less than alpha")
-	
-	# Density:
-	arg = delta*sqrt(alpha^2-beta^2)
-	a = (lambda/2)*log(alpha^2-beta^2) - (
-				log(sqrt(2*pi)) + (lambda-0.5)*log(alpha) + lambda*log(delta) +
-				log(besselK(arg, lambda, expon.scaled = TRUE)) - arg )
-	f = ((lambda-0.5)/2)*log(delta^2+(x - mu)^2)
-	
-	# Use exponential scaled form to prevent from overflows:
-	arg = alpha * sqrt(delta^2+(x-mu)^2)
-	k = log(besselK(arg, lambda-0.5, expon.scaled = TRUE)) - arg
-	e = beta*(x-mu)
-	
-	# Put all together:
-	ans = a + f + k + e
-	if(!log) ans = exp(ans)
-	
-	# Return Value:
-	return( ans )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-pgh = function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, cluster = NULL)
-{
-	if(!is.null(cluster)){
-		if(length(q)>1) stop("\ncluster evaluation cannot have length(q)>1")
-		clusterExport(cluster, c(".dgh"), envir = environment())
-		ans = clusterMap(cluster, .pgh, q = q, alpha=alpha, beta=beta, 
-				delta=delta, mu=mu, lambda = lambda, 
-				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
-				.scheduling = c("static", "dynamic")[2])
-	} else{
-		f = Vectorize( .pgh , c("q", "alpha","beta","delta","mu", "lambda") )
-		ans =  f(q, alpha, beta, delta, mu, lambda)
-	}
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
-}
-.pgh<-function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Returns probability for the generalized hyperbolic distribution
-	
-	# FUNCTION:
-	
-	# Checks:
-	if (alpha <= 0) stop("alpha must be greater than zero")
-	if (delta <= 0) stop("delta must be greater than zero")
-	if (abs(beta) >= alpha) stop("abs value of beta must be less than alpha")
-	
-	# Probability:
-	ans = NULL
-	for (Q in q) {
-		Integral = integrate(.dgh, -Inf, Q, stop.on.error = FALSE,
-				alpha = alpha, beta = beta, delta = delta, mu = mu,
-				lambda = lambda)
-		ans = c(ans, as.numeric(unlist(Integral)[1]))
-	}
-	
-	# Return Value:
-	return( ans )
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-
-qgh = function(p, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, cluster = NULL){
-	if(!is.null(cluster)){
-		if(length(p)>1) stop("\ncluster evaluation cannot have length(p)>1")
-		clusterExport(cluster, c(".pgh", ".dgh", ".unitroot"), envir = environment())
-		ans = clusterMap(cluster, .qgh, p = p, alpha=alpha, beta=beta, 
-				delta=delta, mu=mu, lambda = lambda, 
-				SIMPLIFY = TRUE, USE.NAMES = TRUE, 
-				.scheduling = c("static", "dynamic")[2])
-	} else{
-		f = Vectorize( .qgh , c("p", "alpha","beta","delta","mu", "lambda") )
-		ans =  f(p, alpha, beta, delta, mu, lambda)
-	}
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )
-}
-
-.qgh<-function (p, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
-{
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Returns quantiles for the generalized hyperbolic distribution
-	
-	# FUNCTION:
-	
-	# Checks:
-	if (alpha <= 0) stop("alpha must be greater than zero")
-	if (delta <= 0) stop("delta must be greater than zero")
-	if (abs(beta) >= alpha) stop("abs value of beta must be less than alpha")
-	
-	# Internal Function:
-	.froot <- function(x, alpha, beta, delta, mu, lambda, p)
-	{
-		.pgh(q = x, alpha = alpha, beta = beta, delta = delta,
-				mu = mu, lambda = lambda) - p
-	}
-	
-	# Quantiles:
-	result = NULL
-	for (pp in p) {
-		lower = -1
-		upper = +1
-		counter = 0
-		iteration = NA
-		while (is.na(iteration)) {
-			iteration = .unitroot(f = .froot, interval = c(lower,
-							upper), alpha = alpha, beta = beta, delta = delta,
-					mu = mu, lambda = lambda, p = pp)
-			counter = counter + 1
-			lower = lower - 2^counter
-			upper = upper + 2^counter
-		}
-		result = c(result, iteration)
-	}
-	# Return Value:
-	return( result )
-}
-
-ghFit = function(x, control = list())
-{
-	ctrl = .solnpctrl(control)
-	
-	start = c(alpha = 1, beta = 0, delta = sqrt(var(x)), mu = mean(x), lambda = -2)
-	eps = .Machine$double.eps^0.5
-	BIG = 10000
-	# Log-likelihood Function:
-	loglik = function(pars, y){
-		#.pars<<-pars
-		if(abs(pars[2])>pars[1]) return(100000)
-		f =  -sum(log(dgh(y, pars[1], pars[2], pars[3], pars[4], pars[5], log = FALSE)))
-		f 
-	}
-	con = function(pars, y){
-		ans = abs(pars[2]) - pars[1]
-		ans
-	}
-	# Minimization:
-	fit = solnp(pars = start, fun = loglik, LB = c(eps, -BIG, eps, -BIG, -6), 
-			UB = c(BIG,  BIG, BIG,  BIG,  6), ineqfun = con, ineqLB = -BIG, 
-			ineqUB = -0.1, control = ctrl, y = x)
-	Names = c("alpha", "beta", "delta", "mu", "lambda")
-	names(fit$par) = Names
-	#names(fit$gradient) = Names
-	
-	# Return Value:
-	return( fit )
-	
-}
-
-.rghyp = function(n, theta)
-{	# A function implemented by Diethelm Wuertz
-	
-	# Author:
-	#	Original Version by David Scott
-	
-	# FUNCTION:
-	
-	# Settings:
-	lambda = theta[1]
-	alpha = theta[2]
-	beta = theta[3]
-	delta = theta[4]
-	mu = theta[5]
-	chi = delta^2
-	psi = alpha^2 - beta^2
-	
-	# Ckecks:
-	if (alpha <= 0) stop("alpha must be greater than zero")  
-	if (delta <= 0) stop("delta must be greater than zero")
-	if (abs(beta) >= alpha) stop("abs value of beta must be less than alpha")
-	
-	# Random Numbers:
-	if (lambda == 1){
-		X = .rgigjd1(n, c(lambda, chi, psi))
-	} else{
-		X = .rgigjd(n, c(lambda, chi, psi))
-	}
-	
-	# Result:
-	sigma = sqrt(X)
-	Z = rnorm(n)
-	Y = mu + beta*sigma^2 + sigma*Z
-	
-	# Return Value:
-	return( Y )
-}
 .rgigjd = function(n, theta)
-{	# A function implemented by Diethelm Wuertz
-	
-	# Author:
+{	
+	# A function implemented by Diethelm Wuertz	
 	#	Original Version by David Scott
-	
-	# FUNCTION:
-	
-	# Settings:
 	lambda = theta[1]
 	chi = theta[2]
 	psi = theta[3]
-	
-	# Checks:
 	if (chi < 0) stop("chi can not be negative")
 	if (psi < 0) stop("psi can not be negative")
 	if ((lambda >= 0)&(psi==0)) stop("When lambda >= 0, psi must be > 0")
 	if ((lambda <= 0)&(chi==0)) stop("When lambda <= 0, chi must be > 0")
 	if (chi == 0) stop("chi = 0, use rgamma")
-	if (psi == 0) stop("algorithm only valid for psi > 0")
-	
+	if (psi == 0) stop("algorithm only valid for psi > 0")	
 	alpha = sqrt(psi/chi)
 	beta = sqrt(psi*chi)
-	
 	m = (lambda-1+sqrt((lambda-1)^2+beta^2))/beta
-	
 	g = function(y){
 		0.5*beta*y^3 - y^2*(0.5*beta*m+lambda+1) + y*((lambda-1)*m-0.5*beta) + 0.5*beta*m
 	}
-	
 	upper = m
 	while (g(upper) <= 0) upper = 2*upper
 	yM = uniroot(g, interval=c(0,m))$root
 	yP = uniroot(g, interval=c(m,upper))$root
-	
 	a = (yP-m)*(yP/m)^(0.5*(lambda-1))*exp(-0.25*beta*(yP+1/yP-m-1/m))
 	b = (yM-m)*(yM/m)^(0.5*(lambda-1))*exp(-0.25*beta*(yM+1/yM-m-1/m))
-	c = -0.25*beta*(m+1/m) + 0.5*(lambda-1)*log(m)
-	
+	c = -0.25*beta*(m+1/m) + 0.5*(lambda-1)*log(m)	
 	output = numeric(n)
-	
 	for(i in 1:n){
 		need.value = TRUE
 		while(need.value==TRUE){
@@ -1633,38 +843,24 @@ ghFit = function(x, control = list())
 		}
 		output[i] = Y
 	}
-	
-	# Return Value:
 	return( output/alpha )
 }
-
-# ------------------------------------------------------------------------------
 .rgigjd1 = function(n, theta)
-{	# A function implemented by Diethelm Wuertz
-	
+{	
+	# A function implemented by Diethelm Wuertz
 	# Description:
 	# 	Modified version of rgigjd to generate random observations
 	# 	from a generalised inverse Gaussian distribution in the
-	# 	special case where lambda = 1.
-	
-	# Author:
+	# 	special case where lambda = 1.	
 	#	Original Version by David Scott
-	
-	# FUNCTION:
-	
 	if (length(theta) == 2) theta = c(1, theta)
-	
-	# Settings:
 	lambda = 1
 	chi = theta[2]
 	psi = theta[3]
-	
-	# Checks:
 	if (chi < 0) stop("chi can not be negative")
 	if (psi < 0) stop("psi can not be negative")	
 	if (chi == 0) stop("chi = 0, use rgamma")
-	if (psi == 0) stop("When lambda >= 0, psi must be > 0")
-	
+	if (psi == 0) stop("When lambda >= 0, psi must be > 0")	
 	alpha = sqrt(psi/chi)
 	beta = sqrt(psi*chi)
 	m = abs(beta)/beta
@@ -1672,18 +868,14 @@ ghFit = function(x, control = list())
 		0.5*beta*y^3 - y^2*(0.5*beta*m+lambda+1) +
 				y*(-0.5*beta) + 0.5*beta*m
 	}
-	
 	upper = m
 	while (g(upper)<=0) upper = 2*upper
 	yM = uniroot(g,interval=c(0,m))$root
 	yP = uniroot(g,interval=c(m,upper))$root
-	
 	a = (yP-m)*exp(-0.25*beta*(yP+1/yP-m-1/m))
 	b = (yM-m)*exp(-0.25*beta*(yM+1/yM-m-1/m))
 	c = -0.25*beta*(m+1/m)
-	
 	output = numeric(n)
-	
 	for(i in 1:n){
 		need.value = TRUE
 		while(need.value==TRUE){
@@ -1697,267 +889,319 @@ ghFit = function(x, control = list())
 			}
 		}
 		output[i] = Y
-	}
-	
-	# Return Value:
+	}	
 	return( output/alpha )
 }
 
+dgh = function(x, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, log = FALSE)
+{
+	n = c(length(x), length(alpha), length(beta), length(delta), length(mu), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) alpha = rep(alpha[1], maxn)
+	if(n[3]!=maxn) beta  = rep(beta[1], maxn)
+	if(n[4]!=maxn) delta = rep(delta[1], maxn)
+	if(n[5]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	if(any(alpha <= 0)) stop("alpha must be greater than zero")
+	if(any(delta <= 0)) stop("delta must be greater than zero")
+	if(any(abs(beta) >= alpha)) stop("abs value of beta must be less than alpha")
+	ans = double(maxn)
+	sol = try(.C("c_dgh", x = as.double(x), alpha = as.double(alpha), 
+					beta = as.double(beta), delta = as.double(delta), 
+					mu = as.double(mu), lambda = as.double(lambda), 
+					ans = ans, n = as.integer(maxn), logr = as.integer(log), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
 
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-rgh = function (n, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
+dgh_R = function(x, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1, log = FALSE)
 {
 	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (vectorized)
-	
-	# Description:
-	#   Returns random variates for the generalized hyperbolic distribution
-	
-	# FUNCTION:
-	
-	# Checks:
-	if (alpha <= 0) stop("alpha must be greater than zero")
-	if (delta <= 0) stop("delta must be greater than zero")
-	if (abs(beta) >= alpha) stop("abs value of beta must be less than alpha")
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	
-	# Settings:
-	fun = function(n, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1){
-		theta = c(lambda, alpha, beta, delta, mu)
-		return( .rghyp(n, theta) )
-	}
-	f = Vectorize( fun , c("alpha","beta","delta", "mu", "lambda"))
-	ans = f(n, alpha, beta, delta, mu, lambda)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
-}
-
-# ------------------------------------------------------------------------------
-# vectorized: yes
-dsgh = function(x, zeta = 1, rho = 0, lambda = 1, log = FALSE) 
-{
-	fun = function(x, zeta = 1, rho = 0, lambda = 1, log = FALSE){
-		param = .paramGH(zeta, rho, lambda)
-		return( .dgh(x, param[1], param[2], param[3], param[4], lambda, log) )
-	}
-	f = Vectorize( fun )
-	ans = f(x, zeta, rho, lambda, log)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
-}
-# ------------------------------------------------------------------------------
-# vectorized: yes
-psgh = function(q, zeta = 1, rho = 0, lambda = 1) 
-{
-	fun = function(q, zeta = 1, rho = 0, lambda = 1){
-		param = .paramGH(zeta, rho, lambda)
-		return( .pgh(q, param[1], param[2], param[3], param[4], lambda) )
-	}
-	f = Vectorize( fun  )
-	ans = f(q, zeta, rho, lambda)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
+	# modified by Alexios Ghalanos
+	n = c(length(x), length(alpha), length(beta), length(delta), length(mu), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) alpha = rep(alpha[1], maxn)
+	if(n[3]!=maxn) beta  = rep(beta[1], maxn)
+	if(n[4]!=maxn) delta = rep(delta[1], maxn)
+	if(n[5]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	if(any(alpha <= 0)) stop("alpha must be greater than zero")
+	if(any(delta <= 0)) stop("delta must be greater than zero")
+	if(any(abs(beta) >= alpha)) stop("abs value of beta must be less than alpha")
+	arg = delta*sqrt(alpha^2-beta^2)
+	a = (lambda/2)*log(alpha^2-beta^2) - (
+				log(sqrt(2*pi)) + (lambda-0.5)*log(alpha) + lambda*log(delta) +
+				log(besselK(arg, lambda, expon.scaled = TRUE)) - arg )
+	f = ((lambda-0.5)/2)*log(delta^2+(x - mu)^2)
+	# Use exponential scaled form to prevent from overflows:
+	arg = alpha * sqrt(delta^2+(x-mu)^2)
+	k = log(besselK(arg, lambda-0.5, expon.scaled = TRUE)) - arg
+	e = beta*(x-mu)
+	ans = a + f + k + e
+	if(!log) ans = exp(ans)
 	return( ans )
 }
-# ------------------------------------------------------------------------------
-# vectorized: yes
-qsgh = function(p, zeta = 1, rho = 0, lambda = 1) 
+
+pgh = function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
 {
 	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (vectorized)
-	# Description:
-	#   Returns quantiles of the sgh distribution
-	
-	# FUNCTION:
-	
-	# Compute Quantiles:
-	fun = function(p, zeta = 1, rho = 0, lambda = 1){
-		param = .paramGH(zeta, rho, lambda)
-		return( .qgh(p, param[1], param[2], param[3], param[4], lambda) )
+	# modified by Alexios Ghalanos
+	n = c(length(q), length(alpha), length(beta), length(delta), length(mu), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) alpha = rep(alpha[1], maxn)
+	if(n[3]!=maxn) beta  = rep(beta[1], maxn)
+	if(n[4]!=maxn) delta = rep(delta[1], maxn)
+	if(n[5]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	if(any(alpha <= 0)) stop("alpha must be greater than zero")
+	if(any(delta <= 0)) stop("delta must be greater than zero")
+	if(any(abs(beta) >= alpha)) stop("abs value of beta must be less than alpha")
+	ans = rep(NA, maxn)
+	for(i in 1:maxn){
+		Integral = integrate(dgh, -Inf, q[i], stop.on.error = FALSE,
+				alpha = alpha[i], beta = beta[i], delta = delta[i], mu = mu[i],
+				lambda = lambda[i])
+		ans[i] = as.numeric(unlist(Integral)[1])
 	}
-	f = Vectorize( fun )
-	ans = f(p, zeta, rho, lambda)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
 	return( ans )
 }
-# ------------------------------------------------------------------------------
-# vectorized: yes
-rsgh = function(n, zeta = 1, rho = 0, lambda = 1) 
+
+qgh = function(p, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
 {
 	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (vectorized)
-	# Description:
-	#   Generates sgh distributed random variates
-	
-	# FUNCTION:
-	
-	# Generate Random Numbers:
-	
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	
-	# Settings:
-	fun = function(n,  zeta = 1, rho = 0, lambda = 1){
-		param = .paramGH(zeta, rho, lambda)
-		theta = c(lambda,  param[1], param[2], param[3], param[4])
-		return( .rghyp(n, theta) )		
-	}
-	f = Vectorize( fun , c("zeta","rho","lambda"))
-	ans = f(n, zeta, rho, lambda)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
-}
-# ------------------------------------------------------------------------------
-sghFit = function (x, zeta = 1, rho = 0, lambda = 1, include.lambda = TRUE, 
-		scale = TRUE, span = "auto", trace = FALSE, title = NULL, description = NULL, ...) 
-{
-	x.orig = x
-	x = as.vector(x)
-	if (scale) x = (x-mean(x)) / sd(x)
-	
-	eps = .Machine$double.eps^0.5
-	BIG = 1000
-	
-	if (include.lambda) 
+	# modified by Alexios Ghalanos
+	n = c(length(p), length(alpha), length(beta), length(delta), length(mu), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) alpha = rep(alpha[1], maxn)
+	if(n[3]!=maxn) beta  = rep(beta[1], maxn)
+	if(n[4]!=maxn) delta = rep(delta[1], maxn)
+	if(n[5]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	if(any(alpha <= 0)) stop("alpha must be greater than zero")
+	if(any(delta <= 0)) stop("delta must be greater than zero")
+	if(any(abs(beta) >= alpha)) stop("abs value of beta must be less than alpha")
+	# Internal Function:
+	.froot <- function(x, alpha, beta, delta, mu, lambda, p)
 	{
-		# LLH Function:
-		esghmle.include = function(x, y = x) {
-			f = -sum(log(dsgh(y, x[1], x[2], x[3], log = FALSE)))
-			f
-		}
-		# LLH Optimization:
-		fit = solnp(
-				pars = c(zeta, rho, lambda), 
-				fun = esghmle.include, 
-				LB = c(eps, -0.9999, -2), 
-				UB = c(BIG, +0.9999, +5), 
-				y = x)
-		names(fit$par) <- c("zeta", "rho", "lambda")
-		
-	} else {
-		
-		# LLH Function:
-		esghmle = function(x, y = x, ghlambda) {
-			f = -sum(log(dsgh(y, x[1], x[2], ghlambda, log = FALSE)))
-			f
-		}
-		# LLH Optimization:
-		fit = solnp(
-				pars = c(zeta, rho), 
-				fun = esghmle, 
-				LB = c(eps, -0.9999), 
-				UB = c(BIG, +0.9999), 
-				y = x, 
-				ghlambda = lambda)
-		fit$par = c(fit$par, lambda)
-		names(fit$par) <- c("zeta", "rho", "fix.lambda")
-		
+		pgh(q = x, alpha = alpha, beta = beta, delta = delta,
+				mu = mu, lambda = lambda) - p
 	}
-	
-	param = .paramGH(fit$par[1], fit$par[2], fit$par[3])
-	
-	# Default Title and Description:
-	if (is.null(title)) 
-		title = "SGH Parameter Estimation"
-	# Fit:
-	ans = list(
-			estimate = fit$par,
-			minimum = -fit$values[length(fit$values)], 
-			code = fit$convergence,
-			param = param, 
-			mean = mean(x.orig),
-			var = var(x.orig))
-	return(ans)
+	# Quantiles:
+	ans = rep(NA, maxn)
+	for(i in 1:maxn){
+		lower = -1
+		upper = +1
+		counter = 0
+		iteration = NA
+		while(is.na(iteration)){
+			iteration = .unitroot(f = .froot, interval = c(lower,
+							upper), alpha = alpha[i], beta = beta[i], delta = delta[i],
+					mu = mu[i], lambda = lambda[i], p = p[i])
+			counter = counter + 1
+			lower = lower - 2^counter
+			upper = upper + 2^counter
+		}
+		ans[i] = iteration
+	}
+	return( ans )
 }
 
-
-nigFit = function(x, control = list())
+ghFit = function(x, control = list())
 {
 	ctrl = .solnpctrl(control)
 	
-	start = c(alpha = 1, beta = 0, delta = sqrt(var(x)), mu = mean(x))
-	
+	start = c(alpha = 1, beta = 0, delta = sqrt(var(x)), mu = mean(x), lambda = -2)
+	eps = .Machine$double.eps^0.5
+	BIG = 10000
 	# Log-likelihood Function:
-	loglik = function(x, y = x){
-		f = -sum(log(dnig(y, x[1], x[2], x[3], x[4])))
-		f }
-	con = function(x, y = x){
-		abs(x[2])-x[1]
+	loglik = function(pars, x){
+		if(abs(pars[2])>pars[1]) return(100000)
+		f =  -sum(log(dgh(x, pars[1], pars[2], pars[3], pars[4], pars[5], log = FALSE)))
+		f 
 	}
-	# Minimization:
-	fit = solnp(pars = start, fun = loglik, LB = c(0.1, -100, eps, -Inf), 
-			UB = c(100, 100, Inf, Inf), ineqfun = con, ineqLB = -200, ineqUB = 0,control = ctrl, y = x)
-	Names = c("alpha", "beta", "delta", "mu")
-	names(fit$par) = Names
-	#names(fit$gradient) = Names
-	
-	# Return Value:
+	con = function(pars, x){
+		ans = abs(pars[2]) - pars[1]
+		ans
+	}
+	fit = solnp(pars = start, fun = loglik, LB = c(eps, -BIG, eps, -BIG, -6), 
+			UB = c(BIG,  BIG, BIG,  BIG,  6), ineqfun = con, ineqLB = -BIG, 
+			ineqUB = -0.1, control = ctrl, x = x)
+	names(fit$pars) = c("alpha", "beta", "delta", "mu", "lambda")
 	return( fit )
+	
 }
 
-dnig = function(x, alpha = 1, beta = 0, delta = 1, mu = 0, log = FALSE)
-{   
-	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (makes use of vectorized dgh)
-	# Description:
-	#   Returns density for inverse Gaussian DF
-	
-	# FUNCTION:
-	
-	# Density:
-	return( dgh(x = x, alpha = alpha, beta = beta, delta = delta, mu = mu, 
-			lambda = -0.5, log = log) )
+rgh = function(n, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
+{	# A function implemented by Diethelm Wuertz
+	#	Original Version by David Scott
+	# modified: Alexios Ghalanos
+	nn = c(length(alpha), length(beta), length(delta), length(mu), length(lambda))
+	maxn = n
+	if(nn[1]!=maxn) alpha = rep(alpha[1], maxn)
+	if(nn[2]!=maxn) beta  = rep(beta[1], maxn)
+	if(nn[3]!=maxn) delta = rep(delta[1], maxn)
+	if(nn[4]!=maxn) mu    = rep(mu[1], maxn)
+	if(nn[5]!=maxn) lambda= rep(lambda[1], maxn)
+	chi = delta^2
+	psi = alpha^2 - beta^2
+	if(any(alpha <= 0)) stop("alpha must be greater than zero")
+	if(any(delta <= 0)) stop("delta must be greater than zero")
+	if(any(abs(beta) >= alpha)) stop("abs value of beta must be less than alpha")
+	V = cbind(lambda, chi, psi)
+	X = apply(V, 1, function(x){
+				ifelse(x[1] == 1, 
+						.rgigjd1(1, c(x[1], x[2], x[3])), 
+						.rgigjd(1, c(x[1], x[2], x[3])))
+			})
+	sigma = sqrt(as.numeric(X))
+	Z = rnorm(n)
+	Y = mu + beta*sigma^2 + sigma*Z
+	return( Y )
 }
+
 # ------------------------------------------------------------------------------
-pnig <-function(q, alpha = 1, beta = 0, delta = 1, mu = 0)
-{   
-	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (makes use of vectorized pgh)
-	
-	# Description:
-	#   Returns probability for for inverse Gaussian DF
-	
-	# Function:
-	
-	# Probability:
-	return( pgh(q = q, alpha = alpha, beta = beta, delta = delta, mu = mu, 
-			lambda = -0.5) )
-}
+# Standardized Generalized Hyperbolic Distribution
 # ------------------------------------------------------------------------------
-qnig <-function(p, alpha = 1, beta = 0, delta = 1, mu = 0)
-{   
-	# A function implemented by Diethelm Wuertz
-	# modified by Alexios Ghalanos (vectorized)
-	
-	# Description:
-	#   Returns quantiles for for inverse Gaussian DF
-	
-	# FUNCTION:
-	
-	# Quantiles:
-	fun = function(p, alpha = 1, beta = 0, delta = 1, mu = 0){
-		return( .qnigC(p = p, alpha = alpha, beta = beta, delta = delta, mu = mu) )
+dsgh = function(x, mu = 0, sigma = 1, skew = 0, shape = 1, lambda = 1, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dghyp", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), lambda = as.double(lambda),
+					ans = ans, n = as.integer(maxn), logr = as.integer(log), 
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
 	}
-	f = Vectorize( fun )
-	ans = f(p, alpha, beta, delta, mu)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
+}
+
+#dsgh_R = function(x, mu = 0, sigma = 1, zeta = 1, rho = 0, lambda = 1, log = FALSE)
+#{
+#	fun = function(x, mu = 0, sigma = 1, zeta = 1, rho = 0, lambda = 1, log = FALSE){
+#		param = .paramGH(rho, zeta, lambda)
+#		return( .dgh(x, param[1]/sigma, param[2]/sigma, param[3]*sigma, param[4]*sigma + mu, lambda, log) )
+#	}
+#	f = Vectorize( fun )
+#	ans = f(x, mu, sigma, zeta, rho, lambda, log)
+#	if(NCOL(ans)==1) ans = as.numeric(ans)
+#	return( ans )	
+#}
+
+#system.time(dsgh_R(x, sigma=1.5, mu=2, lambda=-0.5))
+#user  system elapsed 
+#2.12    0.00    2.12 
+# system.time(dsgh(x, sigma=1.5, mu=2, lambda=-0.5))
+#user  system elapsed 
+#0.03    0.00    0.03
+
+psgh = function(q, mu = 0, sigma = 1, skew = 0, shape = 1, lambda = 1) 
+{
+	n = c(length(q), length(mu), length(sigma), length(skew), length(shape), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	tmp = t(apply(cbind(skew, shape, lambda), 1, function(x) .paramGH(x[1], x[2], x[3])))
+	ans = pgh((q-mu)/sigma, tmp[,1], tmp[,2], tmp[,3],tmp[,4], lambda)
+	# equivalent: pgh(q, alpha/sigma, beta/sigma, delta*sigma, mu*sigma+mu, lambda)
+	return( as.numeric( ans ) )
+}
+
+qsgh = function(p, mu = 0, sigma = 1, skew = 0, shape = 1, lambda = 1) 
+{
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape), length(lambda))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	if(n[6]!=maxn) lambda= rep(lambda[1], maxn)
+	tmp = t(apply(cbind(skew, shape, lambda), 1, function(x) .paramGH(x[1], x[2], x[3])))
+	ans = mu + sigma*as.numeric( qgh(p, tmp[,1], tmp[,2], tmp[,3], tmp[,4], lambda) )
 	return( ans )
 }
-# ------------------------------------------------------------------------------
-rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
-{   
-	# (uses vectorized rgh)
-	return( rgh(n, alpha = alpha, beta = beta, delta = delta, mu = mu, lambda=-0.5) )
+
+rsgh = function(n, mu = 0, sigma = 1, skew = 0, shape = 1, lambda = 1)
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape), length(lambda))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	if(nn[5]!=n) lambda= rep(lambda[1], n)
+	ans = double(n)
+	sol = try(.C("c_rghyp", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), lambda = as.double(lambda),
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
 }
-################################################################################
-.qnigC <-function(p, alpha = 1, beta = 0, delta = 1, mu = 0)
+
+rsgh_R = function(n, mu = 0, sigma = 1, skew = 0, shape = 1, lambda = 1) 
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape), length(lambda))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	if(nn[5]!=n) lambda= rep(lambda[1], n)
+	tmp = t(apply(cbind(skew, shape, lambda), 1, function(x) .paramGH(x[1], x[2], x[3])))
+	ans = mu + sigma*as.numeric( rgh(n, tmp[,1], tmp[,2], tmp[,3], tmp[,4], lambda) )
+	return(ans)
+}
+
+# system.time(rsgh(1000, mu=0.1, sigma = 0.2))
+# user  system elapsed 
+# 0.02    0.00    0.02 
+# system.time(rsgh_R(1000, mu=0.1, sigma = 0.2))
+# user  system elapsed 
+# 0.69    0.00    0.69 
+
+sghFit = function(x, control=list(), ...) 
+{
+	x = as.vector(x)
+	ctrl = .solnpctrl(control)
+	start = c(mu = mean(x), sigma = sd(x), skew = 0, shape = 0.5, lambda = -2)
+	loglik = function(pars, x){
+		f =  sum(-log(dsgh(x, pars[1], pars[2], pars[3], pars[4], pars[5], log = FALSE)))
+		f
+	}
+	fit = solnp(pars = start, fun = loglik, LB = c(-200, 1e-12, -0.999, 0.1, -4), 
+			UB = c(200, 400, 0.999, 25, 4), control = ctrl, ..., x = x)
+	names(fit$pars) <- c("mu", "sigma", "skew","shape","lambda")
+	return(fit)
+}
+# ------------------------------------------------------------------------------
+# Normal Inverse Gaussian (NIG) Distribution
+# ------------------------------------------------------------------------------
+.qnigC = function(p, alpha = 1, beta = 0, delta = 1, mu = 0)
 {   
-	# Description:
-	#   Returns quantiles for for inverse Gaussian DF
-	
-	# FUNCTION:
-	
-	# Checks:
 	if(alpha <= 0) stop("Invalid parameters: alpha <= 0.\n")
 	if(alpha^2 <= beta^2) stop("Invalid parameters: alpha^2 <= beta^2.\n")
 	if(delta <= 0) stop("Invalid parameters: delta <= 0.\n")
@@ -1968,8 +1212,6 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 	
 	n <- length(p)
 	q <- rep(0, n)
-	
-	# Evaluate NIG cdf by calling C function
 	retValues <- .C("qNIG",
 			p = as.double(.CArrange(p,1,1,n)),
 			i_mu = as.double(mu),
@@ -1981,11 +1223,8 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 	quantiles <- retValues[[7]]
 	quantiles[quantiles <= -1.78e+308] <- -Inf
 	quantiles[quantiles >= 1.78e+308] <- Inf
-	
-	# Return Value:
 	return( quantiles )
 }
-# ------------------------------------------------------------------------------
 .CArrange <-function(obj, i, j, n)
 {
 	# Description:
@@ -2004,10 +1243,7 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 	# Author: 
 	#   Daniel Berg <daniel at nr.no> (Kjersti Aas <Kjersti.Aas at nr.no>)
 	#   Date: 12 May 2005
-	#   Version: 1.0.2
-	
-	# FUNCTION:
-	
+	#   Version: 1.0.2	
 	if(is.null(obj)) stop("Missing data")
 	
 	if(is.vector(obj)) {
@@ -2018,198 +1254,238 @@ rnig <-function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
 		else stop("Unexpected dimensions of matrix")
 	} else {
 		stop("Unexpected object")
-	}
-	
-	# Return Value:
+	}	
 	return(out) 
 }
-################################################################################
-# FUNCTION:            DESCRIPTION:
-#  dsnig                Returns density of the SNIG distribution
-#  psnig                Returns probabilities of the SNIG distribution
-#  qsnig                Returns quantiles of the SNIG distribution
-#  rsnig                Generates SNIG distributed random variates
-# FUNCTION:            DESCRIPTION:
-#  .qsnigC              Fast qsnig from C code
-################################################################################
-dsnig<-function(x, zeta = 1, rho = 0, log = FALSE) 
-{
-	# Description:
-	#   Returns density of the snig distribution
-	# modified by Alexios Ghalanos (makes use of vectorized dsgh)
-	
-	# FUNCTION:
-	
-	# Compute Density - Quick and Dirty:
-	return( dsgh(x, zeta, rho, lambda = -0.5, log = log) )
+
+dnig = function(x, alpha = 1, beta = 0, delta = 1, mu = 0, log = FALSE)
+{   
+	return( dgh(x = x, alpha = alpha, beta = beta, delta = delta, mu = mu, 
+					lambda = -0.5, log = log) )
 }
-# ------------------------------------------------------------------------------
-psnig <-function(q, zeta = 1, rho = 0) 
-{
-	# Description:
-	#   Returns probabilities of the snig distribution
-	# modified by Alexios Ghalanos (makes use of vectorized psgh)
-	
-	# FUNCTION:
-	
-	# Compute Probabilities - Quick and Dirty:
-	return( psgh(q, zeta, rho, lambda = -0.5) )
+pnig = function(q, alpha = 1, beta = 0, delta = 1, mu = 0)
+{   
+	return( pgh(q = q, alpha = alpha, beta = beta, delta = delta, mu = mu, 
+					lambda = -0.5) )
 }
-# ------------------------------------------------------------------------------
-qsnig <-function(p, zeta = 1, rho = 0) 
+qnig = function(p, alpha = 1, beta = 0, delta = 1, mu = 0)
 {
-	# Description:
-	#   Returns quantiles of the snig distribution
-	# modified by Alexios Ghalanos (vectorized)
-	
-	# FUNCTION:
-	# 4x faster than calling qsgh with lambda=-0.5
-	# Compute Quantiles:
-	fun = function(p, zeta = 1, rho = 0){
-		return(.qsnigC(p, zeta, rho) )
+	n = c(length(p), length(alpha), length(beta), length(delta), length(mu))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) alpha = rep(alpha[1], maxn)
+	if(n[3]!=maxn) beta  = rep(beta[1], maxn)
+	if(n[4]!=maxn) delta = rep(delta[1], maxn)
+	if(n[5]!=maxn) mu    = rep(mu[1], maxn)
+	ans = rep(NA, maxn)
+	for(i in 1:maxn){
+		ans[i] = .qnigC(p = p[i], alpha = alpha[i], beta = beta[i], delta = delta[i], mu = mu[i])
 	}
-	f = Vectorize( fun )
-	ans = f(p, zeta, rho)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
 	return( ans )
 }
-# ------------------------------------------------------------------------------
-rsnig <-function(n, zeta = 1, rho = 0) 
-{
-	# Description:
-	#   Generates snig distributed random variates
-	# modified by Alexios Ghalanos (makes use of vectorized rsgh)
-	
-	# FUNCTION:
-	
-	# Generate Random Numbers:
-	return( rsgh(n, zeta, rho, lambda = -0.5) )
+rnig = function(n, alpha = 1, beta = 0, delta = 1, mu = 0)
+{   
+	return( rgh(n, alpha = alpha, beta = beta, delta = delta, mu = mu, lambda=-0.5) )
 }
-################################################################################
-.qsnigC <-function(p, zeta = 1, rho = 0) 
+nigFit = function(x, control = list())
 {
-	# A function implemented by Diethelm Wuertz
-	
-	# Description:
-	#   Returns quantiles of the snig distribution
-	
-	# FUNCTION:
-	
-	# Compute Quantiles:
-	param = .paramGH(zeta, rho, lambda = -0.5)
+	ctrl = .solnpctrl(control)
+	start = c(alpha = 1, beta = 0, delta = sqrt(var(x)), mu = mean(x))
+	loglik = function(pars, x){
+		f = -sum(log(dnig(x, pars[1], pars[2], pars[3], pars[4])))
+		f }
+	con = function(pars, x){
+		abs(pars[2])-pars[1]
+	}
+	fit = solnp(pars = start, fun = loglik, LB = c(0.1, -100, eps, -Inf), 
+			UB = c(100, 100, Inf, Inf), ineqfun = con, ineqLB = -200, 
+			ineqUB = 0,control = ctrl, x = x)
+	names(fit$pars) = c("alpha", "beta", "delta", "mu")
+	return( fit )
+}
+
+# ------------------------------------------------------------------------------
+# Standardized Normal Inverse Gaussian (NIG) Distribution
+# ------------------------------------------------------------------------------
+.qsnigC = function(p, rho = 0, zeta = 1) 
+{
+	param = .paramGH(rho, zeta, lambda = -0.5)
 	return( .qnigC(p, param[1], param[2], param[3], param[4]) )
 }
 
-snigFit = function (x, zeta = 1, rho = 0, scale = TRUE, doplot = TRUE, 
-				span = "auto", trace = 0, title = NULL, description = NULL, ...) 
-{   	
-	# Update Slots: 
-	if (is.null(title)) title = "SNIG Parameter Estimation"	
-	# Quick and dirty ...
-	ans = sghFit(x, zeta = zeta, rho = rho, lambda = -0.5, include.lambda = FALSE,
-			scale = scale,span = span, trace = trace, 
-			title = title, description = description, ...)
-	
+dsnig = function(x, mu = 0, sigma = 1, skew = 0, shape = 1, log = FALSE) 
+{
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_dsnig", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					logr = as.integer(log), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+psnig = function(q, mu = 0, sigma = 1, skew = 0, shape = 1) 
+{
+	return( psgh(q, mu, sigma, skew, shape, lambda = -0.5) )
+}
+qsnig = function(p, mu = 0, sigma = 1, skew = 0, shape = 1) 
+{
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)	
+	for(i in 1:maxn){
+		ans[i] = mu[i] + sigma[i]*.qsnigC(p, rho = skew[i], zeta = shape[i])
+	}
 	return( ans )
 }
+rsnig = function(n, mu = 0, sigma = 1, skew = 0, shape = 1)
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rsnig", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape),
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
 
+snigFit = function (x, control=list()) 
+{   	
+	x = as.vector(x)
+	ctrl = .solnpctrl(control)
+	start = c(mu = mean(x), sigma = sd(x), skew = 0, shape = 1)
+	loglik = function(pars, x){
+		f =  sum(-log(dsnig(x, pars[1], pars[2], pars[3], pars[4], log = FALSE)))
+		f
+	}
+	fit = solnp(pars = start, fun = loglik, LB = c(-200, 1e-12, -0.999, 0.1), 
+			UB = c(200, 400, 0.999, 25), control = ctrl, x = x)
+	names(fit$pars) <- c("mu", "sigma", "skew","shape")
+	return(fit)
+}
+# ------------------------------------------------------------------------------
+# Johnson's SU Distribution (Rigby & Stasinopoulos parameterization)
+# coded into C by Alexios Ghalanos
+# ------------------------------------------------------------------------------
+djsu = function(x, mu = 0, sigma = 1, skew = 1, shape = 0.5, log = FALSE)
+{
+	n = c(length(x), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) x = rep(x[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_djsu", x = as.double(x), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn), 
+					logr = as.integer(log), PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
 
+pjsu = function(q, mu = 0, sigma = 1, skew = 1, shape = 0.5)
+{
+	n = c(length(q), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) q = rep(q[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_pjsu", q = as.double(q), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn),
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
 
-################################################################################
-# Local version END
-
-################################################################################
-# Johnson SU Distribution (from gamlss package) - reparametrized version so that mu=mean and sigma=sd
+qjsu = function(p, mu = 0, sigma = 1, skew = 1, shape = 0.5)
+{
+	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
+	maxn = max(n)
+	if(n[1]!=maxn) p = rep(p[1], maxn)
+	if(n[2]!=maxn) mu    = rep(mu[1], maxn)
+	if(n[3]!=maxn) sigma = rep(sigma[1], maxn)
+	if(n[4]!=maxn) skew  = rep(skew[1], maxn)
+	if(n[5]!=maxn) shape = rep(shape[1], maxn)
+	ans = double(maxn)
+	sol = try(.C("c_qjsu", p = as.double(p), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape), ans = ans, n = as.integer(maxn),  
+					PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
+rjsu = function(n, mu = 0, sigma = 1, skew = 1, shape = 0.5)
+{
+	nn = c(length(mu), length(sigma), length(skew), length(shape))
+	if(nn[1]!=n) mu    = rep(mu[1], n)
+	if(nn[2]!=n) sigma = rep(sigma[1], n)
+	if(nn[3]!=n) skew  = rep(skew[1], n)
+	if(nn[4]!=n) shape = rep(shape[1], n)
+	ans = double(n)
+	sol = try(.C("c_rjsu", n = as.integer(n), mu = as.double(mu), 
+					sigma = as.double(sigma), skew = as.double(skew), 
+					shape = as.double(shape),
+					ans = ans, PACKAGE="rugarch"), silent = TRUE)
+	if(inherits(sol, 'try-error')){
+		return(sol)
+	} else{
+		return(sol$ans)
+	}
+}
 
 jsuFit = function(x, control = list())
 {
 	# a function implemented by Alexios Ghalanos
 	ctrl = .solnpctrl(control)
-	start = c(mean(x), sd(x), nu = 1, tau = 0.5)
-	
-	loglik = function(y, z){
-		-sum(djsu(y = y, z[1], z[2], z[3], z[4], log = TRUE))
+	start = c(mean(x), sd(x), skew = 1, shape = 0.5)
+	loglik = function(pars, x){
+		-sum(log(djsu(x, pars[1], pars[2], pars[3], pars[4], log = FALSE)))
 	}
-	
 	fit = solnp(pars = start, fun = loglik, LB = c(-Inf, 0, -20, 0.1),
-			UB = c(Inf, Inf, 20, 100), control = ctrl, y = x)
-	names(fit$par) = c("mean", "sd", "nu","tau")
-	
-	# Return Value:
+			UB = c(Inf, Inf, 20, 100), control = ctrl, x = x)
+	names(fit$pars) = c("mu", "sigma", "skew","shape")
 	return( fit )
 }
-djsu = function(y, mu = 0, sigma = 1, nu = 1, tau = 0.5, log = FALSE)
-{
-	if (any(sigma < 0))  stop(paste("sigma must be positive", "\n", "")) 
-	if (any(tau < 0))  stop(paste("tau must be positive", "\n", ""))  
-	rtau <- 1/tau
-	w <- ifelse(rtau<0.0000001,1,exp(rtau^2))
-	omega <- -nu*rtau 
-	c <- (.5*(w-1)*(w*cosh(2*omega)+1))^(-0.5)  
-	z <- (y-(mu+c*sigma*w^(.5)*sinh(omega)))/(c*sigma)
-	r <- -nu + asinh(z)/rtau
-	loglik <- -log(sigma)-log(c)-log(rtau)-.5*log(z*z+1)-.5*log(2*pi)-.5*r*r
-	if(log==FALSE) ft  <- exp(loglik) else ft <- loglik 
-	return( ft )
-}
-
-#----------------------------------------------------------------------------------------  
-pjsu <- function(q, mu = 0, sigma = 1, nu = 1, tau = .5, lower.tail = TRUE, log.p = FALSE)
-{  
-	if (any(sigma < 0))  stop(paste("sigma must be positive", "\n", "")) 
-	if (any(tau < 0))  stop(paste("tau must be positive", "\n", ""))           
-	rtau <- 1/tau
-	w <- ifelse(rtau<0.0000001,1,exp(rtau^2))
-	omega <- -nu*rtau
-	c <- (.5*(w-1)*(w*cosh(2*omega)+1))^(-0.5)  
-	z <- (q-(mu+c*sigma*w^(.5)*sinh(omega)))/(c*sigma)
-	r <- -nu + asinh(z)/rtau    
-	p <- pnorm(r,0,1)
-	if(lower.tail==TRUE) p  <- p else  p <- 1-p 
-	if(log.p==FALSE) p  <- p else  p <- log(p) 
-	return( p )
-}
-
-qjsu <-  function(p, mu=0, sigma=1, nu=0, tau=.5, lower.tail = TRUE, log.p = FALSE)
-{   
-	if (any(sigma < 0))  stop(paste("sigma must be positive", "\n", "")) 
-	if (any(tau < 0))  stop(paste("tau must be positive", "\n", ""))  
-	if (log.p==TRUE) p <- exp(p) else p <- p
-	if (any(p <= 0)|any(p >= 1))  stop(paste("p must be between 0 and 1", "\n", ""))       
-	if (lower.tail==TRUE) p <- p else p <- 1-p
-	rtau <- 1/tau
-	r <- qnorm(p,0,1)
-	z <- sinh(rtau*(r+nu))
-	w <- ifelse(rtau<0.0000001,1,exp(rtau^2))
-	omega <- -nu*rtau 
-	c <- (.5*(w-1)*(w*cosh(2*omega)+1))^(-0.5)     
-	q <- (mu+c*sigma*w^(.5)*sinh(omega))+c*sigma*z   
-	return( q )
-}
-
-rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
-{
-	fun = function(n, mu=0, sigma=1, nu=0, tau=.5){
-		return(.rjsu(n = n, mu = mu, sigma = sigma, nu = nu, tau = tau) )
-	}
-	if(length(n)>1) stop("\nn cannot be a vector of length greater than 1!")
-	f = Vectorize( fun , c("mu","sigma","nu", "tau"))
-	ans = f(n, mu, sigma, nu, tau)
-	if(NCOL(ans)==1) ans = as.numeric(ans)
-	return( ans )	
-}
-
-.rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
-{
-	if (any(sigma <= 0))  stop(paste("sigma must be positive", "\n", "")) 
-	n <- ceiling(n)
-	p <- runif(n)
-	r <- qjsu(p,mu=mu,sigma=sigma,nu=nu,tau=tau)
-	return( r )
-}
-
-# Distribution Model functions:
+# ------------------------------------------------------------------------------
 # Distribution Bounds
+# ------------------------------------------------------------------------------
 .DistributionBounds = function(distribution)
 {
 	ghlambda = 0
@@ -2309,21 +1585,23 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 }
 
 # ------------------------------------------------------------------------------
+# Distribution Wrapper Functions
+# ------------------------------------------------------------------------------
 .makeSample = function(distribution, lambda = -0.5, skew, shape, n, seed)
 {
 	set.seed(seed)
 	x = switch(distribution,
 			norm = rnorm(n),
-			snorm = rsnorm(n, xi = skew),
-			std = rstd(n, nu = shape),
-			sstd = rsstd(n, nu = shape, xi = skew),
-			ged = rged(n, nu = shape),
-			sged = rsged(n, nu = shape, xi = skew),
-			nig = rsnig(n, zeta = shape, rho = skew),
-			ghyp = rsgh(n, zeta = shape, rho = skew, lambda = lambda),
-			ghst = rsghst(n, mean=0, sd = 1, skew = skew, shape = shape),
-			jsu = rjsu(n, mu = 0, sigma = 1, nu = skew, tau = shape)
-			)	
+			snorm = rsnorm(n, skew = skew),
+			std = rstd(n, shape = shape),
+			sstd = rsstd(n, shape = shape, skew = skew),
+			ged = rged(n, shape = shape),
+			sged = rsged(n, shape = shape, skew = skew),
+			nig = rsnig(n, shape = shape, skew = skew),
+			ghyp = rsgh(n, shape = shape, skew = skew, lambda = lambda),
+			ghst = rsghst(n, skew = skew, shape = shape),
+			jsu = rjsu(n, skew = skew, shape = shape)
+			)
 	return(x)
 }
 
@@ -2348,26 +1626,25 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 
 # returns the time varying density parameters of the actual returns
 # (rescaled from the (0,1) parametrization)
-.nigtransform = function(zeta, rho)
+.nigtransform = function(rho, zeta)
 {
-	nigpars = t(apply(cbind(zeta, rho), 1, FUN = function(x) .paramGH(zeta = x[1], rho = x[2], lambda = -0.5)))
+	nigpars = t(apply(cbind(rho, zeta), 1, FUN = function(x) .paramGH(rho = x[1], zeta = x[2], lambda = -0.5)))
 	colnames(nigpars) = c("alpha", "beta", "delta", "mu")
 	return(nigpars)
 }
 
-.ghyptransform = function(zeta, rho, lambda)
+.ghyptransform = function(rho, zeta, lambda)
 {
 	n = length(zeta)
-	ghyppars = t(apply(cbind(zeta, rho), 1, FUN = function(x) .paramGH(zeta = x[1], rho = x[2], lambda = lambda)))
+	ghyppars = t(apply(cbind(rho, zeta), 1, FUN = function(x) .paramGH(rho = x[1], zeta = x[2], lambda = lambda)))
 	ghyppars = cbind(ghyppars, rep(lambda, n))
 	colnames(ghyppars) = c("alpha", "beta", "delta", "mu", "lambda")
 	return(ghyppars)
 }
 
-
 .nigscale = function(mu, sigma, skew, shape)
 {
-	nigpars = t(apply(cbind(shape, skew), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = -0.5)))
+	nigpars = t(apply(cbind(skew, shape), 1, FUN=function(x) .paramGH(rho = x[1], zeta = x[2], lambda = -0.5)))
 	xdensity = matrix(0, ncol = 4, nrow = length(sigma))
 	# alpha, beta, delta, mu
 	xdensity[,4] = nigpars[,1]/sigma
@@ -2375,7 +1652,7 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	xdensity[,2] = nigpars[,3]*sigma
 	xdensity[,1] = nigpars[,4]*sigma + mu
 	# technically: mu, delta, beta, alpha
-	colnames(xdensity) = c("mu", "sigma", "skew", "shape")
+	colnames(xdensity) = c("mu", "delta", "beta", "alpha")
 	return(xdensity)
 }
 
@@ -2390,16 +1667,16 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	xdensity[,2] = ghpars[,2]*sigma
 	xdensity[,1] = ghpars[,1]*sigma + mu
 	# technically: mu, delta, beta, alpha
-	colnames(xdensity) = c("mu", "sigma", "skew", "shape", "lambda")
+	colnames(xdensity) = c("mu", "delta", "beta", "alpha", "lambda")
 	return(xdensity)
 }
 
 .ghypscale = function(mu, sigma, skew, shape, lambda)
 {
 	if(length(lambda)>1){
-		ghpars = t(apply(cbind(shape, skew, lambda), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = x[3])))
+		ghpars = t(apply(cbind(skew, shape, lambda), 1, FUN=function(x) .paramGH(rho = x[1], zeta = x[2], lambda = x[3])))
 	} else{
-		ghpars = t(apply(cbind(shape, skew), 1, FUN=function(x) .paramGH(zeta = x[1], rho = x[2], lambda = lambda)))
+		ghpars = t(apply(cbind(skew, shape), 1, FUN=function(x) .paramGH(rho = x[1], zeta = x[2], lambda = lambda)))
 	}
 	xdensity = matrix(0, ncol = 4, nrow = length(sigma))
 	# alpha, beta, delta, mu
@@ -2408,7 +1685,7 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 	xdensity[,2] = ghpars[,3]*sigma
 	xdensity[,1] = ghpars[,4]*sigma + mu
 	# technically: mu, delta, beta, alpha
-	colnames(xdensity) =c("mu", "sigma", "skew", "shape")
+	colnames(xdensity) =c("mu", "delta", "beta", "alpha")
 	return(xdensity)
 }
 
@@ -2481,7 +1758,6 @@ rjsu <- function(n, mu=0, sigma=1, nu=0, tau=.5)
 }
 
 
-
 .jsuscale = function(mu, sigma, skew, shape)
 {
 	xdensity = matrix(0, ncol = 4, nrow = length(sigma))
@@ -2521,8 +1797,8 @@ fitdist = function(distribution = "norm", x, control=list()){
 			sstd = sstdFit(x, control),
 			ged = gedFit(x, control),
 			sged = sgedFit(x, control),
-			nig = nigFit(x, control),
-			ghyp = ghFit(x, control),
+			nig = snigFit(x, control),
+			ghyp = sghFit(x, control),
 			jsu = jsuFit(x, control),
 			ghst = ghstFit(x, control)
 	)
@@ -2535,16 +1811,16 @@ ddist = function(distribution = "norm", y, mu = 0, sigma = 1, lambda = -0.5, ske
 	if(!any(valid.distributions == distribution))
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	ans = switch(distribution,
-		norm = dnorm(y, mean = mu, sd = sigma, log = FALSE),
-		snorm = dsnorm(y, mean = mu, sd = sigma, xi = skew),
-		std = dstd(y, mean = mu, sd = sigma, nu = shape),
-		sstd = dsstd(y, mean = mu, sd = sigma, nu = shape, xi = skew),
-		ged = dged(y, mean = mu, sd = sigma, nu = shape),
-		sged = dsged(y, mean = mu, sd = sigma, nu = shape, xi = skew),
-		nig = dsnig((y-mu)/sigma, rho = skew, zeta = shape)/sigma,
-		ghyp = dsgh((y-mu)/sigma, rho = skew, zeta = shape, lambda = lambda)/sigma,
-		jsu = djsu(y, mu = mu, sigma = sigma, nu = skew, tau = shape),
-		ghst = dsghst(y, mean = mu, sd = sigma, skew = skew, shape = shape)
+		norm = dnorm(y, mean = mu, sd = sigma),
+		snorm = dsnorm(y, mu = mu, sigma = sigma, skew = skew),
+		std = dstd(y, mu = mu, sigma = sigma, shape = shape),
+		sstd = dsstd(y, mu = mu, sigma = sigma, skew = skew, shape = shape),
+		ged = dged(y, mu = mu, sigma = sigma, shape = shape),
+		sged = dsged(y, mu = mu, sigma = sigma, skew = skew, shape = shape),
+		nig = dsnig((y-mu)/sigma, skew = skew, shape = shape)/sigma,
+		ghyp = dsgh((y-mu)/sigma, skew = skew, shape = shape, lambda = lambda)/sigma,
+		jsu = djsu(y, mu = mu, sigma = sigma, skew = skew, shape = shape),
+		ghst = dsghst(y, mu = mu, sigma = sigma, skew = skew, shape = shape)
 		)
 	return(ans)
 }
@@ -2557,15 +1833,15 @@ pdist = function(distribution = "norm", q, mu = 0, sigma = 1, lambda = -0.5, ske
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	ans = switch(distribution,
 			norm = pnorm(q, mean = mu, sd = sigma, log.p = FALSE),
-			snorm = psnorm(q, mean = mu, sd = sigma, xi = skew),
-			std = pstd(q, mean = mu, sd = sigma, nu = shape),
-			sstd = psstd(q, mean = mu, sd = sigma, nu = shape, xi = skew),
-			ged = pged(q, mean = mu, sd = sigma, nu = shape),
-			sged = psged(q, mean = mu, sd = sigma, nu = shape, xi = skew),
-			nig = psnig((q-mu)/sigma, rho = skew, zeta = shape),
-			ghyp = psgh((q-mu)/sigma, rho = skew, zeta = shape, lambda = lambda),
-			jsu = pjsu(q, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = psghst(q, mean = mu, sd = sigma, skew = skew, shape = shape)
+			snorm = psnorm(q, mu = mu, sigma = sigma, skew = skew),
+			std = pstd(q, mu = mu, sigma = sigma, shape = shape),
+			sstd = psstd(q, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ged = pged(q, mu = mu, sigma = sigma, shape = shape),
+			sged = psged(q, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			nig = psnig((q-mu)/sigma, skew = skew, shape = shape),
+			ghyp = psgh((q-mu)/sigma, skew = skew, shape = shape, lambda = lambda),
+			jsu = pjsu(q, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ghst = psghst(q, mu = mu, sigma = sigma, skew = skew, shape = shape)
 	)
 	return(ans)
 }
@@ -2578,15 +1854,15 @@ qdist = function(distribution = "norm", p, mu = 0, sigma = 1, lambda = -0.5, ske
 		stop("\nnot a valid distributions\n", call. = FALSE)
 	ans = switch(distribution,
 			norm = qnorm(p, mean = mu, sd = sigma, log.p = FALSE),
-			snorm = qsnorm(p, mean = mu, sd = sigma, xi = skew),
-			std = qstd(p, mean = mu, sd = sigma, nu = shape),
-			sstd = qsstd(p, mean = mu, sd = sigma, nu = shape, xi = skew),
-			ged = qged(p, mean = mu, sd = sigma, nu = shape),
-			sged = qsged(p, mean = mu, sd = sigma, nu = shape, xi = skew),
-			nig = qsnig(p, rho = skew, zeta = shape)*sigma + mu,
-			ghyp = qsgh(p, rho = skew, zeta = shape, lambda = lambda)*sigma + mu,
-			jsu = qjsu(p, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = qsghst(p, mean = mu, sd = sigma, skew = skew, shape = shape),
+			snorm = qsnorm(p, mu = mu, sigma = sigma, skew = skew),
+			std = qstd(p, mu = mu, sigma = sigma, shape = shape),
+			sstd = qsstd(p, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ged = qged(p, mu = mu, sigma = sigma, shape = shape),
+			sged = qsged(p, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			nig = qsnig(p, skew = skew, shape = shape)*sigma + mu,
+			ghyp = qsgh(p, skew = skew, shape = shape, lambda = lambda)*sigma + mu,
+			jsu = qjsu(p, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ghst = qsghst(p, mu = mu, sigma = sigma, skew = skew, shape = shape),
 	)
 	return(ans)
 }
@@ -2604,15 +1880,15 @@ rdist = function(distribution = "norm", n, mu = 0, sigma = 1, lambda = -0.5, ske
 		stop("\nnot a valid distribution\n", call. = FALSE)
 	ans = switch(distribution,
 			norm = rnorm(n, mean = mu, sd = sigma),
-			snorm = rsnorm(n, mean = mu, sd = sigma, xi = skew),
-			std = rstd(n, mean = mu, sd = sigma, nu = shape),
-			sstd = rsstd(n, mean = mu, sd = sigma, nu = shape, xi = skew),
-			ged = rged(n, mean = mu, sd = sigma, nu = shape),
-			sged = rsged(n, mean = mu, sd = sigma, nu = shape, xi = skew),
-			nig =  mu + sigma*rsnig(n, rho = skew, zeta = shape),
-			ghyp = mu + sigma*rsgh(n, rho = skew, zeta = shape, lambda = lambda),
-			jsu = rjsu(n, mu = mu, sigma = sigma, nu = skew, tau = shape),
-			ghst = rsghst(n, mean = mu, sd = sigma, skew = skew, shape = shape)
+			snorm = rsnorm(n, mu = mu, sigma = sigma, skew = skew),
+			std = rstd(n, mu = mu, sigma = sigma, shape = shape),
+			sstd = rsstd(n, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ged = rged(n, mu = mu, sigma = sigma, shape = shape),
+			sged = rsged(n, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			nig =  mu + sigma*rsnig(n, skew = skew, shape = shape),
+			ghyp = mu + sigma*rsgh(n, skew = skew, shape = shape, lambda = lambda),
+			jsu = rjsu(n, mu = mu, sigma = sigma, skew = skew, shape = shape),
+			ghst = rsghst(n, mu = mu, sigma = sigma, skew = skew, shape = shape)
 	)
 	return(ans)
 }
@@ -2640,7 +1916,7 @@ dskewness = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 			sged 	= .sgedskew(skew = skew, shape = shape),
 			nig 	= .snigskew(skew = skew, shape = shape),
 			ghyp 	= .sghypskew(skew = skew, shape = shape, lambda = lambda),
-			jsu 	= .jsuskew(mu = 0, sigma = 1, skew = skew, shape = shape),
+			jsu 	= .jsuskew(skew = skew, shape = shape),
 			ghst	= .ghstskew(skew, shape)
 	)
 	return(as.numeric(ans))
@@ -2668,7 +1944,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 			sged 	= .sgedexkurt(skew = skew, shape = shape),
 			nig 	= .snigexkurt(skew = skew, shape = shape),
 			ghyp 	= .sghypexkurt(skew = skew, shape = shape, lambda = lambda),
-			jsu 	= .jsuexkurt(mu = 0, sigma = 1, skew = skew, shape = shape),
+			jsu 	= .jsuexkurt(skew = skew, shape = shape),
 			ghst	= .ghstexkurt(skew, shape)
 	)
 	return(as.numeric(ans))
@@ -2689,7 +1965,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 
 .snigskew = function(skew, shape){
 	fun = function(skew, shape){
-		pars = .paramGH(zeta = shape, rho = skew, lambda = -0.5)
+		pars = .paramGH(rho = skew, zeta = shape, lambda = -0.5)
 		return(.nigskew(alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]))
 	}
 	f = Vectorize( fun )
@@ -2706,7 +1982,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 
 .snigexkurt = function(skew, shape){
 	fun = function(skew, shape){
-		pars = .paramGH(zeta = shape, rho = skew, lambda = -0.5)
+		pars = .paramGH(rho = skew, zeta = shape, lambda = -0.5)
 		return(.nigexkurt(alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]))
 	}
 	f = Vectorize( fun )
@@ -2738,7 +2014,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 
 .sghypskew = function(skew, shape, lambda){
 	fun = function(skew, shape, lambda){
-		pars = .paramGH(zeta = shape, rho = skew, lambda = lambda)
+		pars = .paramGH(rho = skew, zeta = shape, lambda = lambda)
 		return(.ghypskew(lambda = lambda, alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]))
 	}
 	f = Vectorize( fun )
@@ -2754,7 +2030,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 
 .sghypexkurt = function(skew, shape, lambda){
 	fun = function(skew, shape, lambda){
-		pars = .paramGH(zeta = shape, rho = skew, lambda = lambda)
+		pars = .paramGH(rho = skew, zeta = shape, lambda = lambda)
 		return(.ghypexkurt(lambda = lambda, alpha = pars[1], beta = pars[2], delta = pars[3], mu = pars[4]))
 	}
 	f = Vectorize( fun )

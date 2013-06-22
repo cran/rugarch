@@ -313,7 +313,8 @@ void mcsgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *r
 	for(i=0; i<*m; i++)
 	{
 		h[i] = *hEst;
-		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		hm = sqrt(fabs(h[i])*s[i]*v[i]);
+		LHT[i] = log(garchdistribution(z[i], hm, pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}
 	for (i=*m; i<*T; i++)

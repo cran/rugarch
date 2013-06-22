@@ -2120,6 +2120,7 @@ setMethod("reduce", signature(object = "uGARCHfit"), .reduce)
 		colnames(ans) = colnames(s)
 		rownames(ans) = rownames(s)
 	} else if(class(x)=="uGARCHroll"){
+		d = x@model$spec@model$modeldesc$distribution
 		skew = x@forecast$density[,"Skew"]
 		shape = x@forecast$density[,"Shape"]
 		lambda = x@forecast$density[,"Shape(GIG)"]

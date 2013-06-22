@@ -22,168 +22,18 @@
 # include <math.h>
 # include <Rmath.h>
 
-double* paramghskt(const double betabar, const double nu)
+/*
+ * -----------------------------------------
+ * Key Functions
+ * -----------------------------------------
+ */
+double dnormstd(const double x)
 {
-	double *param = malloc(4*sizeof(double));
-	double delta = sqrt(1/( ((2 * betabar*betabar)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) ));
-	double beta = betabar/delta;
-	double mu = -( (beta * (delta*delta))/(nu-2));
-	param[0]=(double) nu;
-	param[1]=(double) beta;
-	param[2]=(double) delta;
-	param[3]=(double) mu;
-	return param;
+  double pdf;
+  pdf = exp ( -0.5 * x * x ) / sqrt ( 2.0 * PI );
+  if(pdf == 0.0) pdf = 0.0 + 2.22507e-128;
+  return pdf;
 }
-
-double dghsktstd(const double x, const double betabar, const double nu)
-{
-	double *param;
-	param = paramghskt(betabar, nu);
-	double beta = param[1];
-	double delta = param[2];
-	double mu = param[3];
-	double pdf = ((1 - nu)/2) * log(2) + nu * log(delta) + ((nu + 1)/2) * log(fabs(beta)) 
-	+ log(bessel_k(sqrt(beta*beta * (delta*delta + (x - mu)*(x - mu))), (nu + 1)/2, 2)) - sqrt(beta*beta * (delta*delta 
-	+ (x - mu)*(x - mu))) + beta * (x - mu) - lgammafn(nu/2) - log(PI)/2 - ((nu + 1)/2) * log(delta*delta + (x - mu)*(x - mu))/2;
-	free(param);
-	pdf = exp(pdf);
-	return pdf;
-}
-
-double rsghst(const double betabar, const double nu)
-{
-	double *param;
-	param = paramghskt(betabar, nu);
-	double beta = param[1];
-	double delta = param[2];
-	double mu = param[3];
-	double y = 1/rgamma(nu/2, 2/(delta*delta));
-	double sigma = sqrt(y);
-	double z = rnorm(0,1);
-	double ans =  mu + beta * sigma*sigma + sigma * z;
-	free(param);
-	return ans;
-}
-
-double rghyp(const double zeta, const double rho, const double lambda)
-{
-	double *param;
-	param = paramgh(zeta, rho, lambda);
-	double alpha = param[0];
-	double beta = param[1];
-	double delta = param[2];
-	double mu = param[3];
-	double chi = delta*delta;
-	double psi = (alpha * alpha) - (beta * beta);
-	double W = rgig(lambda, chi, psi);
-	double ans = mu + W*W*beta + sqrt(W) * rnorm(0, 1);
-	free(param);
-	return(ans);
-}
-double rsnig(const double zeta, const double rho)
-{
-	double ans = rghyp(zeta, rho, -0.5);
-	return(ans);
-}
-
-double rstd(const double nu)
-{
-	double ans = 0;
-	if(nu > 2.0) 
-	{
-	double s = sqrt(nu/(nu-2));
-	ans = rt(nu) * 1.0 / s;
-	}
-	return(ans);
-}
-
-double rsstd(const double nu, const double xi)
-{
-	double weight, z, rr, m1, mu, sigma, xx, ans;
-	ans = 0.0;
-	weight = xi / (xi + 1.0/xi);
-	z = runif(-1.0 * weight, 1.0 - weight);
-	xx = (z < 0)? 1.0/xi : xi;
-	rr = -1.0 * fabs(rstd(nu))/xx * sign(z);
-	m1 = 2.0 * sqrt(nu - 2.0) / (nu - 1.0) / beta(0.5, 0.5 * nu);
-	mu = m1 * (xi - 1.0/xi);
-	sigma =  sqrt((1.0 - (m1 * m1)) * ((xi * xi) + 1.0/(xi * xi)) + 2 * (m1 * m1) - 1.0);
-	ans =  (rr - mu ) / sigma;
-	return(ans);
-}
-
-double qjsu(const double x, const double nu, const double tau)
-{
-	double rtau, rr, z, w, omega, cc, ans;
-	ans = 0.0;
-	rtau = 1.0/tau;
-	rr = qnorm(x, 0.0, 1.0, 1, 0);
-	z = sinh(rtau * (rr + nu));
-	w = (rtau<0.0000001) ? 1 : exp(rtau * rtau);
-	omega = -1.0 * nu * rtau;
-	cc = sqrt(1/(0.5 * (w - 1.0)*(w * cosh(2.0 * omega) + 1)));
-	ans = (cc * sqrt(w) * sinh(omega)) + cc * z;
-	return(ans);   
-}
-
-double rjsu(const double nu, const double tau)
-{
-	double x, ans;
-	ans = 0.0;
-	x = runif(0, 1);
-	ans = qjsu(x, nu, tau);
-	return(ans);
-}
-
-double rnig(const double alpha, const double beta, const double delta, const double mu)
-{
-	double chi = delta*delta;
-	double psi = (alpha * alpha) - (beta * beta);
-	double W = rgig(-0.5, chi, psi);
-	double ans = mu + W*W*beta + sqrt(W) * rnorm(0, 1);
-	return(ans);
-}
-
-double rsnorm(const double xi)
-{
-	double weight, z, rr, m1, mu, sigma, xx, ans;
-	weight = xi / (xi + 1.0/xi);
-	z = runif(-weight, 1.0 - weight);
-	xx = (z < 0)? 1.0/xi : xi;
-	rr = -1.0 * fabs(rnorm(0, 1))/xx * sign(z);  
-	m1 = 2.0/sqrt(2.0 * PI);
-	mu = m1 * (xi - 1.0/xi);
-	sigma = sqrt((1 - (m1 * m1)) * ( (xi * xi) + 1.0/(xi* xi) ) + 2 * (m1 * m1) - 1.0);
-	ans = (rr - mu ) / sigma;
-	return(ans);
-}
-
-double rged(const double nu)
-{
-	double lambda, rr, ans;
-	ans = 0.0;
-	lambda = sqrt ( pow(0.5, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
-	rr = rgamma(1.0/nu, 1.0);
-	ans =  lambda * pow(2*rr, 1/nu) * sign(runif(0, 1) - 0.5);
-	return(ans);
-}
-
-double rsged(const double nu, const double xi)
-{
-	double weight, lambda, z, rr, m1, mu, sigma, xx, ans;
-	weight = xi / (xi + 1.0/xi);
-	z = runif(-1.0 * weight, 1.0 - weight);
-	xx = (z < 0)? 1.0/xi : xi;
-	rr = -1.0 * fabs(rged(nu))/xx * sign(z);
-	lambda = sqrt ( pow(0.5, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
-	//g  = nu / ( lambda * (pow(2, 1.0 +1.0/nu)) * gammafn(1.0/nu) );
-	m1 = pow(2, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
-	mu = m1 * (xi - 1.0/xi);
-	sigma = sqrt((1 - (m1 * m1)) * ( (xi * xi) + 1.0/(xi* xi) ) + 2 * (m1 * m1) - 1.0);
-	ans = (rr - mu ) / sigma;
-	return(ans);
-}
-
 double signum(const double x)
 {
 	double res=-(x<0)+(x>0);
@@ -192,6 +42,9 @@ double signum(const double x)
 double dhuge(void)
 {
   return HUGE_VAL;
+}
+double Heaviside(const double x, const double a){
+	return( (signum(x-a) + 1.0)/2.0 );
 }
 double depsilon(void)
 {
@@ -222,7 +75,7 @@ double deltakappagh(const double x, const double lambda)
 	}
 	return deltakappa;
 }
-double* paramgh(const double zeta, const double rho, const double lambda)
+double* paramgh(const double rho, const double zeta, const double lambda)
 {
 	double *param = malloc(4*sizeof(double));
 	double rho2 = 1 - pow(rho,2);
@@ -238,70 +91,263 @@ double* paramgh(const double zeta, const double rho, const double lambda)
 	param[3]=(double) mu;
 	return param;
 }
-
-double dnormstd(const double x)
+double* paramghskt(const double betabar, const double nu)
 {
-  double pdf;
-  pdf = exp ( -0.5 * x * x ) / sqrt ( 2.0 * PI );
-  if(pdf == 0.0) pdf = 0.0 + 2.22507e-128;
-  return pdf;
+	double *param = malloc(4*sizeof(double));
+	double delta = sqrt(1/( ((2 * betabar*betabar)/((nu-2)*(nu-2)*(nu-4))) + (1/(nu-2)) ));
+	double beta = betabar/delta;
+	double mu = -( (beta * (delta*delta))/(nu-2));
+	param[0]=(double) nu;
+	param[1]=(double) beta;
+	param[2]=(double) delta;
+	param[3]=(double) mu;
+	return param;
 }
-double dsnormstd(const double x, const double xi)
+
+/*
+ * -----------------------------------------
+ * GH Skew Student Distribution
+ * -----------------------------------------
+ */
+double dghsktstd(const double x, const double betabar, const double nu)
+{
+	double *param;
+	param = paramghskt(betabar, nu);
+	double beta = param[1];
+	double delta = param[2];
+	double mu = param[3];
+	double pdf = ((1 - nu)/2) * log(2) + nu * log(delta) + ((nu + 1)/2) * log(fabs(beta)) 
+	+ log(bessel_k(sqrt(beta*beta * (delta*delta + (x - mu)*(x - mu))), (nu + 1)/2, 2)) - sqrt(beta*beta * (delta*delta 
+	+ (x - mu)*(x - mu))) + beta * (x - mu) - lgammafn(nu/2) - log(PI)/2 - ((nu + 1)/2) * log(delta*delta + (x - mu)*(x - mu))/2;
+	free(param);
+	pdf = exp(pdf);
+	return pdf;
+}
+
+void c_dghst(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int* logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dghsktstd( (x[i]-mu[i])/sigma[i], skew[i], shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double rsghst(const double betabar, const double nu)
+{
+	double *param;
+	param = paramghskt(betabar, nu);
+	double beta = param[1];
+	double delta = param[2];
+	double mu = param[3];
+	double y = 1/rgamma(nu/2, 2/(delta*delta));
+	double sigma = sqrt(y);
+	double z = rnorm(0,1);
+	double ans =  mu + beta * sigma*sigma + sigma * z;
+	free(param);
+	return ans;
+}
+
+void c_rghst(int *n, double *mu, double *sigma, double *skew, double *shape, double *ans)
+{
+	GetRNGstate();
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rsghst(skew[i], shape[i])*sigma[i];
+	}
+	PutRNGstate();
+}
+
+/*
+ * -----------------------------------------
+ * GH Distribution
+ * -----------------------------------------
+ */
+double dgh(const double x, const double alpha, const double beta, const double delta, const double mu, const double lambda)
+{
+	double pdf=0;
+	if(alpha<=0){
+		return pdf=0;
+	}
+	if(delta <= 0){
+		return pdf=0;
+	}
+	if(fabs(beta) >= alpha){
+		return pdf=0;
+	}
+	double arg = delta*sqrt(pow(alpha,2)-pow(beta,2));
+	double a = (lambda/2.0)*log(pow(alpha,2)-pow(beta,2)) - (log(sqrt(2*PI)) + (lambda-0.5)*log(alpha)
+			+ lambda*log(delta) + log(bessel_k(arg, lambda, 2)) - arg );
+	double f = ((lambda-0.5)/2.0)*log(pow(delta,2)+pow((x - mu),2));
+	arg = alpha * sqrt(pow(delta,2)+pow((x-mu),2));
+	double k = log(bessel_k(arg, lambda-0.5, 2)) - arg;
+	double e = beta*(x-mu);
+	pdf = exp(a + f + k + e);
+	return pdf;
+}
+
+void c_dgh(double *x, double *alpha, double *beta, double *delta, double *mu, double *lambda, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dgh(x[i], alpha[i], beta[i], delta[i], mu[i],lambda[i]);
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double dghstd(const double x, const double rho, const double zeta, const double lambda)
 {
 	double pdf;
-	double m1, mu, sigma,z, xxi, g;
-	xxi=xi;
-	m1 = 2/sqrt(2*PI);
-	mu = m1*(xi-1/xi);
-	sigma = sqrt((1-pow(m1,2))*(pow(xi,2)+1/pow(xi,2))+2*pow(m1,2)-1);
-	z = x*sigma+mu;
-	if(z==0){
-		xxi=1;
-	}
-	if(z<0){
-		xxi = 1/xi;
-	}
-	g = 2.0/(xi + 1.0/xi);
-	pdf = g * dnormstd(z/xxi)*sigma;
+	double *param;
+	param = paramgh(rho, zeta, lambda);
+	double alpha=param[0];
+	double beta=param[1];
+	double delta=param[2];
+	double mu=param[3];
+	pdf = dgh(x, alpha, beta, delta, mu, lambda);
+	free(param);
 	return pdf;
 }
-double dgedstd(const double x, const double nu)
+
+void c_dghyp(double *x, double *mu, double *sigma, double *skew, double *shape, double *lambda, double *ans, int *n, int *logr)
 {
-	double lambda, g, pdf;
-	lambda = sqrt(pow(1.0/2.0,2.0/nu)*gammafn( 1.0/nu )/gammafn( 3.0/nu));
-    g = nu/(lambda*(pow(2.0,1.0+(1.0/nu)))*gammafn( 1.0/nu));
-	pdf = g*exp(-0.5*pow(fabs(x/lambda),nu));
-	return pdf;
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dghstd((x[i]-mu[i])/sigma[i], skew[i], shape[i], lambda[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
 }
-double dsgedstd(const double x, const double nu, const double xi)
+
+double rghyp(const double rho, const double zeta, const double lambda)
 {
-	double lambda, m1, mu, sigma, z, g, pdf, xxi;
-	xxi=xi;
-	lambda = sqrt(pow(1.0/2.0,(2/nu))*gammafn( 1.0/nu )/gammafn( 3.0/nu));
-	g = nu/(lambda*(pow(2.0,1.0+(1.0/nu)))*gammafn( 1.0/nu));
-	m1 = pow(2.0, (1.0/nu))*lambda*gammafn(2.0/nu)/gammafn(1.0/nu);
-	mu = m1*(xi-1.0/xi);
-	sigma = (1 - pow(m1,2.0))*(pow(xi,2.0)+1.0/(pow(xi,2.0))) + 2.0*(pow(m1,2))-1.0;
-	sigma = sqrt(sigma);
-	z = x*sigma+mu;
-	if(z==0){
-		xxi=1;
+	double *param;
+	param = paramgh(rho, zeta, lambda);
+	double alpha = param[0];
+	double beta = param[1];
+	double delta = param[2];
+	double mu = param[3];
+	double chi = delta*delta;
+	double psi = (alpha * alpha) - (beta * beta);
+	double W = rgig(lambda, chi, psi);
+	double ans = mu + W*beta + sqrt(W) * rnorm(0, 1);
+	free(param);
+	return(ans);
+}
+
+void c_rghyp(int *n, double *mu, double *sigma, double *skew, double *shape, double *lambda, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rghyp(skew[i], shape[i], lambda[i])*sigma[i];
 	}
-	if(z<0){
-		xxi = 1/xi;
-	}
-	g = 2.0/(xi + 1.0/xi);
-	pdf = g*dgedstd(z/xxi, nu)*sigma;
+}
+
+/*
+ * -----------------------------------------
+ * NIG Distribution
+ * -----------------------------------------
+ */
+double dnig(const double x, const double alpha, const double  beta, const double delta, const double mu)
+{
+	double pdf=0;
+	double lambda=-0.5;
+	pdf = dgh(x, alpha, beta, delta, mu, lambda);
 	return pdf;
 }
+
+double dnigstd(const double x, const double rho, const double zeta)
+{
+	double pdf=0;
+	double lambda=-0.5;
+	double *param;
+	param = paramgh(rho, zeta, lambda);
+	double alpha=param[0];
+	double beta=param[1];
+	double delta=param[2];
+	double mu=param[3];
+	double d = delta*delta;
+	double xm = x-mu;
+	pdf =  -log(PI)+log(alpha)+log(delta)+log(bessel_k(alpha*sqrt(d+xm*xm), 1, 1))+
+				delta*sqrt(alpha*alpha-beta*beta)+beta*xm-0.5*log(d+xm*xm);
+	pdf = exp(pdf);
+	free(param);
+	return pdf;
+}
+
+void c_dsnig(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dnigstd((x[i]-mu[i])/sigma[i], skew[i], shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double rsnig(const double rho, const double zeta)
+{
+	double ans = rghyp(rho, zeta, -0.5);
+	return(ans);
+}
+
+double rnig(const double alpha, const double beta, const double delta, const double mu)
+{
+	double chi = delta*delta;
+	double psi = (alpha * alpha) - (beta * beta);
+	double W = rgig(-0.5, chi, psi);
+	double ans = mu + W*W*beta + sqrt(W) * rnorm(0, 1);
+	return(ans);
+}
+
+void c_rsnig(int *n, double *mu, double *sigma, double *skew, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rghyp(skew[i], shape[i], -0.5)*sigma[i];
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Student Distribution
+ * -----------------------------------------
+ */
+
+double rstd(const double nu)
+{
+	double ans = 0;
+	if(nu > 2.0) 
+	{
+	double s = sqrt(nu/(nu-2));
+	ans = rt(nu) * 1.0 / s;
+	}
+	return(ans);
+}
+
+void c_rstd(int *n, double *mu, double *sigma, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rstd(shape[i])*sigma[i];
+	}
+}
+
 double xdt(const double x, const double nu)
 {
 	double a, b, pdf;
 	a = gammafn((nu+1.0)/2.0)/sqrt(PI*nu);
-    	b = gammafn(nu/2.0)*pow((1.0+(x*x)/nu),((nu+1.0)/2.0));
-    	pdf = a/b;
+    b = gammafn(nu/2.0)*pow((1.0+(x*x)/nu),((nu+1.0)/2.0));
+    pdf = a/b;
 	return pdf;
 }
+
 double dstdstd(const double x, const double nu)
 {
 	double pdf, s;
@@ -313,7 +359,80 @@ double dstdstd(const double x, const double nu)
 	}
 	return pdf;
 }
-double dsstdstd(const double x, const double nu, const double xi)
+
+void c_dstd(double *x, double *mu, double *sigma, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dstdstd((x[i]-mu[i])/sigma[i], shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double pstd(const double q, const double mu, const double sigma, const double nu)
+{
+	double s = sqrt(nu/(nu-2.0));
+	double z = (q-mu)/sigma;
+	double p = pt(z*s, nu, 1, 0);
+	return( p );
+}
+
+void c_pstd(double *q, double *mu, double *sigma, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = pstd(q[i],mu[i],sigma[i],shape[i]);
+	}
+}
+
+double qstd(const double p, const double mu, const double sigma, const double nu)
+{
+	double s = sqrt(nu/(nu-2.0));
+	double q = qt(p, nu, 1, 0) * sigma/s + mu;
+	return( q );
+}
+
+void c_qstd(double *p, double *mu, double *sigma, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = qstd(p[i],mu[i],sigma[i],shape[i]);
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Skew Student Distribution (Fernandez & Steel)
+ * -----------------------------------------
+ */
+double rsstd(const double xi, const double nu)
+{
+	double weight, z, rr, m1, mu, sigma, xx, ans;
+	ans = 0.0;
+	weight = xi / (xi + 1.0/xi);
+	z = runif(-1.0 * weight, 1.0 - weight);
+	xx = (z < 0)? 1.0/xi : xi;
+	rr = -1.0 * fabs(rstd(nu))/xx * sign(z);
+	m1 = 2.0 * sqrt(nu - 2.0) / (nu - 1.0) / beta(0.5, 0.5 * nu);
+	mu = m1 * (xi - 1.0/xi);
+	sigma =  sqrt((1.0 - (m1 * m1)) * ((xi * xi) + 1.0/(xi * xi)) + 2 * (m1 * m1) - 1.0);
+	ans =  (rr - mu ) / sigma;
+	return(ans);
+}
+
+void c_rsstd(int *n, double *mu, double *sigma, double *skew, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rsstd(skew[i], shape[i])*sigma[i];
+	}
+}
+
+double dsstdstd(const double x, const double xi, const double nu)
 {
 	double mu, m1,beta, sigma, z, g,pdf,a,b, xxi;
 	xxi=xi;
@@ -335,7 +454,449 @@ double dsstdstd(const double x, const double nu, const double xi)
 	return pdf;
 }
 
-double dhyp(const double x, const double alpha, const double beta, const double delta, const double mu, const int logr)
+void c_dsstd(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dsstdstd((x[i]-mu[i])/sigma[i], skew[i], shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double psstd(const double q, const double mu, const double sigma, const double xi, const double nu)
+{
+	double qx = (q-mu)/sigma;
+	double m1 = 2.0 * sqrt(nu-2.0) / (nu-1.0) / beta(0.5, nu/2.0);
+	double mux = m1*(xi-1.0/xi);
+	double sig =  sqrt((1-m1*m1)*(xi*xi+1/(xi*xi)) + 2*m1*m1 - 1);
+	double z = qx*sig+mux;
+	double Xi = (z<0)?1.0/xi:xi;
+	double g = 2.0 / (xi + 1.0/xi);
+	double p = Heaviside(z, 0) - signum(z) * g * Xi * pstd(-fabs(z)/Xi, 0, 1, nu);
+	return( p );
+}
+
+void c_psstd(double *q, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = psstd(q[i],mu[i],sigma[i],skew[i],shape[i]);
+	}
+}
+
+double qsstd(const double p, const double xi, const double nu)
+{
+	double m1 = 2.0 * sqrt(nu-2.0) / (nu-1.0) / beta(0.5, nu/2.0);
+	double mu = m1*(xi-1.0/xi);
+	double sigma =  sqrt((1-m1*m1)*(xi*xi+1/(xi*xi)) + 2*m1*m1 - 1);
+	double g = 2.0 / (xi + 1.0/xi);
+	double z = p-0.5;
+	double Xi = (z<0)?1.0/xi:xi;
+	double tmp = (Heaviside(z, 0) - signum(z)*p)/(g*Xi);
+	double q = (-signum(z)*qstd(tmp, 0, 1, nu)*Xi - mu)/sigma;
+	return( q );
+}
+
+void c_qsstd(double *p, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = qsstd(p[i],skew[i],shape[i])*sigma[i]+mu[i];
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Johnson's SU Distribution
+ * -----------------------------------------
+ */
+//nu = skew, tau = shape (!)
+double djsustd(const double x, const double nu, const double tau)
+{
+	double w, z, r, omega, c, pdf=0.0;
+	double rtau=1.0/tau;
+	if(rtau<0.0000001){
+		w = 1.0;
+	} else{
+		w = exp(rtau*rtau);
+	}
+	omega=-nu*rtau;
+	c=sqrt(1/(0.5*(w-1)*(w*cosh(2*omega)+1)));
+	z=(x-(c*sqrt(w)*sinh(omega)))/c;
+	r=-nu + asinh(z)/rtau;
+	pdf= -log(c)-log(rtau)-0.5*log(z*z+1)-0.5*log(2*PI)-0.5*r*r;
+	pdf=exp(pdf);
+	return pdf;
+}
+
+void c_djsu(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = djsustd((x[i]-mu[i])/sigma[i],skew[i],shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double qjsu(const double p, const double nu, const double tau)
+{
+	double rtau, rr, z, w, omega, cc, ans;
+	ans = 0.0;
+	rtau = 1.0/tau;
+	rr = qnorm(p, 0.0, 1.0, 1, 0);
+	z = sinh(rtau * (rr + nu));
+	w = (rtau<0.0000001) ? 1 : exp(rtau * rtau);
+	omega = -1.0 * nu * rtau;
+	cc = sqrt(1/(0.5 * (w - 1.0)*(w * cosh(2.0 * omega) + 1)));
+	ans = (cc * sqrt(w) * sinh(omega)) + cc * z;
+	return(ans);   
+}
+
+void c_qjsu(double *p, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i]+qjsu(p[i],skew[i],shape[i])*sigma[i];
+	}
+}
+
+double rjsu(const double nu, const double tau)
+{
+	double x, ans;
+	ans = 0.0;
+	x = runif(0, 1);
+	ans = qjsu(x, nu, tau);
+	return(ans);
+}
+
+void c_rjsu(int *n, double *mu, double *sigma, double *skew, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rjsu(skew[i], shape[i])*sigma[i];
+	}
+}
+
+double pjsu(const double q, const double mu, const double sigma, const double nu, const double tau)
+{
+	double rtau = 1.0/tau;
+	double w = (rtau<0.0000001)?1.0:exp(rtau*rtau);
+	double omega = -1.0*nu*rtau;
+	double c = 1/sqrt(0.5*(w-1.0)*(w*cosh(2*omega)+1));
+	double z = (q-(mu+c*sigma*sqrt(w)*sinh(omega)))/(c*sigma);
+	double r = -1.0*nu + asinh(z)/rtau;
+	double p = pnorm(r,0,1,1,0);
+	return( p );
+}
+
+void c_pjsu(double *q, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = pjsu(q[i], mu[i], sigma[i], skew[i],shape[i]);
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Skew Normal Distribution
+ * -----------------------------------------
+ */
+double rsnorm(const double xi)
+{
+	double weight, z, rr, m1, mu, sigma, xx, ans;
+	weight = xi / (xi + 1.0/xi);
+	z = runif(-weight, 1.0 - weight);
+	xx = (z < 0)? 1.0/xi : xi;
+	rr = -1.0 * fabs(rnorm(0, 1))/xx * sign(z);  
+	m1 = 2.0/sqrt(2.0 * PI);
+	mu = m1 * (xi - 1.0/xi);
+	sigma = sqrt((1 - (m1 * m1)) * ( (xi * xi) + 1.0/(xi* xi) ) + 2 * (m1 * m1) - 1.0);
+	ans = (rr - mu ) / sigma;
+	return(ans);
+}
+
+void c_rsnorm(int *n, double *mu, double *sigma, double *skew, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rsnorm(skew[i])*sigma[i];
+	}
+}
+
+double dsnormstd(const double x, const double xi)
+{
+	double pdf;
+	double mu, sigma,z, xxi, g;
+	double m1 = 2.0/sqrt(2.0*PI);
+	double m12 = m1*m1;
+	double xi2 = xi*xi;
+	mu = m1*(xi-1.0/xi);
+	sigma = sqrt((1-m12)*(xi2+1.0/xi2)+2*m12-1);
+	z = x*sigma+mu;
+	xxi = (z<0)? 1.0/xi : xi;
+	g = 2.0/(xi + 1.0/xi);
+	pdf = g * dnormstd(z/xxi)*sigma;
+	return pdf;
+}
+
+void c_dsnorm(double *x, double *mu, double *sigma, double *skew, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dsnormstd((x[i]-mu[i])/sigma[i], skew[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double psnorm(const double q, const double mu, const double sigma, const double xi)
+{
+	double qx = (q-mu)/sigma;
+	double m1 = 2.0/sqrt(2*PI);
+	double mux = m1 * (xi - 1.0/xi);
+	double sig = sqrt((1.0-m1*m1)*(xi*xi+1.0/(xi*xi)) + 2.0*m1*m1 - 1.0);
+	double z = qx*sig + mux;
+	double Xi = (z<0)?1.0/xi:xi;
+	double g = 2.0/(xi + 1.0/xi);
+	double p = Heaviside(z, 0) - signum(z) * g * Xi * pnorm(-fabs(z)/Xi, 0, 1, 1, 0);
+	return( p );
+}
+
+void c_psnorm(double *q, double *mu, double *sigma, double *skew, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = psnorm(q[i],mu[i],sigma[i],skew[i]);
+	}
+}
+
+double qsnorm(const double p, const double xi)
+{
+	double m1 = 2.0/sqrt(2*PI);
+	double mu = m1 * (xi - 1.0/xi);
+	double sigma = sqrt((1.0-m1*m1)*(xi*xi+1.0/(xi*xi)) + 2.0*m1*m1 - 1.0);
+	double g = 2.0/(xi + 1.0/xi);
+	double z = p-0.5;
+	double Xi = (z<0)?1.0/xi:xi;
+	double tmp = (Heaviside(z, 0) - signum(z) * p)/ (g* Xi);
+	double q = (-1.0*signum(z)*qnorm(tmp, 0, Xi, 1, 0) - mu)/sigma;
+	return( q );
+}
+
+void c_qsnorm(double *p, double *mu, double *sigma, double *skew, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i]+qsnorm(p[i],skew[i])*sigma[i];
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Generalized Error Distribution
+ * -----------------------------------------
+ */
+double rged(const double nu)
+{
+	double lambda, rr, ans;
+	ans = 0.0;
+	lambda = sqrt ( pow(0.5, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
+	rr = rgamma(1.0/nu, 1.0);
+	ans =  lambda * pow(2*rr, 1/nu) * sign(runif(0, 1) - 0.5);
+	return(ans);
+}
+
+void c_rged(int *n, double *mu, double *sigma, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rged(shape[i])*sigma[i];
+	}
+}
+
+double dgedstd(const double x, const double nu)
+{
+	double lambda, g, pdf;
+	lambda = sqrt(pow(1.0/2.0,2.0/nu)*gammafn( 1.0/nu )/gammafn( 3.0/nu));
+    g = nu/(lambda*(pow(2.0,1.0+(1.0/nu)))*gammafn( 1.0/nu));
+	pdf = g*exp(-0.5*pow(fabs(x/lambda),nu));
+	return pdf;
+}
+
+void c_dged(double *x, double *mu, double *sigma, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dgedstd((x[i]-mu[i])/sigma[i], shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double pged(const double q, const double mu, const double sigma, const double nu)
+{
+	double qx = (q-mu)/sigma;
+	double lambda = sqrt ( 1.0/pow(2.0, (2.0/nu)) * gammafn(1.0/nu) / gammafn(3.0/nu) );
+	double g  = nu / ( lambda * (pow(2,(1+1.0/nu))) * gammafn(1.0/nu) );
+	double h = pow(2.0, (1.0/nu)) * lambda * g * gammafn(1.0/nu) / nu;
+	double s = 0.5 * pow( fabs(qx) / lambda , nu );
+	double p = 0.5 + signum(qx) * h * pgamma(s, 1.0/nu, 1, 1, 0);
+	return( p );
+}
+
+void c_pged(double *q, double *mu, double *sigma, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = pged(q[i],mu[i],sigma[i],shape[i]);
+	}
+}
+
+double qged(const double p, const double shape)
+{
+	double y = 2.0*p-1.0;
+	double lambda = sqrt ( 1.0/pow(2.0, (2.0/shape)) * gammafn(1.0/shape) / gammafn(3.0/shape) );
+	double q = lambda * pow(2.0*qgamma(fabs(y), 1.0/shape, 1, 1, 0), 1.0/shape);
+	q = q*signum(y);
+	return( q );
+}
+
+void c_qged(double *p, double *mu, double *sigma, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = qged(p[i],shape[i]) * sigma[i] + mu[i];
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Skew Generalized Error Distribution (Fernandez & Steel)
+ * -----------------------------------------
+ */
+double rsged(const double xi, const double nu)
+{
+	double weight, lambda, z, rr, m1, mu, sigma, xx, ans;
+	weight = xi / (xi + 1.0/xi);
+	z = runif(-1.0 * weight, 1.0 - weight);
+	xx = (z < 0)? 1.0/xi : xi;
+	rr = -1.0 * fabs(rged(nu))/xx * sign(z);
+	lambda = sqrt ( pow(0.5, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
+	//g  = nu / ( lambda * (pow(2, 1.0 +1.0/nu)) * gammafn(1.0/nu) );
+	m1 = pow(2, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
+	mu = m1 * (xi - 1.0/xi);
+	sigma = sqrt((1 - (m1 * m1)) * ( (xi * xi) + 1.0/(xi* xi) ) + 2 * (m1 * m1) - 1.0);
+	ans = (rr - mu ) / sigma;
+	return(ans);
+}
+
+void c_rsged(int *n, double *mu, double *sigma, double *skew, double *shape, double *ans)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = mu[i] + rsged(skew[i], shape[i])*sigma[i];
+	}
+}
+
+double dsgedstd(const double x, const double xi, const double nu)
+{
+	double lambda, m1, mu, sigma, z, g, pdf, xxi;
+	xxi=xi;
+	lambda = sqrt(pow(1.0/2.0,(2/nu))*gammafn( 1.0/nu )/gammafn( 3.0/nu));
+	g = nu/(lambda*(pow(2.0,1.0+(1.0/nu)))*gammafn( 1.0/nu));
+	m1 = pow(2.0, (1.0/nu))*lambda*gammafn(2.0/nu)/gammafn(1.0/nu);
+	mu = m1*(xi-1.0/xi);
+	sigma = (1 - pow(m1,2.0))*(pow(xi,2.0)+1.0/(pow(xi,2.0))) + 2.0*(pow(m1,2))-1.0;
+	sigma = sqrt(sigma);
+	z = x*sigma+mu;
+	if(z==0){
+		xxi=1;
+	}
+	if(z<0){
+		xxi = 1/xi;
+	}
+	g = 2.0/(xi + 1.0/xi);
+	pdf = g*dgedstd(z/xxi, nu)*sigma;
+	return pdf;
+}
+
+void c_dsged(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int *logr)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dsgedstd((x[i]-mu[i])/sigma[i],skew[i],shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
+}
+
+double psged(const double q, const double mu, const double sigma, const double xi, const double nu)
+{
+	double qx = (q-mu)/sigma;
+	double lambda = sqrt ( 1.0/pow(2.0, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
+	double m1 = pow(2.0, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
+	double mux = m1*(xi-1.0/xi);
+	double sig =  sqrt((1.0-m1*m1)*(xi*xi+1/(xi*xi)) + 2.0*m1*m1 - 1);
+	double z = qx*sig + mux;
+	double Xi = (z<0)?1.0/xi:xi;
+	double g = 2.0/(xi + 1.0/xi);
+	double p = Heaviside(z, 0) - signum(z) * g * Xi * pged(-fabs(z)/Xi, 0, 1, nu);
+	return( p );
+}
+
+void c_psged(double *q, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = psged(q[i],mu[i],sigma[i],skew[i],shape[i]);
+	}
+}
+
+double qsged(const double p, const double xi, const double nu)
+{
+	double lambda = sqrt ( 1.0/pow(2.0, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
+	double m1 = pow(2.0, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
+	double mu = m1*(xi-1.0/xi);
+	double sigma =  sqrt((1.0-m1*m1)*(xi*xi+1/(xi*xi)) + 2.0*m1*m1 - 1);
+	double g = 2.0/(xi + 1.0/xi);
+	double z = p - 0.5;
+	double Xi = (z<0)?1.0/xi:xi;
+	double q = (Heaviside(z, 0) - signum(z) * p)/ (g* Xi);
+	q = (-signum(z)*qged(q, nu)*Xi - mu)/sigma;
+	return( q );
+}
+
+void c_qsged(double *p, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n)
+{
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = qsged(p[i],skew[i],shape[i]) * sigma[i] + mu[i];
+	}
+}
+
+/*
+ * -----------------------------------------
+ * Hypebolic Distribution
+ * -----------------------------------------
+ */
+double dhyp(const double x, const double alpha, const double beta, const double delta, const double mu)
 {
 	double pdf=0;
 	if(alpha<=0){
@@ -350,101 +911,39 @@ double dhyp(const double x, const double alpha, const double beta, const double 
 	double g = alpha*alpha - beta*beta;
 	double e = x - mu;
 	pdf = 0.5*log(g) - log(2*alpha*delta*bessel_k(delta*sqrt(g),1,2)) - alpha*sqrt(delta*delta + e*e)  + beta*e;
-	if(logr==1){
-		pdf = pdf;
-	} else{
-		pdf = exp(pdf);
-	}
+	pdf = exp(pdf);
 	return pdf;
 }
-double dhypstd(const double x,  const double zeta, const double rho, const int logr)
+
+double dhypstd(const double x,  const double rho, const double zeta)
 {
 	double pdf;
 	double *param;
-	param = paramgh(zeta, rho, 1);
+	param = paramgh(rho, zeta, 1);
 	double alpha=param[0];
 	double beta=param[1];
 	double delta=param[2];
 	double mu=param[3];
-	pdf = dhyp(x, alpha, beta, delta, mu, logr);
-	free(param);
-	return pdf;
-}
-double dgh(const double x, const double alpha, const double beta, const double delta, const double mu, const double lambda, const int logr)
-{
-	double pdf=0;
-	if(alpha<=0){
-		return pdf=0;
-	}
-	if(delta <= 0){
-		return pdf=0;
-	}
-	if(fabs(beta) >= alpha){
-		return pdf=0;
-	}
-	double arg = delta*sqrt(pow(alpha,2)-pow(beta,2));
-	double a = (lambda/2.0)*log(pow(alpha,2)-pow(beta,2)) - (log(sqrt(2*PI)) + (lambda-0.5)*log(alpha)
-			+ lambda*log(delta) + log(bessel_k(arg, lambda, 2)) - arg );
-	double f = ((lambda-0.5)/2.0)*log(pow(delta,2)+pow((x - mu),2));
-	arg = alpha * sqrt(pow(delta,2)+pow((x-mu),2));
-	double k = log(bessel_k(arg, lambda-0.5, 2)) - arg;
-	double e = beta*(x-mu);
-	pdf = a + f + k + e;
-	if(logr==1){
-		pdf = pdf;
-	} else{
-		pdf = exp(pdf);
-	}
-
-	return pdf;
-}
-double dghstd(const double x, const double zeta, const double rho, const double lambda, const int logr)
-{
-	double pdf;
-	double *param;
-	param = paramgh(zeta, rho, lambda);
-	double alpha=param[0];
-	double beta=param[1];
-	double delta=param[2];
-	double mu=param[3];
-	pdf = dgh(x, alpha, beta, delta, mu, lambda, logr);
+	pdf = dhyp(x, alpha, beta, delta, mu);
 	free(param);
 	return pdf;
 }
 
-double dnig(const double x, const double alpha, const double  beta, const double delta, const double mu, const int logr)
+void c_dhyp(double *x, double *mu, double *sigma, double *skew, double *shape, double *ans, int *n, int *logr)
 {
-	double pdf=0;
-	double lambda=-0.5;
-	pdf = dgh(x, alpha, beta, delta, mu, lambda, logr);
-	return pdf;
+	int i;
+	for(i=0;i<*n;i++)
+	{
+		ans[i] = dhypstd((x[i]-mu[i])/sigma[i],skew[i],shape[i])/sigma[i];
+		if(*logr==1) ans[i] = log(ans[i]);
+	}
 }
-double dnigstd(const double x, const double zeta, const double rho, const int logr)
-{
-	double pdf=0;
-	double lambda=-0.5;
-	pdf = dghstd(x, zeta, rho, lambda, logr);
-	return pdf;
-}
-double djsustd(const double x, const double shp, const double skw)
-{
-		double w, z, r, omega, c, pdf=0.0;
-		double rtau=1.0/shp;
-		if(rtau<0.0000001){
-			w = 1.0;
-		} else{
-			w = exp(rtau*rtau);
-		}
-		omega=-skw*rtau;
-		c=sqrt(1/(0.5*(w-1)*(w*cosh(2*omega)+1)));
-		z=(x-(c*sqrt(w)*sinh(omega)))/c;
-		r=-skw + asinh(z)/rtau;
-		pdf= -log(c)-log(rtau)-0.5*log(z*z+1)-0.5*log(2*PI)-0.5*r*r;
-		pdf=exp(pdf);
-		return pdf;
-}
-double garchdistribution(const double zz, const double hh, const double skew, const double shape, const double dlambda, const int ndis)
-{
+/*
+ * -----------------------------------------
+ * Calling Functions
+ * -----------------------------------------
+ */
+double garchdistribution(const double zz, const double hh, const double skew, const double shape, const double dlambda, const int ndis){
 	/*ndist: 1- normal
 			 2 - skew-normal
 			 3 - student
@@ -466,49 +965,48 @@ double garchdistribution(const double zz, const double hh, const double skew, co
 	}
 	if(ndis==2)
 	{
-		pdf=dsnormstd(zz, skew)/hh;
+		pdf=dsnormstd(zz,skew)/hh;
 	}
 	if(ndis==3)
 	{
-		pdf=dstdstd(zz, shape)/hh;
+		pdf=dstdstd(zz,shape)/hh;
 	}
 	if(ndis==4)
 	{
-		pdf=dsstdstd(zz, shape, skew)/hh;
+		pdf=dsstdstd(zz,skew,shape)/hh;
 	}
 	if(ndis==5)
 	{
-		pdf=dgedstd(zz, shape)/hh;
+		pdf=dgedstd(zz,shape)/hh;
 	}
 	if(ndis==6)
 	{
-		pdf=dsgedstd(zz, shape, skew)/hh;
+		pdf=dsgedstd(zz,skew,shape)/hh;
 	}
 	if(ndis==7)
 	{
-		pdf=dnigstd(zz, shape, skew, 0)/hh;
+		pdf=dnigstd(zz,skew,shape)/hh;
 	}
 	if(ndis==8)
 	{
 		if(dlambda==1){
-			pdf=dhypstd(zz, shape, skew, 0)/hh;
+			pdf=dhypstd(zz,skew,shape)/hh;
 		} else{
-			pdf=dghstd(zz, shape, skew, dlambda, 0)/hh;
+			pdf=dghstd(zz,skew,shape,dlambda)/hh;
 		}
 	}
 	if(ndis==9)
 	{
-		pdf=djsustd(zz,shape,skew)/hh;
+		pdf=djsustd(zz,skew,shape)/hh;
 	}
 	if(ndis==10)
 	{
-		pdf = dghsktstd(zz, skew, shape)/hh;
+		pdf = dghsktstd(zz,skew,shape)/hh;
 	}
 	return pdf;
 }
 
-double rgarchdist(const double shape, const double skew, const double lambda, const int ndis)
-{
+double rgarchdist(const double shape, const double skew, const double lambda, const int ndis){
 	/*ndist: 1- normal
 			 2 - skew-normal
 			 3 - student
@@ -536,7 +1034,7 @@ double rgarchdist(const double shape, const double skew, const double lambda, co
 	}
 	if(ndis==4)
 	{
-		ans=rsstd(shape, skew);
+		ans=rsstd(skew,shape);
 	}
 	if(ndis==5)
 	{
@@ -544,23 +1042,22 @@ double rgarchdist(const double shape, const double skew, const double lambda, co
 	}
 	if(ndis==6)
 	{
-		ans=rsged(shape, skew);
+		ans=rsged(skew,shape);
 	}
 	if(ndis==7)
 	{
-		ans = rsnig(shape, skew);
+		ans = rsnig(skew,shape);
 	}
 	if(ndis==8)
 	{
-		ans = rghyp(shape, skew, lambda);
+		ans = rghyp(skew,shape,lambda);
 	}
 	if(ndis==9)
 	{
-		ans = rjsu(skew, shape);
+		ans = rjsu(skew,shape);
 	}
 	return(ans);
 }
-
 
 double pgarchdist(const double q, const double mu, const double sigma, const double shape, const double skew, const double lambda, const int ndis)
 {
@@ -591,7 +1088,7 @@ double pgarchdist(const double q, const double mu, const double sigma, const dou
 	}
 	if(ndis==4)
 	{
-		ans=psstd(q, mu, sigma, shape, skew);
+		ans=psstd(q, mu, sigma, skew, shape);
 	}
 	if(ndis==5)
 	{
@@ -599,7 +1096,7 @@ double pgarchdist(const double q, const double mu, const double sigma, const dou
 	}
 	if(ndis==6)
 	{
-		ans=psged(q, mu, sigma, shape, skew);
+		ans=psged(q, mu, sigma, skew, shape);
 	}
 	if(ndis==7)
 	{
@@ -618,243 +1115,52 @@ double pgarchdist(const double q, const double mu, const double sigma, const dou
 	return(ans);
 }
 
-void xdnormstd(double *x, double *pdf)
-{
-	*pdf = dnormstd(*x);
-}
-void xdsnormstd(double *x, double *xi, double *pdf)
-{
-	*pdf = dsnormstd(*x,*xi);
-}
 
-void xdstdstd(double *x, double *nu, double *pdf)
+double svfun(const double x, const double res, const double h, const double skew, const double shape,
+		const double dlambda, const double lmu, const double lsigma, const int ndis)
 {
-	*pdf = dstdstd(*x,*nu);
-}
-void xdsstdstd(double *x, double *nu, double *xi, double *pdf)
-{
-	*pdf = dsstdstd(*x,*nu,*xi);
-}
-void xdgedstd(double *x, double *nu, double *pdf)
-{
-	*pdf = dgedstd(*x, *nu);
-}
-void xdsgedstd(double *x, double *nu, double *xi, double *pdf)
-{
-	*pdf = dsgedstd(*x, *nu, *xi);
-}
-void xdgh(double *x, double *alpha, double *beta, double *delta, double *mu, double *lambda, int *logr, double *pdf)
-{
-	*pdf = dgh(*x, *alpha, *beta, *delta, *mu, *lambda, *logr);
-}
-void xdghstd(double *x, double *zeta, double *rho, double *lambda, int *logr, double *pdf)
-{
-	*pdf = dghstd(*x, *zeta, *rho, *lambda, *logr);
-}
-void xdnig(double *x, double *alpha, double  *beta, double *delta, double  *mu , int *logr, double *pdf)
-{
-	*pdf = dnig(*x, *alpha, *beta, *delta, *mu, *logr);
-}
-void xdnigstd(double *x, double *zeta, double *rho, int *logr, double *pdf)
-{
-	*pdf = dnigstd(*x, *zeta, *rho, *logr);
-}
-
-void xrnig(double *alpha, double *beta, double *delta, double *mu, double *ans, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++)
+	double svh = sqrt(h+x);
+	double svz = res/svh;
+	double pdf=0;
+	switch(ndis)
 	{
-		ans[i] = rnig(*alpha, *beta, *delta, *mu);
-	}
-}
-
-void xrghyp(double *mu, double *sigma, double *rho, double *zeta, double *lambda, double *ans, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++)
-	{
-		ans[i] = rghyp(*zeta, *rho, *lambda);
-	}
-}
-
-void distributionsample(double *shape, double *skew, double *lambda, int *ndis, int *n, double *rvec)
-{
-    GetRNGstate();
-	int i;
-	switch(*ndis){
 	case 1:
-		for(i=0;i<*n;i++){
-			rvec[i] = rnorm(0, 1);
-		}
+		pdf=dnormstd(svz)/svh;
 		break;
+
 	case 2:
-		for(i=0;i<*n;i++){
-			rvec[i] = rsnorm(*skew);
-		}
+		pdf=dsnormstd(svz, skew)/svh;
 		break;
 	case 3:
-		for(i=0;i<*n;i++){
-			rvec[i] = rstd(*shape);
-		}
+		pdf=dstdstd(svz, shape)/svh;
 		break;
 	case 4:
-		for(i=0;i<*n;i++){
-			rvec[i] = rsstd(*shape, *skew);
-		}
+		pdf=dsstdstd(svz, skew, shape)/svh;
 		break;
 	case 5:
-		for(i=0;i<*n;i++){
-			rvec[i] = rged(*shape);
-		}
+		pdf=dgedstd(svz, shape)/svh;
 		break;
 	case 6:
-		for(i=0;i<*n;i++){
-			rvec[i] = rsged(*shape, *skew);
-		}
+		pdf=dsgedstd(svz, skew, shape)/svh;
 		break;
 	case 7:
-		for(i=0;i<*n;i++){
-			rvec[i] = rsnig(*shape, *skew);
-		}
+		pdf=dnigstd(svz, skew, shape)/svh;
+		break;
 		break;
 	case 8:
-		for(i=0;i<*n;i++){
-			rvec[i] = rghyp(*shape, *skew, *lambda);
+		if(dlambda==1){
+			pdf=dhypstd(svz, skew, shape)/svh;
+		} else{
+			pdf=dghstd(svz,  skew, shape, dlambda)/svh;
 		}
 		break;
 	case 9:
-		for(i=0;i<*n;i++){
-			rvec[i] = rjsu(*shape, *skew);
-		}
+		pdf=djsustd(svz,skew, shape)/svh;
 		break;
-	default:
-		for(i=0;i<*n;i++){
-			rvec[i] = rnorm(0, 1);
-		}
+	case 10:
+		pdf = dghsktstd(svz, skew, shape)/svh;
 		break;
 	}
-    PutRNGstate();
-}
-
-double Heaviside(const double x, const double a){
-	return( (signum(x-a) + 1.0)/2.0 );
-}
-
-double psnorm(const double q, const double mu, const double sd, const double xi)
-{
-	double qx = (q-mu)/sd;
-	double m1 = 2.0/sqrt(2*PI);
-	double mux = m1 * (xi - 1.0/xi);
-	double sigma = sqrt((1.0-m1*m1)*(xi*xi+1.0/(xi*xi)) + 2.0*m1*m1 - 1.0);
-	double z = qx*sigma + mux;
-	double Xi = (z<0)?1.0/xi:xi;
-	double g = 2.0/(xi + 1.0/xi);
-	double p = Heaviside(z, 0) - signum(z) * g * Xi * pnorm(-fabs(z)/Xi, 0, 1, 1, 0);
-	return( p );
-}
-
-double pged(const double q, const double mu, const double sd, const double nu)
-{
-	double qx = (q-mu)/sd;
-	double lambda = sqrt ( 1.0/pow(2.0, (2.0/nu)) * gammafn(1.0/nu) / gammafn(3.0/nu) );
-	double g  = nu / ( lambda * (pow(2,(1+1.0/nu))) * gammafn(1.0/nu) );
-	double h = pow(2.0, (1.0/nu)) * lambda * g * gammafn(1.0/nu) / nu;
-	double s = 0.5 * pow( fabs(qx) / lambda , nu );
-	double p = 0.5 + signum(qx) * h * pgamma(s, 1.0/nu, 1, 1, 0);
-	return( p );
-}
-
-double psged(const double q, const double mu, const double sd, const double nu, const double xi)
-{
-	double qx = (q-mu)/sd;
-	double lambda = sqrt ( 1.0/pow(2.0, 2.0/nu) * gammafn(1.0/nu) / gammafn(3.0/nu) );
-	double m1 = pow(2.0, 1.0/nu) * lambda * gammafn(2.0/nu) / gammafn(1.0/nu);
-	double mux = m1*(xi-1.0/xi);
-	double sigma =  sqrt((1.0-m1*m1)*(xi*xi+1/(xi*xi)) + 2.0*m1*m1 - 1);
-	double z = qx*sigma + mux;
-	double Xi = (z<0)?1.0/xi:xi;
-	double g = 2.0/(xi + 1.0/xi);
-	double p = Heaviside(z, 0) - signum(z) * g * Xi * pged(-fabs(z)/Xi, 0, 1, nu);
-	return( p );
-}
-
-double pstd(const double q, const double mu, const double sd, const double nu)
-{
-	double s = sqrt(nu/(nu-2.0));
-	double z = (q-mu)/sd;
-	double p = pt(z*s, nu, 1, 0);
-	return( p );
-}
-
-double psstd(const double q, const double mu, const double sd, const double nu, const double xi)
-{
-	double qx = (q-mu)/sd;
-	double m1 = 2.0 * sqrt(nu-2.0) / (nu-1.0) / beta(0.5, nu/2.0);
-	double mux = m1*(xi-1.0/xi);
-	double sigma =  sqrt((1-m1*m1)*(xi*xi+1/(xi*xi)) + 2*m1*m1 - 1);
-	double z = qx*sigma+mux;
-	double Xi = (z<0)?1.0/xi:xi;
-	double g = 2.0 / (xi + 1.0/xi);
-	double p = Heaviside(z, 0) - signum(z) * g * Xi * pstd(-fabs(z)/Xi, 0, 1, nu);
-	return( p );
-}
-
-double pjsu(const double q, const double mu, const double sd, const double nu, const double tau)
-{
-	double rtau = 1.0/tau;
-	double w = (rtau<0.0000001)?1.0:exp(rtau*rtau);
-	double omega = -1.0*nu*rtau;
-	double c = 1/sqrt(0.5*(w-1.0)*(w*cosh(2*omega)+1));
-	double z = (q-(mu+c*sd*sqrt(w)*sinh(omega)))/(c*sd);
-	double r = -1.0*nu + asinh(z)/rtau;
-	double p = pnorm(r,0,1,1,0);
-	return( p );
-}
-
-void xpsnorm(double *q, double *mu, double *sd, double *xi, double *p, int *n){
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = psnorm(q[i], *mu, *sd, *xi);
-	}
-}
-
-void xpged(double *q, double *mu, double *sd, double *nu, double *p, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = pged(q[i], *mu, *sd, *nu);
-	}
-}
-
-void xpsged(double *q, double *mu, double *sd, double *nu, double *xi, double *p, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = psged(q[i], *mu, *sd, *nu, *xi);
-	}
-}
-
-void xpstd(double *q, double *mu, double *sd, double *nu, double *p, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = pstd(q[i], *mu, *sd, *nu);
-	}
-}
-
-void xpsstd(double *q, double *mu, double *sd, double *nu, double *xi, double *p, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = psstd(q[i], *mu, *sd, *nu, *xi);
-	}
-}
-
-void xpjsu(double *q, double *mu, double *sd, double *nu, double *tau, double *p, int *n)
-{
-	int i;
-	for(i=0;i<*n;i++){
-		p[i] = pjsu(q[i], *mu, *sd, *nu, *tau);
-	}
+	double svi = pdf*dlnorm(x, lmu, lsigma, 0);
+	return(svi);
 }

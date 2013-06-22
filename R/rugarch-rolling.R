@@ -99,11 +99,11 @@
 						"rollind", "spec", "out.sample", "mex", "vex",
 						"solver", "solver.control", "fit.control"), envir = environment())
 		if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
-		if(vex)  clusterExport(cluster, c("vexdata"), envir = environment())
+		if(vex) clusterExport(cluster, c("vexdata"), envir = environment())
 		tmp = parLapply(cl = cluster, 1:m, fun = function(i){
 					if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 					if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
-					fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
+					fit = try(ugarchfit(spec, xts::xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
 									solver = solver, solver.control = solver.control, 
 									fit.control = fit.control), silent=TRUE)
 					# 3 cases: General Error, Failure to Converge, Failure to invert Hessian (bad solution)
@@ -331,11 +331,11 @@
 							"noncidx", "solver", "solver.control", "fit.control"),
 					envir = environment())
 			if(mex) clusterExport(cluster, c("mexdata"), envir = environment())
-			if(vex)  clusterExport(cluster, c("vexdata"), envir = environment())
+			if(vex) clusterExport(cluster, c("vexdata"), envir = environment())
 			tmp = parLapply(cl = cluster, as.list(noncidx), fun = function(i){
 						if(mex) spec@model$modeldata$mexdata = mexdata[rollind[[i]],,drop=FALSE]
 						if(vex) spec@model$modeldata$vexdata = vexdata[rollind[[i]],,drop=FALSE]
-						fit = try(ugarchfit(spec, xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
+						fit = try(ugarchfit(spec, xts::xts(data[rollind[[i]]], index[rollind[[i]]]), out.sample = out.sample[i], 
 										solver=solver, solver.control = solver.control, 
 										fit.control = fit.control), silent=TRUE)
 						if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
