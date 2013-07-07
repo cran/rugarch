@@ -343,3 +343,14 @@ SEXP mcsgarchsim(SEXP model, SEXP pars, SEXP idx, SEXP h, SEXP q, SEXP z, SEXP r
     }
     return R_NilValue;
 }
+
+SEXP colMaxRcpp(SEXP X_){
+	Rcpp::NumericMatrix X(X_);
+	int n = X.ncol();
+	Rcpp::NumericVector V(n);
+	for (int i=0; i<n; i++) {
+	Rcpp::NumericVector W = X.column(i);
+	V[i] = *std::max_element(W.begin(), W.end());
+	}
+	return(V);
+}

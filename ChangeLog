@@ -1,3 +1,8 @@
+2013-07-07  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-7.
+	* removed Rcpp hessian calculation code (caused memory leak), and reverted
+	to pure R code. Timings indicate little to no increase in timing.
+	
 2013-06-22  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.2-6.
 	* Change defaults for switching between C and Cpp code for simulation, for 

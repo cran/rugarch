@@ -14,8 +14,8 @@
 ##   GNU General Public License for more details.
 ##
 #################################################################################*/
-#ifndef _garchsim_H
-#define _garchsim_H
+#ifndef _GARCHSIM_H
+#define _GARCHSIM_H
 #include <R.h>
 #include <Rmath.h>
 #include <math.h>
@@ -27,4 +27,5 @@ RcppExport SEXP maparchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP
 RcppExport SEXP mfgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
 RcppExport SEXP megarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP, SEXP , SEXP );
 RcppExport SEXP mcsgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
+RcppExport SEXP colMaxRcpp(SEXP );
 #endif

@@ -1,6 +1,6 @@
 23dbabeb52e9ccb99697ae8071372b0f *COPYRIGHTS
-1f7f8a47c018a3accaab4d65850f551e *ChangeLog
-d0aa315777dbf32c1cd53fa7e0397280 *DESCRIPTION
+ed61c3b9d2a46d33244a4cc0a3a1e08e *ChangeLog
+ac497502e1d0792911d47c7d845b5937 *DESCRIPTION
 9cf47cc071f825b666302b648ae1a0d1 *NAMESPACE
 192b34c6de7cf37b484214d614eb0712 *R/arfima-classes.R
 779f3191be5e2f19bb754668386978e5 *R/arfima-main.R
@@ -26,7 +26,7 @@ d23c9fcc9cc24d0b241c7ffe61ded126 *R/rugarch-kappa.R
 ceb9e93c502212fa9973fdaf1b9b292b *R/rugarch-mcsgarch.R
 edd7ddd620830ff0a1a01e8e4e392a02 *R/rugarch-methods.R
 c79654edb413b28d13df974718c00b10 *R/rugarch-multi.R
-d4dd1642631b8115bf445c9b68a9e9ef *R/rugarch-numderiv.R
+06d749ecbd5bebcfc1017e34da542755 *R/rugarch-numderiv.R
 19f3c25162d1df30dd88dcbf9384d9b0 *R/rugarch-plots.R
 b11b570acab75c76bdb393556ce22ee5 *R/rugarch-rolling.R
 76bbeb47217b30ba867d18b83ead78d2 *R/rugarch-series.R
@@ -93,7 +93,7 @@ a0fa4722509b439b345ad5f57c3be787 *man/arfimasim-methods.Rd
 d3d57e0f739d17d2481fcf7b90328c59 *man/multiforecast-methods.Rd
 016246816cd28479896e0a4c7492196f *man/multispec-methods.Rd
 6c5b8ee1a18f13cfb5ce6f2a1a85c94f *man/rGARCH-class.Rd
-901d70e8f9d1a9f59f47ade842bfd188 *man/rugarch-package.Rd
+b85e16c8507a6697d68dfd2ce377a663 *man/rugarch-package.Rd
 db6001bed1960a80f0bf3d4dcbd5de18 *man/sp500ret.Rd
 3a02b0e5df655ee34176f892f4692c6a *man/uGARCHboot-class.Rd
 0dd12c43252ba31f89ac90bab5f570f3 *man/uGARCHdistribution-class.Rd
@@ -134,7 +134,7 @@ f230d4bd8a7989aa09adee14919c9866 *rugarch.tests/rugarch.test9.R
 c2406c3aa450e56b15b4f22a7503c3d8 *rugarch.tests/runtests.R
 551f1582d59b17a9c2d1ba4c969f0a94 *src/Makevars
 14eaa526618307b2ae6050989393d997 *src/Makevars.win
-e17a935aea43367c20a34a596fd41cb1 *src/distributions.c
+48833ecf79e8fc438535867ec03e9740 *src/distributions.c
 4b62198961084a3e11200c46173b3faa *src/distributions.h
 04e9675fc01aa716c761ce96ab491dee *src/filters.c
 9f909153eddbbbaf13b7bd27b139785b *src/filters.h
@@ -142,14 +142,12 @@ e17a935aea43367c20a34a596fd41cb1 *src/distributions.c
 72e2c536db389d8ad68d3b8490f519d9 *src/fracdiff.h
 6de28534ffd9c61a8a156eb3d2288ee0 *src/fracimport.f
 df681f8a73c6886edcf63e5800324de9 *src/garchmodels.c
-3ef0d5f011a3420cdb77ca3875357dcf *src/garchsim.cpp
-6009fa72d4700a6f4bba95295c642a20 *src/garchsim.h
+2506843d02a45636f3cff8c6faf867a4 *src/garchsim.cpp
+a7738d8b3621e7060a32aea3d28f7910 *src/garchsim.h
 e651dcb94820227a4c7eb612557b3296 *src/gig.c
 5a63e3db732ceececb0d10e366930a90 *src/gig.h
 ca7534c5f9fffc8cab103d04b4bfba96 *src/nig.c
 63d3d6a74282dd76c383412094a98e56 *src/nig.h
-8e9d432151ffbdabe0e8987d71071b24 *src/numderiv.cpp
-21278e67d8c03d38b9df993ca8390d19 *src/numderiv.h
 045515ec20129cd70056aa49485fc453 *src/rugarch.h
 7bc75b445b96cd0ad2b0fe8fa1cf16cc *vignettes/Introduction_to_the_rugarch_package.Rnw
 7bc75b445b96cd0ad2b0fe8fa1cf16cc *vignettes/Introduction_to_the_rugarch_package.tex

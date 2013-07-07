@@ -28,8 +28,8 @@ maintenance and use, both of which are now hosted on google code.
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.2-6\cr
-Date: \tab 2013-06-02\cr
+Version: \tab 1.2-7\cr
+Date: \tab 2013-07-07\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
 Depends: \tab R (>= 3.0.0), Rcpp, RcppArmadillo, xts, methods, parallel, numDeriv, Rsolnp\cr
@@ -98,7 +98,7 @@ simulated object (and their multi- function equivalents).
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2013},
- note 	      = {R package version 1.2-5.},}}
+ note 	      = {R package version 1.2-7.},}}
 \emph{}
 }
 \section{License}{

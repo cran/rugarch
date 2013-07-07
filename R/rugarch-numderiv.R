@@ -24,7 +24,7 @@
 	
 	# Compute the stepsize (h)
 	# h = eps^(1/3)*apply(as.data.frame(x), 1,FUN = function(z) max(abs(z), 1e-4))
-	h = apply(as.data.frame(x), 1,FUN = function(z) max(abs(z)*10e-4, 1e-9))
+	h = apply(as.data.frame(x), 1,FUN = function(z) max(abs(z)*1e-4, 1e-9))
 	xh = x+h
 	h = xh-x
 	if(length(h) == 1) ee = matrix(h, ncol = 1, nrow = 1) else ee = as.matrix(diag(h))
@@ -55,10 +55,57 @@
 	}
 	return(H)
 }
+
+# keep a copy with same name as it's called by other packages
 .hessian2sidedcpp = function(f, x, ...)
 {
 	n = length(x)
-	fx = function(y) f(y, ...)
+	fx = f(x, ...)
+	eps = .Machine$double.eps
+	
+	# Compute the stepsize (h)
+	# h = eps^(1/3)*apply(as.data.frame(x), 1,FUN = function(z) max(abs(z), 1e-4))
+	h = apply(as.data.frame(x), 1,FUN = function(z) max(abs(z)*1e-4, 1e-9))
+	xh = x+h
+	h = xh-x
+	if(length(h) == 1) ee = matrix(h, ncol = 1, nrow = 1) else ee = as.matrix(diag(h))
+	
+	# Compute forward and backward steps
+	gp = vector(mode = "numeric", length = n)
+	gp = apply(ee, 2, FUN = function(z) f(x+z, ...))
+	gm = vector(mode="numeric",length=n)
+	gm = apply(ee, 2, FUN = function(z) f(x-z, ...))
+	H = h%*%t(h)
+	Hm = H
+	Hp = H
+	# Compute "double" forward and backward steps
+	for(i in 1:n){
+		for(j in  i:n){
+			Hp[i,j] = f(x+ee[,i]+ee[,j], ...)
+			Hp[j,i] = Hp[i,j]
+			Hm[i,j] = f(x-ee[,i]-ee[,j], ...)
+			Hm[j,i] = Hm[i,j]
+		}
+	}
+	#Compute the hessian
+	for(i in 1:n){
+		for(j in  i:n){
+			H[i,j] = ( (Hp[i,j]-gp[i]-gp[j]+fx+fx-gm[i]-gm[j]+Hm[i,j]) /H[i,j] )/2
+			H[j,i] = H[i,j]
+		}
+	}
+	return(H)
+}
+
+# makes no difference in timings
+.hessian2sidedcppOLD = function(f, x, ...)
+{
+	n = length(x)
+	arglist = list(...)$arglist
+	fx = function(y){
+		ans = f(y, arglist)
+		ifelse(!is.numeric(ans) | !is.finite(ans) | length(ans)==0, 1e10, ans)
+	}
 	eps = .Machine$double.eps
 	# Compute the stepsize (h)
 	#h = eps^(1/3)*apply(as.data.frame(x), 1,FUN = function(z) max(abs(z), 1e-2))

@@ -31,7 +31,7 @@ double dnormstd(const double x)
 {
   double pdf;
   pdf = exp ( -0.5 * x * x ) / sqrt ( 2.0 * PI );
-  if(pdf == 0.0) pdf = 0.0 + 2.22507e-128;
+  if(pdf == 0.0) pdf = 0.0 + 2.22507e-24;
   return pdf;
 }
 double signum(const double x)
