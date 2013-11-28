@@ -376,12 +376,9 @@
 
 .egarchcon = function(pars, arglist){
 	ipars = arglist$ipars
-	estidx = arglist$estidx
-	idx = arglist$model$pidx
-	ipars[estidx, 1] = pars
-	distribution = arglist$model$modeldesc$distribution	
-	con = .persistegarch1(pars = ipars[,1], idx = idx, distribution = distribution)
-	if(is.na(con)) con = 1
+	idx = arglist$model$pos.matrix
+	betas  = pars[idx["beta",1]:idx["beta",2]]
+	con = min(Mod(polyroot(c(1, -betas))))
 	return(con)
 }
 

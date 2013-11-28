@@ -2098,13 +2098,18 @@ setMethod("reduce", signature(object = "uGARCHfit"), .reduce)
 # quantile S4 method
 .ugarchquantile = function(x, probs=c(0.01, 0.05))
 {	
-	d = x@model$modeldesc$distribution
+	if(class(x)=="uGARCHroll"){
+		d = x@model$spec@model$modeldesc$distribution
+	} else{
+		d = x@model$modeldesc$distribution
+		s = sigma(x)
+		m = fitted(x)
+	}
 	di = .DistributionBounds(d)
 	if(di$include.skew)  skew  = x@model$pars["skew",1] else skew = 0
 	if(di$include.shape) shape = x@model$pars["shape",1] else shape = 0
 	if(di$include.ghlambda) ghlambda = x@model$pars["ghlambda",1] else ghlambda = 0
-	s = sigma(x)
-	m = fitted(x)
+
 	if(class(x)=="uGARCHforecast"){
 		ans = matrix(NA, dim(s)[1], dim(s)[2])
 		if(length(probs)>1) stop("\nprobs must be a scalar for a uGARCHforecast object")
@@ -2114,13 +2119,12 @@ setMethod("reduce", signature(object = "uGARCHfit"), .reduce)
 		rownames(ans) = rownames(s)
 	} else if(class(x)=="uGARCHsim" | class(x)=="uGARCHpath"){
 		if(length(probs)>1) stop("\nprobs must be a scalar for a uGARCHsim and uGARCHpath objects")
-		ans = matrix(NA, , dim(s)[1], dim(s)[2])
+		ans = matrix(NA, dim(s)[1], dim(s)[2])
 		for(i in 1:NCOL(ans)) ans[,i] = qdist(d, probs[1], mu = m[,i], sigma = s[,i], 
 					skew = skew, shape = shape, lambda = ghlambda)
 		colnames(ans) = colnames(s)
 		rownames(ans) = rownames(s)
 	} else if(class(x)=="uGARCHroll"){
-		d = x@model$spec@model$modeldesc$distribution
 		skew = x@forecast$density[,"Skew"]
 		shape = x@forecast$density[,"Shape"]
 		lambda = x@forecast$density[,"Shape(GIG)"]

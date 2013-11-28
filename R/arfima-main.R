@@ -136,7 +136,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(zdata))
 		if(modelinc[7] > 0) parscale["sigma"] = sd(zdata)
 		arglist$returnType = "llh"
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.arfimaLLH, 
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = .arfimaLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], UB = ipars[estidx, 6], 
 				ux = NULL, ci = NULL, mu = NULL, arglist = arglist)
@@ -1290,7 +1290,7 @@
 			nx = NCOL(swindow[[i]]$path.df)
 			clusterExport(cluster, "i", envir = environment())
 			rwindow[[i]]$fitlist = parLapply(cluster, as.list(1:nx), fun = function(j){
-						rugarch:::.fitandextractarfima(spec, swindow[[i]]$path.df[,j], 
+						.fitandextractarfima(spec, swindow[[i]]$path.df[,j], 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
 					})
@@ -1534,7 +1534,7 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 								mar = 0
 							}
 						}
-						spec = rugarch:::.zarfimaspec( arOrder = arr, maOrder = mar, 
+						spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
 								include.mean = d[i,'im'], arfima = d[i,'arf'], 
 								external.regressors = external.regressors, 
 								distribution.model = distribution.model)
@@ -1560,7 +1560,7 @@ autoarfima = function(data, ar.max = 2, ma.max = 2, criterion = c("AIC", "BIC", 
 							mar = 0
 						}
 					}
-					spec = rugarch:::.zarfimaspec( arOrder = arr, maOrder = mar, 
+					spec = .zarfimaspec( arOrder = arr, maOrder = mar, 
 							include.mean = d[i,'im'], arfima = d[i,'arf'], 
 							external.regressors = external.regressors, 
 							distribution.model = distribution.model)

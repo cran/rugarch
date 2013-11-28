@@ -341,7 +341,7 @@ and $\sigma_t$ and also allowing for both shifts and rotations in the news
 impact curve, where the shift is the main source of asymmetry for small shocks
 while rotation drives large shocks.
 \begin{equation}\label{eq:fgarch}
-\sigma _t^\lambda  = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {{\alpha _j}\sigma _{t - 1}^\lambda {{\left( {\left| {{z_{t - j}} - {\eta _{2j}}} \right| - {\eta _{1j}}\left( {{z_{t - j}} - {\eta _{2j}}} \right)} \right)}^\delta } + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^\lambda }
+\sigma _t^\lambda  = \left( {\omega  + \sum\limits_{j = 1}^m {{\zeta _j}{v_{jt}}} } \right) + \sum\limits_{j = 1}^q {{\alpha _j}\sigma _{t - j}^\lambda {{\left( {\left| {{z_{t - j}} - {\eta _{2j}}} \right| - {\eta _{1j}}\left( {{z_{t - j}} - {\eta _{2j}}} \right)} \right)}^\delta } + } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^\lambda }
 \end{equation}
 which is a Box-Cox transformation for the conditional standard deviation whose
 shape is determined by $\lambda$, and the parameter $\delta$ transforms the
@@ -797,6 +797,9 @@ by substituting into the first moment formula $\delta$ so that it has zero mean:
 Therefore, we model the GH Skew-Student using the location-scale invariant parametrization $(\bar \beta, \nu)$
 and then translate the parameters into the usual GH distribution's $(\alpha, \beta, \delta, \mu)$, setting
 $\alpha = abs(\beta)+1e-12$.
+As of version 1.2-8, the quantile function (via \textbf{qdist}) is calculated using
+the SkewHyperbolic package of \cite{Scott} using the spline method (for speed), as
+is the distribution function (via \textbf{pdist}).
 \subsubsection{Johnson's Reparametrized SU Distribution}\label{jsu}
 The reparameterized Johnson SU distribution, discussed in \cite{Rigby2005}, is a
 four parameter distribution denoted by $JSU\left(\mu,\sigma,\nu,\tau\right)$,

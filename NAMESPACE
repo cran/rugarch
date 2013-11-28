@@ -1,4 +1,5 @@
 useDynLib(rugarch)
+import(methods)
 importFrom(graphics, plot, lines)
 importFrom(stats, coef, residuals, fitted, vcov, quantile)
 importFrom(Rsolnp, solnp, gosolnp, startpars)
@@ -9,6 +10,7 @@ importFrom(parallel, makeForkCluster, makePSOCKcluster, stopCluster, clusterEval
 importFrom(spd, spdfit, rspd)
 importFrom(ks, kde, rkde, hpi)
 importFrom(nloptr, nloptr)
+importFrom(SkewHyperbolic, qskewhyp, pskewhyp)
 exportClasses("rGARCH")
 exportClasses("GARCHspec", "uGARCHspec")
 exportClasses("GARCHfit", "uGARCHfit")

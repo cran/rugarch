@@ -498,7 +498,7 @@
 		coefarma = md[,idx["ar",1]:idx["ma",2]]
 		N = dim(coefarma)[1]
 		colnames(coefarma) = colnames(md)[idx["ar",1]:idx["ma",2]]
-		rootlist = apply(coefarma, 1, FUN=function(x) rugarch:::.armaroots(x))
+		rootlist = apply(coefarma, 1, FUN=function(x) .armaroots(x))
 		colx = topo.colors(N, alpha = 0.7)
 		.arma2dplot(x, window = window)
 		.plotarmaroots(x = rootlist[[1]], col="steelblue")

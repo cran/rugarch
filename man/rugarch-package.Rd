@@ -28,12 +28,13 @@ maintenance and use, both of which are now hosted on google code.
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.2-7\cr
-Date: \tab 2013-07-07\cr
+Version: \tab 1.2-9\cr
+Date: \tab 2013-11-28\cr
 License: \tab GPL\cr
 LazyLoad: \tab yes\cr
-Depends: \tab R (>= 3.0.0), Rcpp, RcppArmadillo, xts, methods, parallel, numDeriv, Rsolnp\cr
-Suggests:\tab nloptr, spd, ks\cr }
+Depends: \tab R (>= 2.10), methods\cr
+LinkingTo: \tab Rcpp, RcppArmadillo\cr
+Imports: \tab Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron, SkewHyperbolic\cr}
 While the package has implemented some safeguards, both during pre-estimation 
 as well as the estimation phase, there is no guarantee of convergence in the 
 fitting procedure. As a result, the fit method allows the user to input starting 
@@ -98,7 +99,7 @@ simulated object (and their multi- function equivalents).
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2013},
- note 	      = {R package version 1.2-7.},}}
+ note 	      = {R package version 1.2-9.},}}
 \emph{}
 }
 \section{License}{

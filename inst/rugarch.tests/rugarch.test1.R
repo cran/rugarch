@@ -480,15 +480,20 @@ rugarch.test1g = function(cluster=NULL){
 					shape = 5, sigma = 0.0123))
 	spec2 = arfimaspec( mean.model = list(armaOrder = c(2,1), include.mean = TRUE, arfima = FALSE), 
 			distribution.model = "std", fixed.pars = list(mu = 0.02, ar1 = 0.6, ar2 = 0.01, ma1 = -0.7,
-					shape = 5,sigma = 0.0123))
-	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100)
+					shape = 5, sigma = 0.0123))
+	
+	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100, preresiduals = c(0,0), prereturns = c(0,0),
+			n.start=1)
 	sim2 = arfimapath(spec2, n.sim = 1000, m.sim = 1, rseed = 100)
+	
+	sim1 = arfimapath(spec1, n.sim = 1000, m.sim = 1, rseed = 100, n.start=1)
+	sim2 = arfimapath(spec2, n.sim = 1000, m.sim = 1, rseed = 100, n.start=1)
 	
 	zz <- file("test1g-1.txt", open="wt")
 	sink(zz)
 	cat("\nARFIMA and ARMA simulation tests:\n")
-	print(head(fitted(sim1)), digits = 5)
-	print(head(fitted(sim2)), digits = 5)
+	print(tail(fitted(sim1)), digits = 5)
+	print(tail(fitted(sim2)), digits = 5)
 	sink(type="message")
 	sink()
 	close(zz)

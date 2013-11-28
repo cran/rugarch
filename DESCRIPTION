@@ -1,13 +1,14 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH models
-Version: 1.2-7
-Date: 2013-07-07
+Version: 1.2-9
+Date: 2013-11-28
 Author: Alexios Ghalanos <alexios@4dscape.com>
 Maintainer: Alexios Ghalanos <alexios@4dscape.com>
-Depends: R (>= 3.0.0), Rcpp, RcppArmadillo, methods
+Depends: R (>= 2.10), methods
 LinkingTo: Rcpp, RcppArmadillo
-Imports: Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron
+Imports: Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron,
+        SkewHyperbolic
 Description: ARFIMA, in-mean, external regressors and various GARCH flavours, with methods for fit, forecast, simulation, inference and plotting.
 Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
         rugarch-lossfn.R rugarch-distributions.R rugarch-kappa.R
@@ -21,8 +22,13 @@ Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
         rugarch-methods.R rugarch-benchmarks.R arfima-classes.R
         arfima-multi.R arfima-main.R arfima-methods.R zzz.R
 LazyLoad: yes
+URL: htpp://www.unstarched.net,
+        https://r-forge.r-project.org/projects/teatime/
 License: GPL-3
-Packaged: 2013-07-07 16:38:43 UTC; alexios
-NeedsCompilation: yes
 Repository: CRAN
-Date/Publication: 2013-07-08 07:29:45
+Repository/R-Forge/Project: teatime
+Repository/R-Forge/Revision: 74
+Repository/R-Forge/DateTimeStamp: 2013-12-13 21:07:55
+Date/Publication: 2013-12-14 10:37:09
+Packaged: 2013-12-13 23:16:27 UTC; rforge
+NeedsCompilation: yes

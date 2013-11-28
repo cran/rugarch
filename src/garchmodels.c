@@ -35,7 +35,7 @@ void sgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x, 
 		h[i] = *hEst;
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
 		e[i] = res[i] * res[i];
-		//z[i] = res[i]/sqrt(fabs(h[i]));
+		z[i] = res[i]/sqrt(fabs(h[i]));
 		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}
@@ -77,7 +77,7 @@ void egarchfilterC(int *model, double *pars, int *idx, double *hEst, double *mea
 		h[i] = *hEst;
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
 		e[i] = res[i] * res[i];
-		//z[i] = res[i]/sqrt(h[i]);
+		z[i] = res[i]/sqrt(h[i]);
 		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}
@@ -118,6 +118,7 @@ void gjrgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
 		e[i] = res[i] * res[i];
 		nres[i] = res[i] < 0.0 ? e[i] : 0.0;
+		z[i] = res[i]/sqrt(fabs(h[i]));
 		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}
@@ -163,7 +164,7 @@ void aparchfilterC(int *model, double *pars, int *idx, double *hEst, double *x, 
 		h[i] = *hEst;
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, fabs(*hEst), *m, i, *T);
 		e[i] = res[i] * res[i];
-		//z[i] = res[i]/fabs(h[i]);
+		z[i] = res[i]/fabs(h[i]);
 		LHT[i] = log(garchdistribution(z[i], fabs(h[i]), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk=lk-LHT[i];
 	}
@@ -275,7 +276,7 @@ void csgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x,
 		h[i] = h[i] + q[i];
 		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
 		e[i] = res[i] * res[i];
-		//z[i] = res[i]/sqrt(fabs(h[i]));
+		z[i] = res[i]/sqrt(fabs(h[i]));
 		LHT[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}
@@ -314,6 +315,7 @@ void mcsgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *r
 	{
 		h[i] = *hEst;
 		hm = sqrt(fabs(h[i])*s[i]*v[i]);
+		z[i] = res[i]/sqrt(fabs(h[i]));
 		LHT[i] = log(garchdistribution(z[i], hm, pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
 		lk = lk - LHT[i];
 	}

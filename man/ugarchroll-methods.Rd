@@ -112,11 +112,11 @@ simulation \code{\link{ugarchsim}}, parameter distribution and uncertainty
 data(sp500ret)
 spec = ugarchspec(distribution.model = "std")
 mod = ugarchroll(spec, data = sp500ret, n.ahead = 1, 
-n.start = 1000,  refit.every = 100, refit.window = "moving", 
+n.start = 1000,  refit.every = 500, refit.window = "recursive", 
 solver = "hybrid", fit.control = list(),
 calculate.VaR = TRUE, VaR.alpha = c(0.01, 0.025, 0.05),
 keep.coef = TRUE)
-report(sp500.bktest, type="VaR", VaR.alpha = 0.01, conf.level = 0.95) 
-report(sp500.bktest, type="fpm")
+report(mod, type="VaR", VaR.alpha = 0.01, conf.level = 0.95) 
+report(mod, type="fpm")
 }}
 \keyword{methods}

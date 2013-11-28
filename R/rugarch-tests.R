@@ -309,7 +309,7 @@ BerkowitzTest = function(data, lags = 1, significance = 0.05, tail.test = FALSE,
 		x = as.numeric(data) - mean(data)
 		n = length(data)
 		xlag = NULL
-		for(i in 1:lags) xlag = cbind(xlag, rugarch:::.lagx(x, n.lag = i, pad = 0))
+		for(i in 1:lags) xlag = cbind(xlag, .lagx(x, n.lag = i, pad = 0))
 		ans = lm(x~xlag-1)
 		uLL = sum(dnorm(residuals(ans)[-c(1:lags)], sd = summary(ans)$sigma, log = TRUE))
 		rLL = sum(dnorm(data[-c(1:lags)], log = TRUE))
@@ -558,7 +558,7 @@ GMMTest = function(z, lags = 1, skew=0, kurt=3, conf.level = 0.95){
 .waldcomomtest = function(z, lags, N){
 	f0 = z %*% matrix(1, nrow = 1, ncol = lags)
 	fx = NULL
-	for(i in 1:lags) fx = cbind(fx, rugarch:::.lagx(z, n.lag = i, pad = 0))
+	for(i in 1:lags) fx = cbind(fx, .lagx(z, n.lag = i, pad = 0))
 	fx = fx[-c(1:lags), , drop = FALSE]
 	f0 = f0[-c(1:lags), , drop = FALSE]
 	fmat = f0 * fx

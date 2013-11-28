@@ -33,8 +33,8 @@ TinY = 1.0e-8
 	arglist$returnType = "llh"
 	fit = list()
 	if(is.null(hess)){
-		#fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
-		fit$hessian = .hessian2sided(f, ipars[estidx, 1], arglist = arglist)
+		fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist = arglist)
+		#fit$hessian = .hessian2sided(f, ipars[estidx, 1], arglist = arglist)
 	} else{
 		fit$hessian = hess
 	}
@@ -164,9 +164,9 @@ TinY = 1.0e-8
 	arglist$returnType = "llh"
 	fit = vector(mode = "list")
 	if(is.null(hess)){
-		# fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), data = data, returnType = "llh", garchenv = garchenv)
+		fit$hessian = hessian(func = f, x = ipars[estidx, 1], method="Richardson", method.args=list(), arglist=arglist)
 		# fit$hessian = .hessian2sided(f, ipars[estidx, 1], data = data, returnType = "llh", garchenv = garchenv)
-		fit$hessian = .hessian2sidedcpp(f, ipars[estidx, 1], arglist = arglist)
+		# fit$hessian = .hessian2sidedcpp(f, ipars[estidx, 1], arglist = arglist)
 		E = eigen(fit$hessian)$values
 		# approx. number of decimal places lost to roundoff/numerical estimation error
 		if(any(E<0)){
@@ -354,7 +354,6 @@ TinY = 1.0e-8
 			nmex = 0
 			mmex = 0
 		}
-		
 		if(!is.null(mregfor) && mmex != mxn)
 		{
 			cat("\nugarchforecast-->error: Column dimension of external mean forecast matrix is wrong.")

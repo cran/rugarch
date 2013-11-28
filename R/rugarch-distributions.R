@@ -84,39 +84,8 @@ rsghst = function(n, mu=0, sigma=1, skew=1, shape=8)
 		return(sol$ans)
 	}
 }
-#------------------------------------------------------------------
-# functions adapted/imported from the SkewHyperbolic of David Scott
-#------------------------------------------------------------------
-.skewhypStepSize = function(dist, delta, beta, nu, side = c("right", "left")) 
-{
-	side <- match.arg(side)
-	if (beta > 0) {
-		step = ifelse(side == "left", delta, delta * abs(beta) * 
-						(nu * dist)^(-2/nu))
-	}
-	if (beta < 0) {
-		step = ifelse(side == "right", delta, delta * abs(beta) * 
-						(nu * dist)^(-2/nu))
-	}
-	if (isTRUE(all.equal(beta, 0))) {
-		step = exp(dist/nu)
-	}
-	return( step )
-}
 
-modeghst = function(mu = 0, sigma = 1, skew = 1, shape = 8){
-	modeFun <- function(x) {
-		dsghst(x, mu, sigma, skew, shape, log = TRUE)
-	}
-	start <- 0
-	options(warn = -1)
-	opt <- optim(start, modeFun, control = list(fnscale = -1, 
-					maxit = 1000, method = "BFGS"))
-	ifelse(opt$convergence == 0, distMode <- opt$par, distMode <- NA)
-	return( distMode )
-}
-
-psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
+psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log.p = FALSE, ...){
 	
 	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
 	n = c(length(q), length(mu), length(sigma), length(skew), length(shape))
@@ -129,49 +98,24 @@ psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log = FA
 	ans = double(maxn)
 	for(i in 1:maxn){
 		ans[i] = .psghst(q[i], mu=mu[i], sigma=sigma[i], skew=skew[i], 
-				shape=shape[i])
+				shape=shape[i], lower.tail = lower.tail, log.p = log.p)
 	}
 	return( ans )
 }
 
-.psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log = FALSE, ...){
-	distMode = modeghst(mu, sigma, skew, shape)
-	qLess = which((q <= distMode) & (is.finite(q)))
-	qGreater = which((q > distMode) & (is.finite(q)))
-	prob = rep(NA, length(q))
-	err = rep(NA, length(q))
-	prob[q == -Inf] = 0
-	prob[q == Inf]  = 0
-	err[q %in% c(-Inf, Inf)] = 0
-	dskewhypInt = function(q) {
-		dsghst(q, mu, sigma, skew, shape)
-	}
-	for (i in qLess) {
-		intRes <- integrate(dskewhypInt, -Inf, q[i], ...)
-		prob[i] = intRes$value
-		err[i]  = intRes$abs.error
-	}
-	for (i in qGreater) {
-		intRes = integrate(dskewhypInt, q[i], Inf, ...)
-		prob[i] = intRes$value
-		err[i]  = intRes$abs.error
-	}
-	if (lower.tail == TRUE) {
-		if (length(q > distMode) > 0) {
-			prob[q > distMode] = 1 - prob[q > distMode]
-		}
-	}
-	else {
-		if (length(q <= distMode) > 0) {
-			prob[q <= distMode] = 1 - prob[q <= distMode]
-		}
-	}
-	if(log) prob = log(prob)
-	return( prob )
+.psghst = function(q, mu=0, sigma=1, skew=1, shape=8, lower.tail = TRUE, log.p = FALSE, ...){
+	param = .paramGHST(skew, shape)
+	# scale the parameters
+	mux = param[1]*sigma + mu
+	delta = param[2]*sigma
+	beta = param[3]/sigma
+	nu = param[4]
+	ans = SkewHyperbolic::pskewhyp(q, mu = mux, delta = delta, beta = beta, nu = nu,
+            log.p = log.p, lower.tail = lower.tail)
+	return(ans)
 }
 
 qsghst = function(p, mu=0, sigma=1, skew=1, shape=8){
-	
 	if(any(abs(skew)<1e-12)) skew[which(abs(skew)<1e-12)] = 1e-12
 	n = c(length(p), length(mu), length(sigma), length(skew), length(shape))
 	maxn = max(n)
@@ -193,52 +137,15 @@ qsghst = function(p, mu=0, sigma=1, skew=1, shape=8){
 		p <- 1 - p
 		lower.tail == TRUE
 	}
-	params = .paramGHST(skew, shape)
+	param = .paramGHST(skew, shape)
 	# scale the parameters
-	beta = params[3]/sigma
-	delta = params[2]*sigma
-	# mu = params[1]*sigma + mean
-	distMode = modeghst(mu, sigma, skew, shape)
-	pModeDist <- psghst(distMode, mu, sigma, skew, shape)
-	ans = rep(NA, length(p))
-	invalid = which(p < 0 | p > 1)
-	pFinite = which((p > 0) & (p < 1))
-	ans[p == 0] = -Inf
-	ans[p == 1] =  Inf
-	less <- which((p <= pModeDist) & (p > 0))
-	if (length(less) > 0) {
-		pLow = min(p[less])
-		xLow = distMode - .skewhypStepSize(delta, delta, beta, shape, "left")
-		while(psghst(xLow, mu, sigma, skew, shape, ...) >= pLow){
-			xLow = xLow - .skewhypStepSize(distMode - xLow, delta, beta, shape, "left")
-		}
-		xRange = c(xLow, distMode)
-		zeroFn = function(x, mu, sigma, skew, shape, p, ...){
-			return(psghst(x, mu, sigma, skew, shape, ...) - p)
-		}
-		for(i in less){
-			ans[i] = uniroot(zeroFn, mu = mu, sigma = sigma, skew = skew, 
-					shape = shape, p = p[i], interval = xRange, ...)$root
-		}
-	}
-	greater = which((p > pModeDist) & (p < 1))
-	p[greater] = 1 - p[greater]
-	if(length(greater) > 0) {
-		pHigh = min(p[greater])
-		xHigh = distMode + .skewhypStepSize(delta, delta, beta, shape, "right")
-		while(psghst(xHigh, mu, sigma, skew, shape, lower.tail = FALSE, ...) >= pHigh){
-			xHigh <- xHigh + .skewhypStepSize(xHigh - distMode, delta, beta, shape, "right")
-		}
-		xRange = c(distMode, xHigh)
-		zeroFn = function(x, mu, sigma, skew, shape, p, ...){
-			return(psghst(x, mu, sigma, skew, shape, lower.tail = FALSE, ...) - p)
-		}
-		for(i in greater){
-			ans[i] = uniroot(zeroFn, mu = mu, sigma = sigma, skew = skew, 
-					shape = shape, p = p[i], interval = xRange, ...)$root
-		}
-	}
-	return( ans )
+	mux = param[1]*sigma + mu
+	delta = param[2]*sigma
+	beta = param[3]/sigma
+	nu = param[4]
+	ans = SkewHyperbolic::qskewhyp(p, mu = mux, delta = delta, beta = beta, 
+			nu = nu, lower.tail = lower.tail, method = c("spline","integrate")[1])
+	return(ans)
 }
 
 ghstFit = function(x, control){
@@ -253,7 +160,6 @@ ghstFit = function(x, control){
 			silent = TRUE)
 	# Add Names to $par
 	names(fit$par) = c("mu", "sigma", "skew", "shape")
-	
 	# Return Value:
 	return( fit )
 
@@ -2207,7 +2113,7 @@ dkurtosis = function(distribution = "norm", skew = 1, shape = 5, lambda = -0.5)
 		beta2 = beta*beta
 		delta2 = delta*delta
 		k1 = 6/( (2*beta2*delta2+(nu-2)*(nu-4))^2)
-		k21 = (nu-2)*(nu-2)*(nu-2)
+		k21 = (nu-2)*(nu-2)*(nu-4)
 		k22 = (16*beta2*delta2*(nu-2)*(nu-4))/(nu-6)
 		k23 = (8*(beta2^2)*(delta2^2)*(5*nu-22))/((nu-6)*(nu-8))
 		ans = k1*(k21+k22+k23)

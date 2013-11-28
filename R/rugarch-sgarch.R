@@ -137,7 +137,7 @@
 	# for other solvers)
 	if(fit.control$stationarity == 1 && modelinc[15] == 0){
 		cb = .garchconbounds()
-		Ifn = rugarch:::.sgarchcon
+		Ifn = .sgarchcon
 		ILB = cb$LB
 		IUB = cb$UB
 		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
@@ -154,7 +154,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(zdata))
 		if(modelinc[7] > 0) parscale["omega"] = var(zdata)
 		arglist$returnType = "llh"
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.sgarchLLH, 
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = .sgarchLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], 
 				UB = ipars[estidx, 6], ux = NULL, ci = NULL, mu = NULL, arglist)
@@ -1163,7 +1163,7 @@
 		}
 		z[1:m, 1:m.sim] = preres[1:m]/presigma[1:m]
 		z[is.na(z) | is.nan(z) | !is.finite(z)] = 0
-		res = c(preres, rep(0, n))	
+		res = c(preres, rep(0, n))
 		ans1 = try(.C("sgarchsimC", model = as.integer(modelinc[1:21]), pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
 						h = as.double(h), z = as.double(z[,i]), res = as.double(res), e = as.double(res*res),
 						vexdata = as.double(vexsim[[i]]), T = as.integer(n+m), m = as.integer(m), PACKAGE = "rugarch"), silent = TRUE)

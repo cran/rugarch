@@ -136,12 +136,12 @@ rugarch.test2b = function(cluster=NULL)
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE), 
 			distribution.model = "nig", fixed.pars = fpars)
 	
-	egarch.fit2 = ugarchfit(data = sp500ret,spec = spec, solver = "solnp")
+	egarch.fit2 = ugarchfit(data = sp500ret, spec = spec, solver = "hybrid")
 	
 	# notice that the standard errors of the fixed parameters is NA (they are fixed!).
 	# However, we can calculate those post estimation with the fixed.se argument:
 	
-	egarch.fit3 = ugarchfit(data = sp500ret,spec = spec, solver = "solnp", 
+	egarch.fit3 = ugarchfit(data = sp500ret,spec = spec, solver = "hybrid", 
 			fit.control = list(fixed.se = TRUE))
 	
 	# All Parameters Fixed (we obtain from egarch.fit1)
@@ -151,7 +151,7 @@ rugarch.test2b = function(cluster=NULL)
 			mean.model = list(armaOrder = c(1,0), include.mean = TRUE), 
 			distribution.model = "nig", fixed.pars = fpars)
 	
-	egarch.fit4 = ugarchfit(data = sp500ret,spec = spec, solver = "solnp", 
+	egarch.fit4 = ugarchfit(data = sp500ret,spec = spec, solver = "hybrid", 
 			fit.control = list(fixed.se = TRUE))
 	
 	# compare LLH, coefficients and std.errors:

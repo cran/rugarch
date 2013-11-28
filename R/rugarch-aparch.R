@@ -129,7 +129,7 @@
 	# for other solvers)
 	if(fit.control$stationarity == 1 && modelinc[15] == 0){
 		cb = .garchconbounds()
-		Ifn = rugarch:::.aparchcon
+		Ifn = .aparchcon
 		ILB = cb$LB
 		IUB = cb$UB
 		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
@@ -146,7 +146,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(zdata))
 		if(modelinc[7] > 0) parscale["omega"] = var(zdata)
 		arglist$returnType = "llh"
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.aparchLLH, 
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = .aparchLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], 
 				UB = ipars[estidx, 6], ux = NULL, ci = NULL, mu = NULL, 

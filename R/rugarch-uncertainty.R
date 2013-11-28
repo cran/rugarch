@@ -83,7 +83,7 @@
 			clusterExport(cluster, c("i"), envir = environment())
 			nx = NCOL(swindow[[i]]$simseries)
 			rwindow[[i]]$fitlist = parLapply(cluster, as.list(1:nx), fun = function(j){
-						rugarch:::.fitandextract(spec, .numeric2xts(swindow[[i]]$simseries[,j]), 
+						.fitandextract(spec, .numeric2xts(swindow[[i]]$simseries[,j]), 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
 					})
@@ -143,7 +143,7 @@
 .fitandextract = function(spec, x, out.sample = 0,  solver = "solnp", fit.control = list(), solver.control = list())
 {
 	dist = list()
-	fit = rugarch:::.safefit(spec, x, out.sample = 0, solver = solver, fit.control = fit.control, solver.control = solver.control)
+	fit = .safefit(spec, x, out.sample = 0, solver = solver, fit.control = fit.control, solver.control = solver.control)
 	if( is.null(fit) || fit@fit$convergence == 1 || !is( fit, "uGARCHfit" ) || any( is.na( coef( fit ) ) ) ){
 		dist$convergence = 1
 		return(dist)

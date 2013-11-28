@@ -128,7 +128,7 @@
 
 	if(fit.control$stationarity == 1 && modelinc[15] == 0){
 		cb = .garchconbounds()
-		Ifn = rugarch:::.gjrgarchcon
+		Ifn = .gjrgarchcon
 		ILB = cb$LB
 		IUB = cb$UB
 		if(solver == "solnp" | solver == "gosolnp" | solver == "hybrid") fit.control$stationarity = 0
@@ -145,7 +145,7 @@
 		if(modelinc[1] > 0) parscale["mu"] = abs(mean(zdata))
 		if(modelinc[7] > 0) parscale["omega"] = var(zdata)
 		arglist$returnType = "llh"
-		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = rugarch:::.gjrgarchLLH, 
+		solution = .garchsolver(solver, pars = ipars[estidx, 1], fun = .gjrgarchLLH, 
 				Ifn, ILB, IUB, gr = NULL, hessian = NULL, parscale = parscale, 
 				control = solver.control, LB = ipars[estidx, 5], 
 				UB = ipars[estidx, 6], ux = NULL, ci = NULL, mu = NULL, 
@@ -258,8 +258,7 @@
 	# 1 = norm, 2=snorm, 3=std, 4=sstd, 5=ged, 6=sged, 7=nig
 	dist = model$modeldesc$distno
 	hm = arglist$tmph
-	rx = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata, 
-			h = hm, data = data, N = N)
+	rx = .arfimaxfilter(modelinc[1:21], ipars[,1], idx, mexdata = mexdata, h = hm, data = data, N = N)
 	res = rx$res
 	zrf = rx$zrf
 	res[is.na(res) | !is.finite(res) | is.nan(res)] = 0

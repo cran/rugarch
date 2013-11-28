@@ -158,7 +158,7 @@
 		clusterExport(cluster, c("simseries", "spec", "solver", 
 						"solver.control", "fit.control"), envir = environment())
 		fitlist = parLapply(cluster, as.list(1:nx), fun = function(i){
-					rugarch:::.safefit(spec = spec, data = .numeric2xts(simseries[,i]), 
+					.safefit(spec = spec, data = .numeric2xts(simseries[,i]), 
 							out.sample = 0, solver = solver, fit.control = fit.control, 
 							solver.control = solver.control)
 				})
@@ -206,7 +206,7 @@
 		nx = length(speclist)
 		clusterExport(cluster, c("speclist", "data", "m", "N"), envir = environment())
 		xtmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(data[1:N]), m)
+					ans = .sigmat(spec = speclist[[i]], origdata = .numeric2xts(data[1:N]), m)
 					st = ans$st
 					if(vmodel=="csGARCH"){
 						qx = ans$qx
@@ -245,7 +245,7 @@
 						"st", "rx", "qx", "xdat", "sseed", "empzlist","mexsimdata", "vexsimdata"), 
 				envir = environment())
 		tmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+					try(.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat, 
 							preresiduals = rx[,i],
 							n.start = 0, rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 
@@ -396,7 +396,7 @@
 			clusterExport(cluster, c("simseries", "spex", "solver", "out.sample", 
 							"solver.control", "fit.control"), envir = environment())
 			fitlist = parLapply(cluster, as.list(1:nx), fun = function(i){
-						rugarch:::.safefit(spec = spex, data = .numeric2xts(simseries[,i]), 
+						.safefit(spec = spex, data = .numeric2xts(simseries[,i]), 
 								out.sample = 0, solver = solver, fit.control = fit.control, 
 								solver.control = solver.control)
 					})
@@ -446,7 +446,7 @@
 		nx = length(speclist)
 		clusterExport(cluster, c("speclist", "xdata", "m", "N"), envir = environment())
 		xtmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					ans = rugarch:::.sigmat(spec = speclist[[i]], origdata = .numeric2xts(xdata[1:N]), m)
+					ans = .sigmat(spec = speclist[[i]], origdata = .numeric2xts(xdata[1:N]), m)
 					st = ans$st
 					if(vmodel=="csGARCH"){
 						qx = ans$qx
@@ -489,7 +489,7 @@
 						"st", "rx", "qx", "xdat", "sseed", "empzlist", "mexsimdata", "vexsimdata"), 
 				envir = environment())
 		tmp = parLapply(cluster, as.list(1:n.bootfit), fun = function(i){
-					try(rugarch:::.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
+					try(.quicksimulate(fitlist[[i]], n.sim = n.ahead, 
 							m.sim = n.bootpred, presigma = st[,i], prereturns = xdat,
 							preresiduals = rx[,i], n.start = 0, 
 							rseed = sseed[(n.bootfit+1):(n.bootfit + n.bootpred)], 

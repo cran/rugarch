@@ -1,3 +1,21 @@
+2013-11-28  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-9.
+	* Fixed the stationarity condition of the E-GARCH model for the case when p>1,
+	and changed default lower bound on beta to be -1.
+	* Fix to the likelihood summation to take into account the first value of the 
+	standardized residual (was previously set to zero except for the fGARCH model).
+	
+
+2013-08-30  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.2-8.
+	* small correction to quantile function for ugarchsim/ugarchpath (resulted
+	in error when called as there was a stray comma in the matrix size 
+	setup). Fix also to quantile method for roll (resulted in error when called).
+	* correction to calculation of hessian after previous version removal of Rcpp
+	code introduced an old bug.
+	* Added SkewHyperbolic import for the use of the quantile and distribution 
+	functions in R.
+
 2013-07-07  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.2-7.
 	* removed Rcpp hessian calculation code (caused memory leak), and reverted
