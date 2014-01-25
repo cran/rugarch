@@ -875,7 +875,7 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 
 .Log = function(x){
 	ans = log(x)
-	if(!is.finite(ans)) ans = sign(ans) * 1e10
+	#if(!is.finite(ans)) ans = sign(ans) * 1e10
 	ans
 }
 

@@ -108,7 +108,7 @@
 									fit.control = fit.control), silent=TRUE)
 					# 3 cases: General Error, Failure to Converge, Failure to invert Hessian (bad solution)
 					if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
-						ans = list(y = NA, cf = NA, converge = FALSE)
+						ans = list(y = NA, cf = NA, converge = FALSE, loglik = NA)
 					} else{
 						if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
 						if(vex) fvex = tail(vexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fvex = NULL
@@ -125,7 +125,7 @@
 						rownames(y) = tail(as.character(index[rollind[[i]]]), out.sample[i])						
 						colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
 						if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
-						ans = list(y = y, cf = cf, converge = TRUE)
+						ans = list(y = y, cf = cf, converge = TRUE, loglik = likelihood(fit))
 					}
 					return(ans)})
 	} else{
@@ -136,7 +136,7 @@
 									solver = solver, solver.control = solver.control, 
 									fit.control = fit.control), silent=TRUE)
 					if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
-						ans = list(y = NA, cf = NA, converge = FALSE)
+						ans = list(y = NA, cf = NA, converge = FALSE, loglik = NA)
 					} else{
 						if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
 						if(vex) fvex = tail(vexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fvex = NULL
@@ -153,7 +153,7 @@
 						rownames(y) = tail(as.character(index[rollind[[i]]]), out.sample[i])
 						colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
 						if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
-						ans = list(y = y, cf = cf, converge = TRUE)
+						ans = list(y = y, cf = cf, converge = TRUE, loglik = likelihood(fit))
 					}
 					return(ans)})
 	}
@@ -232,6 +232,7 @@
 		model$coef = cf
 		model$rollind = rollind
 		model$out.sample = out.sample
+		model$loglik = sapply(tmp, function(x) x$loglik)
 		forecast = list(VaR = VaR.matrix, density = forc)
 	}
 	toc = Sys.time()-tic
@@ -339,7 +340,7 @@
 										solver=solver, solver.control = solver.control, 
 										fit.control = fit.control), silent=TRUE)
 						if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
-							ans = list(y = NA, cf = NA, converge = FALSE)
+							ans = list(y = NA, cf = NA, converge = FALSE, loglik = NA)
 						} else{
 							if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
 							if(vex) fvex = tail(vexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fvex = NULL
@@ -356,7 +357,7 @@
 							rownames(y) = tail(as.character(index[rollind[[i]]]), out.sample[i])
 							colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
 							if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
-							ans = list(y = y, cf = cf, converge = TRUE)
+							ans = list(y = y, cf = cf, converge = TRUE, loglik = likelihood(fit))
 						}
 						return(ans)})
 		} else{
@@ -367,7 +368,7 @@
 										solver=solver, solver.control = solver.control, 
 										fit.control = fit.control), silent=TRUE)
 						if(inherits(fit, 'try-error') || convergence(fit)!=0 || is.null(fit@fit$cvar)){
-							ans = list(y = NA, cf = NA, converge = FALSE)
+							ans = list(y = NA, cf = NA, converge = FALSE, loglik = NA)
 						} else{
 							if(mex) fmex = tail(mexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fmex = NULL
 							if(vex) fvex = tail(vexdata[rollind[[i]],,drop=FALSE], out.sample[i]) else fvex = NULL
@@ -384,7 +385,7 @@
 							rownames(y) = tail(as.character(index[rollind[[i]]]), out.sample[i])
 							colnames(y) = c("Mu", "Sigma", "Skew", "Shape", "Shape(GIG)", "Realized")
 							if(keep.coef) cf = fit@fit$robust.matcoef else cf = NA
-							ans = list(y = y, cf = cf, converge = TRUE)
+							ans = list(y = y, cf = cf, converge = TRUE, loglik = likelihood(fit))
 						}
 						return(ans)})
 		}		
@@ -466,6 +467,7 @@
 			model$rollind = rollind
 			model$out.sample = out.sample
 			model$coef = cf
+			model$loglik = sapply(tmp, function(x) x$loglik)
 			forecast = list(VaR = VaR.matrix, density = forc)
 		}
 		toc = Sys.time()-tic

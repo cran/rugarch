@@ -363,6 +363,17 @@
 	return(con)
 }
 
+.realgarchcon = function(pars, arglist)
+{
+	ipars = arglist$ipars
+	estidx = arglist$estidx
+	idx = arglist$model$pidx
+	ipars[estidx, 1] = pars
+	modelinc = arglist$model$modelinc
+	con = sum(ipars[idx["beta", 1]:idx["beta", 2], 1]) + ipars[idx["delta", 2], 1]*sum(ipars[idx["alpha", 1]:idx["alpha", 2], 1])
+	return(con)
+}
+
 .gjrgarchcon = function(pars, arglist){
 	ipars = arglist$ipars
 	estidx = arglist$estidx

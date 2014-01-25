@@ -341,3 +341,67 @@ void mcsgarchsimC(int *model, double *pars, int *idx, double *h, double *z, doub
 		e[i] = eres[i]*eres[i];
 	}
 }
+
+
+void realgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x, double *res,
+		double *mexdata, double *vexdata, double *zrf, double *constm, double *condm,
+		int *m, int *T, double *h, double *z, double *tau, double *r, double *u, double *llh,
+		double *LHT1P, double *LHT)
+{
+	int i;
+	double lk=0;
+	double hm = 0;
+	for(i=0; i<*m; i++)
+	{
+		h[i] = *hEst;
+		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, sqrt(fabs(*hEst)), *m, i, *T);
+		z[i] = res[i]/sqrt(fabs(h[i]));
+		tau[i] = pars[idx[10]]*z[i] +  pars[idx[11]]*(z[i]*z[i]-1);
+		u[i] = log(r[i])-pars[idx[18]] - pars[idx[12]]*log(h[i]) - tau[i];
+		LHT1P[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		LHT[i] = LHT1P[i] + log(dnormstd(u[i]/pars[idx[13]])/pars[idx[13]]);
+		lk = lk - LHT[i];
+	}
+	for (i=*m; i<*T; i++)
+	{
+		realgarchfilter(model, pars, idx, res, z, vexdata, *T, i, h, r, tau, u);
+		hm = sqrt(fabs(h[i]));
+		arfimaxfilter(model, pars, idx, x, res, mexdata, zrf, constm, condm, hm, *m, i, *T);
+		z[i] = res[i]/sqrt(fabs(h[i]));
+		LHT1P[i] = log(garchdistribution(z[i], sqrt(fabs(h[i])), pars[idx[15]], pars[idx[16]], pars[idx[17]], model[20]));
+		LHT[i] = LHT1P[i] + log(dnormstd(u[i]/pars[idx[13]])/pars[idx[13]]);
+		lk = lk - LHT[i];
+	}
+	*llh=lk;
+}
+
+void realgarchsimC(int *model, double *pars, int *idx, double *res, double *vexdata, int *m,
+		int *T, double *h, double *z, double *tau, double *r, double *u)
+{
+	int i;
+	for (i=*m; i<*T; i++)
+	{
+		int j, ind;
+		h[i] = h[i] +  pars[idx[6]];
+		if( model[14]>0 )
+		{
+			for( j=0; j<model[14]; j++ )
+			{
+				ind = i + ( *T * j );
+				h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
+			}
+		}
+		for( j=0; j<model[7]; j++ )
+		{
+			h[i] = h[i] + pars[idx[7]+j]*log(r[i-(j+1)]);
+		}
+		for( j=0; j<model[8]; j++ )
+		{
+			h[i] = h[i] + pars[idx[8]+j]*log(h[i-(j+1)]);
+		}
+		h[i] = exp(h[i]);
+		tau[i] = pars[idx[10]]*z[i] +  pars[idx[11]]*(z[i]*z[i]-1);
+		r[i] = exp(pars[idx[18]] + pars[idx[12]]*log(h[i]) + tau[i] + u[i]);
+		res[i] = pow(h[i], 0.5)*z[i];
+	}
+}

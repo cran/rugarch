@@ -527,7 +527,8 @@
 			iGARCH = .igarchstart(pars, arglist),
 			csGARCH = .csgarchstart(pars, arglist),
 			hyGARCH = .hygarchstart(pars, arglist),
-			mcsGARCH = .mcaparchstart(pars, arglist))
+			mcsGARCH = .mcaparchstart(pars, arglist),
+			realGARCH = .realgarchstart(pars, arglist))
 	#anstGARCH = .anstgarchstart(arglist))
 	return(list(pars = ans, tmph = tmph))
 }
@@ -652,6 +653,202 @@
 				pars[vxnames[sp[i]], 5] = as.numeric(fixed.pars[vxnames[sp[i]]])
 				pars[vxnames[sp[i]], 6] = as.numeric(fixed.pars[vxnames[sp[i]]])
 			}
+		}
+	}
+	pars = .distributionstart(pars, model, start.pars, fixed.pars)
+	return( pars )
+}
+
+
+.realgarchstart = function(pars, arglist)
+{
+	data = arglist$data
+	realized = arglist$realized
+	model = arglist$model
+	dscale = arglist$dscale
+	modelinc = model$modelinc
+	start.pars = model$start.pars
+	fixed.pars = model$fixed.pars
+	idx = model$pidx
+	fixed.names = names(fixed.pars)
+	start.names = names(start.pars)
+	pars = .meqstart(pars, arglist)
+	
+	tmp = cbind(log(realized[1:length(data)]), log(data^2))
+	tmp[!is.finite(tmp[,1]),1] = NA
+	tmp[!is.finite(tmp[,2]),2] = NA
+	tmp = na.omit(tmp)
+	colnames(tmp)<-c("Real","Sqr")
+	mod = lm(Real~Sqr, data = as.data.frame(tmp))
+	xistart = coef(mod)[1]
+	lambdastart = sd(mod$residuals)/2
+	
+	if(modelinc[7]>0){
+		if(is.na(pars[idx["omega", 1]:idx["omega", 2], 5])) pars[idx["omega", 1]:idx["omega", 2], 5] = -9
+		if(is.na(pars[idx["omega", 1]:idx["omega", 2], 6])) pars[idx["omega", 1]:idx["omega", 2], 6] = 5
+		if(is.null(start.pars$omega)) pars[idx["omega", 1]:idx["omega", 2], 1] = -1 else 
+			pars[idx["omega", 1]:idx["omega", 2], 1] = start.pars$omega[1]/dscale
+		if(any(substr(fixed.names, 1, 5) == "omega")){
+			pars[idx["omega", 1]:idx["omega", 2], 1] = as.numeric(fixed.pars$omega)
+			pars[idx["omega", 1]:idx["omega", 2], 5] = fixed.pars$omega
+			pars[idx["omega", 1]:idx["omega", 2], 6] = fixed.pars$omega
+		}
+	}
+	if(modelinc[8]>0){
+		gpnames = paste("alpha",1:modelinc[8],sep="")
+		pxd = which(is.na(pars[idx["alpha", 1]:idx["alpha", 2], 5]))
+		if(length(pxd)>0) pars[(idx["alpha", 1]:idx["alpha", 2])[pxd], 5] = 0
+		pxd = which(is.na(pars[idx["alpha", 1]:idx["alpha", 2], 6]))
+		if(length(pxd)>0) pars[(idx["alpha", 1]:idx["alpha", 2])[pxd], 6] =  1
+		pars[idx["alpha", 1]:idx["alpha", 2], 1] = rep(0.05/modelinc[8], modelinc[8])
+		sp = na.omit(match(start.names, gpnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[gpnames[sp[i]], 1] = as.numeric(start.pars[gpnames[sp[i]]])
+		}
+		sp = na.omit(match(fixed.names, gpnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[gpnames[sp[i]], 1] = as.numeric(fixed.pars[gpnames[sp[i]]])
+				pars[gpnames[sp[i]], 5] = as.numeric(fixed.pars[gpnames[sp[i]]])
+				pars[gpnames[sp[i]], 6] = as.numeric(fixed.pars[gpnames[sp[i]]])
+			}
+		}
+	}
+	if(modelinc[9] > 0){
+		gqnames = paste("beta",1:modelinc[9],sep="")
+		pxd = which(is.na(pars[idx["beta", 1]:idx["beta", 2], 5]))
+		if(length(pxd)>0) pars[(idx["beta", 1]:idx["beta", 2])[pxd], 5] = 0
+		pxd = which(is.na(pars[idx["beta", 1]:idx["beta", 2], 6]))
+		if(length(pxd)>0) pars[(idx["beta", 1]:idx["beta", 2])[pxd], 6] = 1
+		pars[idx["beta", 1]:idx["beta", 2], 1] = rep(0.7/modelinc[9], modelinc[9])
+		sp = na.omit(match(start.names, gqnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[gqnames[sp[i]], 1] = as.numeric(start.pars[gqnames[sp[i]]])
+		}
+		sp = na.omit(match(fixed.names, gqnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[gqnames[sp[i]], 1] = as.numeric(fixed.pars[gqnames[sp[i]]])
+				pars[gqnames[sp[i]], 5] = as.numeric(fixed.pars[gqnames[sp[i]]])
+				pars[gqnames[sp[i]], 6] = as.numeric(fixed.pars[gqnames[sp[i]]])
+			}
+		}
+	}
+	# \rho in the paper notation
+	if(modelinc[11] > 0){
+		gqnames = "eta11"
+		if(is.na(pars[idx["eta1", 1]:idx["eta1", 2], 5])) pars[idx["eta1", 1]:idx["eta1", 2], 5] = -0.5
+		if(is.na(pars[idx["eta1", 1]:idx["eta1", 2], 6])) pars[idx["eta1", 1]:idx["eta1", 2], 6] = 0.5
+		pars[idx["eta1", 1]:idx["eta1", 2], 1] = 0.1
+		if(any(substr(start.names, 1, 4) == "eta1")){
+			j = which(substr(start.names, 1, 4) == "eta1")
+			gqmatch = charmatch(start.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(start.pars[j])
+		}
+		if(any(substr(fixed.names, 1, 4) == "eta1")){
+			j = which(substr(fixed.names, 1, 4) == "eta1")
+			gqmatch = charmatch(fixed.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 5] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 6] = as.numeric(fixed.pars[j])
+		}
+	}
+	# \phi in the paper notation
+	if(modelinc[12] > 0){
+		gqnames = "eta21"
+		if(is.na(pars[idx["eta2", 1]:idx["eta2", 2], 5])) pars[idx["eta2", 1]:idx["eta2", 2], 5] = -0.5
+		if(is.na(pars[idx["eta2", 1]:idx["eta2", 2], 6])) pars[idx["eta2", 1]:idx["eta2", 2], 6] = 0.5
+		pars[idx["eta2", 1]:idx["eta2", 2], 1] = 0.05
+		if(any(substr(start.names, 1, 4) == "eta2")){
+			j = which(substr(start.names, 1, 4) == "eta2")
+			gqmatch = charmatch(start.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(start.pars[j])
+		}
+		if(any(substr(fixed.names, 1, 4) == "eta2")){
+			j = which(substr(fixed.names, 1, 4) == "eta2")
+			gqmatch = charmatch(fixed.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 5] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 6] = as.numeric(fixed.pars[j])
+		}
+	}
+	
+	if(modelinc[13] > 0){
+		gqnames = "delta"
+		if(is.na(pars[idx["delta", 1]:idx["delta", 2], 5])) pars[idx["delta", 1]:idx["delta", 2], 5] = 0.1
+		if(is.na(pars[idx["delta", 1]:idx["delta", 2], 6])) pars[idx["delta", 1]:idx["delta", 2], 6] = 5
+		pars[idx["delta", 1]:idx["delta", 2], 1] = 1
+		if(any(substr(start.names, 1, 5) == "delta")){
+			j = which(substr(start.names, 1, 5) == "delta")
+			gqmatch = charmatch(start.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(start.pars[j])
+		}
+		if(any(substr(fixed.names, 1, 5) == "delta")){
+			j = which(substr(fixed.names, 1, 5) == "delta")
+			gqmatch = charmatch(fixed.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 5] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 6] = as.numeric(fixed.pars[j])
+		}
+	}
+	
+	if(modelinc[14] > 0){
+		gqnames = "lambda"
+		if(is.na(pars[idx["lambda", 1]:idx["lambda", 2], 5])) pars[idx["lambda", 1]:idx["lambda", 2], 5] = TinY
+		if(is.na(pars[idx["lambda", 1]:idx["lambda", 2], 6])) pars[idx["lambda", 1]:idx["lambda", 2], 6] = 5
+		pars[idx["lambda", 1]:idx["lambda", 2], 1] = lambdastart
+		if(any(substr(start.names, 1, 6) == "lambda")){
+			j = which(substr(start.names, 1, 6) == "lambda")
+			gqmatch = charmatch(start.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(start.pars[j])
+		}
+		if(any(substr(fixed.names, 1, 6) == "lambda")){
+			j = which(substr(fixed.names, 1, 6) == "lambda")
+			gqmatch = charmatch(fixed.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 5] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 6] = as.numeric(fixed.pars[j])
+		}
+	}
+	
+	
+	if(modelinc[15]>0){
+		vxnames = paste("vxreg",1:modelinc[15],sep="")
+		pxd = which(is.na(pars[idx["vxreg", 1]:idx["vxreg", 2], 5]))
+		if(length(pxd)>0) pars[(idx["vxreg", 1]:idx["vxreg", 2])[pxd], 5] = 0
+		pxd = which(is.na(pars[idx["vxreg", 1]:idx["vxreg", 2], 6]))
+		if(length(pxd)>0) pars[(idx["vxreg", 1]:idx["vxreg", 2])[pxd], 6] = 100		
+		pars[idx["vxreg", 1]:idx["vxreg", 2], 1] = rep(TinY, modelinc[15])
+		sp = na.omit(match(start.names, vxnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[vxnames[sp[i]], 1] = as.numeric(start.pars[vxnames[sp[i]]])
+		}
+		sp = na.omit(match(fixed.names, vxnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[vxnames[sp[i]], 1] = as.numeric(fixed.pars[vxnames[sp[i]]])
+				pars[vxnames[sp[i]], 5] = as.numeric(fixed.pars[vxnames[sp[i]]])
+				pars[vxnames[sp[i]], 6] = as.numeric(fixed.pars[vxnames[sp[i]]])
+			}
+		}
+	}
+	
+	if(modelinc[19] > 0){
+		gqnames = "xi"
+		if(is.na(pars[idx["xi", 1]:idx["xi", 2], 5])) pars[idx["xi", 1]:idx["xi", 2], 5] = -10
+		if(is.na(pars[idx["xi", 1]:idx["xi", 2], 6])) pars[idx["xi", 1]:idx["xi", 2], 6] = 10
+		pars[idx["xi", 1]:idx["xi", 2], 1] = xistart
+		if(any(substr(start.names, 1, 2) == "xi")){
+			j = which(substr(start.names, 1, 2) == "xi")
+			gqmatch = charmatch(start.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(start.pars[j])
+		}
+		if(any(substr(fixed.names, 1, 2) == "xi")){
+			j = which(substr(fixed.names, 1, 2) == "xi")
+			gqmatch = charmatch(fixed.names[j],gqnames)
+			pars[gqnames[gqmatch], 1] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 5] = as.numeric(fixed.pars[j])
+			pars[gqnames[gqmatch], 6] = as.numeric(fixed.pars[j])
 		}
 	}
 	pars = .distributionstart(pars, model, start.pars, fixed.pars)

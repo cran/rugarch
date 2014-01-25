@@ -71,4 +71,12 @@ void mcsgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *r
 
 void mcsgarchsimC(int *model, double *pars, int *idx, double *h, double *z, double *eres, double *e,
 		double *vexdata, int *T, int *m);
+
+void realgarchfilterC(int *model, double *pars, int *idx, double *hEst, double *x, double *res,
+		double *mexdata, double *vexdata, double *zrf, double *constm, double *condm,
+		int *m, int *T, double *h, double *z, double *tau, double *r, double *u, double *llh,
+		double *LHT1P, double *LHT);
+
+void realgarchsimC(int *model, double *pars, int *idx, double *res, double *vexdata, int *m,
+		int *T, double *h, double *z, double *tau, double *r, double *u);
 #endif /* RUGARCH_H */

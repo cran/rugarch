@@ -16,9 +16,6 @@
 #################################################################################*/
 #ifndef _GARCHSIM_H
 #define _GARCHSIM_H
-#include <R.h>
-#include <Rmath.h>
-#include <math.h>
 #include <RcppArmadillo.h>
 RcppExport SEXP marmaxsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );
 RcppExport SEXP msgarchsim(SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP , SEXP );

@@ -469,6 +469,103 @@ see Section \ref{section:sgarch} for details.
 In the \verb@rugarch@ package, unlike the paper of ES2012, the conditional mean and variance equations (and hence the diurnal component on the residuals from the conditional mean filtration) are estimated jointly. Furthermore, and unlike ES2012, it is possible to include ARMAX dynamics in the conditional mean, though because of the complexity of the model and its use of time indices, ARCH-m is not currently allowed, but may be included once the xts package is fully translated to Rcpp. Finally, as an additional point of departure from ES2012, the diurnal component calculation uses the median instead of the mean which was found to provide for a more robust alternative, particularly given the type and size of datasets typically used [changed in version 1.2-3].
 As currently stands, the model has methods for estimation (ugarchfit), filtering (ugarchfilter), forecast from fit (ugarchforecast) but not from spec (secondary dispatch method), simulation from fit (ugarchsim) but not from spec (ugarchpath), rolling estimation (ugarchroll) but not the bootstrap (ugarchboot). Some of the plots, which depend on the xts package will not render nicely since plot.xts does not play well with intraday data. Some plots however such as VaRplot have been amended to properly display intraday data coming from an xts object, and more may be added as time allows. An extensive example of the model may be found on \url{http://www.unstarched.net}.
 The paper by ES2012 is currently freely available here: \url{http://jfec.oxfordjournals.org/content/10/1/54.full}.
+
+\subsubsection{The realized GARCH model ('realGARCH')}\label{section:realgarch}
+While the previous section discussed the modelling of intraday returns using a multiplicative component GARCH model, this section deals with the inclusion of realized measures of volatility
+in a GARCH modelling setup. The realized GARCH (realGARCH) model of \cite{Hansen2012} (henceforth HHS2012) provides for an excellent framework for the joint modelling of returns and realized measures of volatility. Unlike the naive augmentation of GARCH processes by a realized measures, the realGARCH model relates the observed realized measure to the latent volatility via a measurement equation, which also includes asymmetric reaction to shocks, making for a very flexible and rich representation. Formally, let:
+\begin{equation}
+\begin{gathered}
+  {y_t} = {\mu _t} + {\sigma _t}{z_t},{\text{  }}{z_t} \sim i.i.d\left( {0,1} \right) \hfill \\
+  \log \sigma _t^2 = \omega  + \sum\limits_{i = 1}^q {{\alpha _i}\log {r_{t - i}} + \sum\limits_{i = 1}^p {{\beta _i}\log \sigma _{t - i}^2} }  \hfill \\
+  \log r_t = \xi  + \delta \log \sigma _t^2 + \tau \left( {{z_t}} \right) + {u_t},{\text{  }}{u_t} \sim N\left( {0,\lambda } \right) \hfill \\
+\end{gathered}
+\end{equation}
+where we have defined the dynamics for the returns ($y_t$), the log of the conditional variance ($\sigma^2_t$) and the log of the realized measure ($r_t$).\footnote{In the original paper by HHS2012, the notation is slightly different as I have chosen to re-use some of the symbols/variables already in the rugarch specification. For completeness, the differences are noted:
+\begin{itemize}
+\item $y_t$ (rugarch)  = $r_t$ (HHS2012)
+\item $\alpha$ (rugarch)  = $\gamma$ (HHS2012)
+\item $\sigma^2_t$ (rugarch) = $h_t$ (HHS2012)
+\item $r_t$ (rugarch)  = $x_t$ (HHS2012)
+\item $\delta$ (rugarch)   = $\varphi$ (HHS2012)
+\item $\eta_1$ (rugarch) = $\tau_1$ (HHS2012)
+\item $\eta_2$ (rugarch) = $\tau_2$ (HHS2012)
+\item $\lambda$ (rugarch)  = $\sigma_u$ (HHS2012)
+\end{itemize}
+}
+The asymmetric reaction to shocks comes via the $\tau\left(.\right)$ function which is based on the Hermite polynomials and truncated at the second level to give a simple quadratic form:
+\begin{equation}
+\tau\left(z_t\right) = \eta_1z_t + \eta_2\left(z^2_t-1\right)
+\end{equation}
+which has the very convenient property that $E\tau\left(z_t\right)=0$. The function also forms the basis for the creation of a type of news impact curve $\nu \left( z \right)$, defined as:
+\begin{equation}
+\begin{gathered}
+  \nu \left( z \right) = E\left[ {\log {\sigma _t}\left| {{z_{t - 1}} = z} \right.} \right] - E\left[ {\log {\sigma _t}} \right] = \delta \tau \left( z \right) \hfill \\
+\end{gathered}
+\end{equation}
+so that $100\times\nu\left(z\right)$ is the percent change in volatility as a function of the standardized innovations.
+
+A key feature of this model is that it preserves the ARMA structure which characterize many standard GARCH models and adapted here from Proposition 1 of the HHS2012 paper:
+\begin{equation}
+\begin{gathered}
+  \log \sigma _t^2 = {\mu _\sigma } + \sum\limits_{i = 1}^{p \vee q} {\left( {\delta {\alpha _i} + {\beta _i}} \right)\log \sigma _{t - 1}^2 + } \sum\limits_{j = 1}^q {{\alpha _j}{w_{t - j}}}  \hfill \\
+  \log {r_t} = {\mu _r} + \sum\limits_{i = 1}^{p \vee q} {\left( {\delta {\alpha _i} + {\beta _i}} \right)\log {r_{t - 1}} + {w_t}}  - \sum\limits_{j = 1}^{p \vee q} {{\beta _j}{w_{t - j}}}  \hfill \\
+  {\mu _\sigma } = \omega  + \xi \sum\limits_{i = 1}^q {{\alpha _i}} ,{\mu _r} = \delta \omega  + \left( {1 - \sum\limits_{i = 1}^p {{\beta _i}} } \right)\xi  \hfill \\
+\end{gathered}
+\end{equation}
+where $w_t=\tau\left(z_t\right)+u_t$, ${\mu _\sigma } = \omega  + \xi \sum\limits_{i = 1}^q {{\alpha _i}}$ and ${\mu _r} = \delta \omega  + \left( {1 - \sum\limits_{i = 1}^p {{\beta _i}} } \right)\xi$, and the convention ${\beta _i} = {\alpha _j} = 0$ for $i>p$ and $j<p$. It is therefore a simple matter to show that the persistence ($\hat P$) of the process is given by:
+\begin{equation}
+\hat P = \sum\limits_{i = 1}^p {{\beta _i} + } \delta \sum\limits_{i = 1}^q {{\alpha _i}}
+\end{equation}
+while the unconditional (long-run) variance may be written as:
+\begin{equation}
+{\hat \sigma ^2} = \frac{{\omega  + \xi \sum\limits_{i = 1}^q {{\alpha _i}} }}
+{{1 - \hat P}}
+\end{equation}
+The joint likelihood of the model, made up of the returns and measurement equation, is given by:
+\begin{equation}
+  \log L\left( {\left\{ {{y_t},{r_t}} \right\}_{t = 1}^T;\theta } \right) = \sum\limits_{t = 1}^T {\log f\left( {{y_t},{r_t}\left| {\mathcal{F}_{t - 1}} \right.} \right)}  \hfill \\
+\end{equation}
+While not standard for MLE, the independence of $z_t$ and $u_t$ means that we can factorize the joint density into:
+\begin{equation}
+\log f\left( {{y_t},{r_t}\left| {\mathcal{F}_{t - 1}} \right.} \right) = \underbrace {\log \left( {{y_t}\left| {\mathcal{F}_{t - 1}} \right.} \right)}_{\log l\left( y \right)} + \underbrace {\left( {{r_t}\left| {{y_t},\mathcal{F}_{t - 1}} \right.} \right)}_{\log l\left( {r\left| y \right.} \right)} \hfill \\
+\end{equation}
+which makes comparison with other GARCH models possible (using $\log l\left(y\right)$).
+Finally, multiperiod forecasts have a nice VARMA type representation ${Y_t} = A{Y_{t - 1}} + b + {\varepsilon _t}$, where:
+\begin{equation}
+\begin{gathered}
+  {Y_t} = \left[ {\begin{array}{*{20}{c}}
+   {\log \sigma _t^2}  \\
+   .  \\
+   .  \\
+   .  \\
+   {\log \sigma _{t - p + 1}^2}  \\
+   {\log {r_t}}  \\
+   .  \\
+   .  \\
+   {\log {r_{t - q + 1}}}  \\
+
+ \end{array} } \right],A = \left( {\begin{array}{*{20}{c}}
+   {\left( {{\beta _1},...,{\beta _p}} \right)} & {\left( {{\alpha _1},...,{\alpha _q}} \right)}  \\
+   {\left( {{I_{p - 1 \times p - 1}},{0_{p - 1 \times 1}}} \right)} & {{0_{p - 1 \times q}}}  \\
+   {\delta \left( {{\beta _1},...,{\beta _p}} \right)} & {\delta \left( {{\alpha _1},...,{\alpha _q}} \right)}  \\
+   {{0_{q - 1 \times p}}} & {\left( {{I_{q - 1 \times q - 1}},{0_{q - 1 \times 1}}} \right)}  \\
+ \end{array} } \right),b = \left( {\begin{array}{*{20}{c}}
+   \omega   \\
+   {{0_{p - 1 \times 1}}}  \\
+   {\xi  + \delta \omega }  \\
+   {{0_{q - 1 \times 1}}}  \\
+ \end{array} } \right) \hfill \\
+  {\varepsilon _t} = \left( {\begin{array}{*{20}{c}}
+   {{0_{p \times 1}}}  \\
+   {\tau \left( {{z_t}} \right) + {u_t}}  \\
+   {{0_{q \times 1}}}  \\
+ \end{array} } \right) \hfill \\
+\end{gathered}
+\end{equation}
+so that ${Y_{t + k}} = {A^k}{Y_t} + \sum\limits_{j = 0}^{k - 1} {{A^j}\left( {b + {\varepsilon _{t + k - j}}} \right)}$, and it is understood that the superscripts denote matrix power, with $\left[.\right]^0$ the identity matrix.\footnote{The original paper of HHS2012 has some small typos in the notation for the horizon k which is at times represented by the symbol h (which is reserved in the paper for the conditional variance notation).}
+
+In the \verb@rugarch@ package, all the methods, from estimation, to filtering, forecasting and simulation have been included with key parts of the code written in C for speed (as elsewhere). For the forecast routine, some additional arguments are made available as a result of the generation of the conditional variance density (rather than point forecasts, although these are returned based on the average of the simulated density values). Consult the documentation and online examples for more details.
+
 \subsection{Conditional Distributions}\label{section:distributions}
 The \verb@rugarch@ package supports a range of univariate distributions
 including the Normal ('norm'), Generalized Error ('ged'), Student ('std')

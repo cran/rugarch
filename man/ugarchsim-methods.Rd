@@ -54,7 +54,10 @@ assumed zero.}
 \item{...}{For the multiplicative component sGARCH model (mcsGARCH), the
 additional argument \sQuote{DailyVar} is required and should be an xts object 
 of length floor(n.sim/increments-per-day) by m.sim of the the daily simulated 
-variance to use with the intraday data.}
+variance to use with the intraday data. In the case of the realized GARCH (realGARCH)
+model, the optional argument \sQuote{prerealized} allows to pass starting values of the
+realized volatility (should be of length q as was set in the \sQuote{garchOrder(q,p)} 
+in the specification)}
 }
 \value{
 A \code{\linkS4class{uGARCHsim}} object containing details of the GARCH simulation.

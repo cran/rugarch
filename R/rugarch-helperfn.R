@@ -211,6 +211,11 @@ TinY = 1.0e-8
 		fit$sigma = sqrt(abs(temp$h))
 	}
 	if(garchmodel == "csGARCH") fit$q = temp$q
+	if(garchmodel == "realGARCH"){
+		fit$u = temp$u
+		fit$tau = temp$tau
+		fit$partial.log.likelihoods = temp$LHT1P
+	}
 	fit$condH = condH
 	fit$z = temp$z
 	fit$LLH = -temp$llh

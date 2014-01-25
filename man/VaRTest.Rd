@@ -66,5 +66,5 @@ actual = dji30ret[1001:2500,1]
 # location+scale invariance allows to use [mu + sigma*q(p,0,1,skew,shape)]
 VaR = fitted(filt) + sigma(filt)*qdist("sstd", p=0.05, mu = 0, sigma = 1, 
 skew  = coef(fit)["skew"], shape=coef(fit)["shape"])
-print(VaRTest(0.05, actual, VaR))
+print(VaRTest(0.05, as.numeric(actual), as.numeric(VaR)))
 }}

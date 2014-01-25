@@ -29,6 +29,9 @@ void fgarchfilter(int *model, double *pars, int *idx, double kdelta, double *z, 
 
 void csgarchfilter(int *model, double *pars, int *idx, double *vexdata, double *e, int T, int i, double *h, double *q);
 
+void realgarchfilter(int *model, double *pars, int *idx, double *res, double *z, double *vexdata, int T, int i, double *h,
+		double *r, double *tau, double *u);
+
 void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 		double *mexdata, double *zrf, double *constm, double *condm, double h, int m, int i, int T);
 

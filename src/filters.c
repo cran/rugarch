@@ -155,6 +155,33 @@ void csgarchfilter(int *model, double *pars, int *idx, double *e, double *vexdat
 	}
 }
 
+void realgarchfilter(int *model, double *pars, int *idx, double *res, double *z, double *vexdata, int T, int i, double *h, double *r,
+		double *tau, double *u)
+{
+	int j, ind;
+	h[i] = h[i] +  pars[idx[6]];
+	if( model[14]>0 )
+	{
+		for( j=0; j<model[14]; j++ )
+		{
+			ind = i + ( T * j );
+			h[i] = h[i] + pars[idx[14]+j]*vexdata[ind];
+		}
+	}
+	for( j=0; j<model[7]; j++ )
+	{
+		h[i] = h[i] + pars[idx[7]+j]*log(r[i-(j+1)]);
+	}
+	for( j=0; j<model[8]; j++ )
+	{
+		h[i] = h[i] + pars[idx[8]+j]*log(h[i-(j+1)]);
+	}
+	h[i] = exp(h[i]);
+	z[i] = res[i]/sqrt(h[i]);
+	tau[i] = pars[idx[10]]*z[i] +  pars[idx[11]]*(z[i]*z[i]-1);
+	u[i] = log(r[i])-pars[idx[18]] - pars[idx[12]]*log(h[i]) - tau[i];
+}
+
 void arfimaxfilter(int* model, double *pars, int *idx, double *x, double *res,
 		double *mexdata, double *zrf, double *constm, double *condm, double h,
 		int m, int i, int T)

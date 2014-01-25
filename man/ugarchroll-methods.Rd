@@ -69,7 +69,9 @@ of the refits (remember to stop the cluster on completion).
 \item{keep.coef}{
 Whether to return the list of coefficients and their robust standard errors.
 }
-\item{...}{ . }
+\item{...}{ In the case of the realized GARCH (realGARCH) model, the \sQuote{realizedVol} is
+required (an xts object), and optionally the \sQuote{n.sim} argument indicates the samples
+to generate for the realized vol forecast (does not affect the 1-ahead sigma forecast).}
 }
 \details{
 This is a wrapper function for creating rolling forecasts of the conditional

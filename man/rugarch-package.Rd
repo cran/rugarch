@@ -28,13 +28,25 @@ maintenance and use, both of which are now hosted on google code.
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
-Version: \tab 1.2-9\cr
-Date: \tab 2013-11-28\cr
-License: \tab GPL\cr
-LazyLoad: \tab yes\cr
+Title: \tab Univariate GARCH models\cr
+Version: \tab 1.3-1\cr
+Date: \tab 2014-01-25\cr
+Author: \tab Alexios Ghalanos <alexios@4dscape.com>\cr
+Maintainer: \tab Alexios Ghalanos <alexios@4dscape.com>\cr
 Depends: \tab R (>= 2.10), methods\cr
-LinkingTo: \tab Rcpp, RcppArmadillo\cr
-Imports: \tab Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron, SkewHyperbolic\cr}
+LinkingTo: \tab Rcpp, RcppArmadillo\cr\cr
+Imports: \tab Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron, SkewHyperbolic, expm\cr
+Description: \tab ARFIMA, in-mean, external regressors and various GARCH flavors, with methods for 
+fit, forecast, simulation, inference and plotting.\cr
+Collate: \tab rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R rugarch-lossfn.R rugarch-distributions.R 
+rugarch-kappa.R rugarch-helperfn.R rugarch-numderiv.R rugarch-series.R rugarch-startpars.R rugarch-tests.R 
+rugarch-armafor.R rugarch-graphs.R rugarch-classes.R rugarch-sgarch.R rugarch-csgarch.R rugarch-fgarch.R 
+rugarch-egarch.R rugarch-gjrgarch.R rugarch-aparch.R rugarch-igarch.R rugarch-mcsgarch.R rugarch-realgarch.R 
+rugarch-multi.R rugarch-plots.R rugarch-rolling.R rugarch-uncertainty.R rugarch-bootstrap.R rugarch-methods.R 
+rugarch-benchmarks.R arfima-classes.R arfima-multi.R arfima-main.R arfima-methods.R zzz.R\cr
+LazyLoad: \tab yes\cr
+URL: \tab http://www.unstarched.net, https://r-forge.r-project.org/projects/teatime/\cr
+License: \tab GPL-3\cr}
 While the package has implemented some safeguards, both during pre-estimation 
 as well as the estimation phase, there is no guarantee of convergence in the 
 fitting procedure. As a result, the fit method allows the user to input starting 
@@ -95,11 +107,11 @@ simulated object (and their multi- function equivalents).
 \section{How to cite this package}{
   Whenever using this package, please cite as\cr
 
- \preformatted{@Manual{Ghalanos_2013,
+ \preformatted{@Manual{Ghalanos_2014,
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
- year         = {2013},
- note 	      = {R package version 1.2-9.},}}
+ year         = {2014},
+ note         = {R package version 1.3-1.},}}
 \emph{}
 }
 \section{License}{

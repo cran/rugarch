@@ -33,7 +33,15 @@ equations if specified.}
 \item{...}{For the multiplicative component sGARCH model (mcsGARCH), the
 additional argument \sQuote{DailyVar} is required and should be an xts object of 
 the daily forecasted variance for the period under consideration to be used 
-with the intraday data.}
+with the intraday data.\cr
+For the realized GARCH model (realGARCH), the additional argument 
+\sQuote{RealizedVol}, an xts object, is required when using a specification
+object for fitORspec. Additionally, the optional argument \sQuote{n.sim} denotes
+the number of simulations required for n.ahead>1 forecast (see vignette for this 
+model's representation), whilst \sQuote{returnDistribution} is a logical argument
+(default TRUE) denoting whether to return the simulated distribution of the 
+sigma and realized forecast values.
+}
 }
 \value{
 A \code{\linkS4class{uGARCHforecast}} object containing details of the GARCH 
