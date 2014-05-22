@@ -2172,7 +2172,8 @@ skdomain = function(distribution = "nig", kurt.max = 30, n.points = 25, lambda =
 }
 
 ################################################################################
-VaRplot = function(alpha, actual, VaR)
+VaRplot = function(alpha, actual, VaR, title = paste("Daily Returns and Value-at-Risk \nExceedances\n","(alpha=", alpha,")",sep=""),
+		ylab = "Daily Log Returns", xlab = "Time")
 {	
 	period = diff(index(actual))
 	# intraday
@@ -2180,8 +2181,7 @@ VaRplot = function(alpha, actual, VaR)
 		A = as.numeric(actual)
 		V = as.numeric(VaR)
 		ep <- axTicksByTime(actual)
-		title = paste("Daily Returns and Value-at-Risk Exceedances\n","alpha=", alpha,")",sep="")
-		plot(A, type = "n", main = title, ylab = "Daily Log Returns", xlab = "Time", 
+		plot(A, type = "n", main = title, ylab = ylab, xlab = xlab, 
 				ylim = c(min(A, V), max(A, V)), ann = FALSE, xaxt = "n",
 				cex.main = 0.8, cex.lab = 0.9, cex.axis = 0.8)
 		axis(1, at = ep, labels = names(ep), tick = TRUE)
@@ -2198,8 +2198,7 @@ VaRplot = function(alpha, actual, VaR)
 				pch = c(18,3,-1), lty=c(0,0,1), lwd=c(0,0,2), bty = "n")
 		grid()
 	} else{
-		title = paste("Daily Returns and Value-at-Risk Exceedances\n","alpha=", alpha,")",sep="")
-		plot(actual, type = "n", main = title, ylab = "Daily Log Returns", xlab = "Time", 
+		plot(actual, type = "n", main = title, ylab = ylab, xlab = xlab, 
 				ylim = c(min(actual, VaR), max(actual, VaR)), ann = FALSE, minor.tick = FALSE, auto.grid = FALSE,
 				cex.main = 0.8, cex.lab = 0.9, cex.axis = 0.8)
 		abline(h = 0, col = "grey", lty = 2)

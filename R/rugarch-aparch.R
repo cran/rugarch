@@ -968,7 +968,7 @@
 	}
 	
 	ans = .Call("maparchsim", model = as.integer(modelinc[1:21]), pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
-			h = h, z = z, res = res, vxs = vxs, N = as.integer( c(m, n) ), PACKAGE = "rugarch", DUP = FALSE)
+			h = h, z = z, res = res, vxs = vxs, N = as.integer( c(m, n) ), PACKAGE = "rugarch")
 	sigmaSim = matrix(ans$h[(n.start + m + 1):(n+m), ], ncol = m.sim)
 	residSim = matrix(ans$res[(n.start + m + 1):(n+m), ], ncol = m.sim)
 	if(modelinc[6]>0){
@@ -1351,7 +1351,7 @@
 		tmp = .Call("marmaxsim", model = as.integer(modelinc[1:21]), 
 				pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
 				mu = constm, x = x, res = ans$res, N = as.integer( c(m, n) ), 
-				PACKAGE = "rugarch", DUP = FALSE)
+				PACKAGE = "rugarch")
 		seriesSim = matrix(tmp$x[(n.start + m + 1):(n+m), ], ncol = m.sim)
 	}
 	path = list(sigmaSim = sigmaSim, seriesSim = seriesSim, residSim = residSim)

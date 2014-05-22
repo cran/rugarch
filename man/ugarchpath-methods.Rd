@@ -47,7 +47,7 @@ assumed zero.}
 \item{vexsimdata}{
 List of matrices (size of list m.sim, with each matrix having n.sim rows) of 
 simulated external regressor-in-variance data. If the fit object contains 
-external regressors in the mean equation, this must be provided else will be
+external regressors in the variance equation, this must be provided else will be
 assumed zero.}
 \item{...}{ If the model is the \dQuote{csGARCH}, then \code{preq} can be used 
 to denote the previous value of the permanent component of the variance model 

@@ -682,6 +682,11 @@ getspec = function(object)
 				archex = object@model$modelinc[20]), 
 		distribution.model = object@model$modeldesc$distribution, start.pars  = object@model$start.pars, 
 		fixed.pars = object@model$fixed.pars)
+	# should custom bounds be propagated?
+	#idx = which(is.na(tmp@model$pars[,"LB"]))
+	#tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	#idx = which(is.na(tmp@model$pars[,"UB"]))
+	#tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
 	return(spec)
 }
 
@@ -722,7 +727,7 @@ setGeneric("setfixed<-", function(object, value){standardGeneric("setfixed<-")})
 	pars = unlist(value)
 	names(pars) = parnames = tolower(names(pars))
 	# included parameters in model
-	modelnames = rownames(ipars[which(ipars[,4]==1 | ipars[,2]==1), ])
+	modelnames = rownames(ipars[which(ipars[,4]==1 | ipars[,2]==1), ,drop=FALSE])
 	inc = NULL
 	for(i in seq_along(parnames)){
 		if(is.na(match(parnames[i], modelnames))){
@@ -750,6 +755,11 @@ setGeneric("setfixed<-", function(object, value){standardGeneric("setfixed<-")})
 					archex = model$modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, start.pars  = model$start.pars, 
 			fixed.pars = as.list(fixed.pars))
+	# ToDo: Need to check that the parameters are not outside the bounds...
+	idx = which(is.na(tmp@model$pars[,"LB"]))
+	tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	idx = which(is.na(tmp@model$pars[,"UB"]))
+	tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
 	return(tmp)
 }
 setReplaceMethod(f="setfixed", signature= c(object = "uGARCHspec", value = "vector"), definition = .setfixed)
@@ -764,7 +774,7 @@ setGeneric("setstart<-", function(object, value){standardGeneric("setstart<-")})
 	pars = unlist(value)
 	names(pars) = parnames = tolower(names(pars))
 	# included parameters in model
-	modelnames = rownames(ipars[which(ipars[,4]==1 | ipars[,2]==1), ])
+	modelnames = rownames(ipars[which(ipars[,4]==1 | ipars[,2]==1), , drop=FALSE])
 	inc = NULL
 	for(i in seq_along(parnames)){
 		if(is.na(match(parnames[i], modelnames))){
@@ -793,6 +803,11 @@ setGeneric("setstart<-", function(object, value){standardGeneric("setstart<-")})
 					archex = model$modelinc[20]), 
 			distribution.model = model$modeldesc$distribution, fixed.pars  = model$fixed.pars, 
 			start.pars = as.list(start.pars))
+	# ToDo: Need to check that the parameters are not outside the bounds...
+	idx = which(is.na(tmp@model$pars[,"LB"]))
+	tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	idx = which(is.na(tmp@model$pars[,"UB"]))
+	tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
 	return(tmp)
 }
 
@@ -1267,28 +1282,29 @@ setMethod("show",
 				cat("\nInformation Criteria")
 				cat(paste("\n------------------------------------\n",sep=""))
 				print(itestm,digits=5)
-				cat("\nQ-Statistics on Standardized Residuals")
+				cat("\nWeighted Ljung-Box Test on Standardized Residuals")
 				cat(paste("\n------------------------------------\n",sep=""))
-				tmp1 = .box.test(stdresid, p = 1, df = sum(modelinc[2:3]))
+				tmp1 = .weightedBoxTest(stdresid, p = 1, df = sum(modelinc[2:3]))
 				print(tmp1, digits = 4)
 				cat(paste("d.o.f=", sum(modelinc[2:3]), sep=""))
 				cat("\nH0 : No serial correlation\n")
-				cat("\nQ-Statistics on Standardized Squared Residuals")
+				cat("\nWeighted Ljung-Box Test on Standardized Squared Residuals")
 				cat(paste("\n------------------------------------\n",sep=""))
-				tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[8:9]))
+				tmp2 = .weightedBoxTest(stdresid, p = 2, df = sum(modelinc[8:9]))
 				print(tmp2, digits = 4)
 				cat(paste("d.o.f=", sum(modelinc[8:9]), sep=""))
-				cat("\n\nARCH LM Tests")
+				cat("\n\nWeighted ARCH LM Tests")
 				cat(paste("\n------------------------------------\n",sep=""))
-				L2 = .archlmtest(stdresid, lags = 2)
-				L5 = .archlmtest(stdresid, lags = 5)
-				L10 = .archlmtest(stdresid, lags = 10)
-				alm = matrix(0,ncol = 3,nrow = 3)
-				alm[1,1:3] = c(L2$statistic, L2$parameter, L2$p.value)
-				alm[2,1:3] = c(L5$statistic, L5$parameter, L5$p.value)
-				alm[3,1:3] = c(L10$statistic, L10$parameter, L10$p.value)
-				colnames(alm) = c("Statistic", "DoF", "P-Value")
-				rownames(alm) = c("ARCH Lag[2]", "ARCH Lag[5]", "ARCH Lag[10]")
+				gdf = sum(modelinc[8:9])
+				L2 = .weightedarchlmtest(residuals(object), sigma(object), lags  = gdf+1, fitdf=gdf)
+				L5 = .weightedarchlmtest(residuals(object), sigma(object), lags  = gdf+3, fitdf=gdf)
+				L10 = .weightedarchlmtest(residuals(object), sigma(object), lags = gdf+5, fitdf=gdf)
+				alm = matrix(0, ncol = 4, nrow = 3)
+				alm[1,1:4] = as.numeric(c(L2$statistic, L2$parameter, L2$p.value))
+				alm[2,1:4] = as.numeric(c(L5$statistic, L5$parameter, L5$p.value))
+				alm[3,1:4] = as.numeric(c(L10$statistic, L10$parameter, L10$p.value))
+				colnames(alm) = c("Statistic", "Shape", "Scale", "P-Value")
+				rownames(alm) = c(paste("ARCH Lag[",gdf+1,"]",sep=""), paste("ARCH Lag[",gdf+3,"]",sep=""), paste("ARCH Lag[",gdf+5,"]",sep=""))
 				print(alm,digits = 4)
 				nyb = .nyblomTest(object)
 				if(is.character(nyb$JointCritical)){
@@ -1358,28 +1374,29 @@ setMethod("show",
 			cat("\nInformation Criteria")
 			cat(paste("\n---------------------------------------\n",sep=""))
 			print(itestm,digits=5)
-			cat("\nQ-Statistics on Standardized Residuals")
+			cat("\nWeighted Ljung-Box Test on Standardized Residuals")
 			cat(paste("\n---------------------------------------\n",sep=""))
-			tmp1 = .box.test(stdresid, p = 1, df = sum(modelinc[2:3]))
+			tmp1 = .weightedBoxTest(stdresid, p = 1, df = sum(modelinc[2:3]))
 			print(tmp1, digits = 4)
 			cat(paste("d.o.f=", sum(modelinc[2:3]), sep=""))
 			cat("\nH0 : No serial correlation\n")
-			cat("\nQ-Statistics on Standardized Squared Residuals")
+			cat("\nWeighted Ljung-Box Test on Standardized Squared Residuals")
 			cat(paste("\n---------------------------------------\n",sep=""))
-			tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[8:9]))
+			tmp2 = .weightedBoxTest(stdresid, p = 2, df = sum(modelinc[8:9]))
 			print(tmp2, digits = 4)
 			cat(paste("d.o.f=", sum(modelinc[8:9]), sep=""))
-			cat("\n\nARCH LM Tests")
+			cat("\n\nWeighted ARCH LM Tests")
 			cat(paste("\n---------------------------------------\n",sep=""))
-			L2 = .archlmtest(stdresid, lags = 2)
-			L5 = .archlmtest(stdresid, lags = 5)
-			L10 = .archlmtest(stdresid, lags = 10)
-			alm = matrix(0,ncol = 3,nrow = 3)
-			alm[1,1:3] = c(L2$statistic, L2$parameter, L2$p.value)
-			alm[2,1:3] = c(L5$statistic, L5$parameter, L5$p.value)
-			alm[3,1:3] = c(L10$statistic, L10$parameter, L10$p.value)
-			colnames(alm) = c("Statistic", "DoF", "P-Value")
-			rownames(alm) = c("ARCH Lag[2]", "ARCH Lag[5]", "ARCH Lag[10]")
+			gdf = sum(modelinc[8:9])
+			L2 = .weightedarchlmtest(residuals(object), sigma(object), lags  = gdf+1, fitdf=gdf)
+			L5 = .weightedarchlmtest(residuals(object), sigma(object), lags  = gdf+3, fitdf=gdf)
+			L10 = .weightedarchlmtest(residuals(object), sigma(object), lags = gdf+5, fitdf=gdf)
+			alm = matrix(0,ncol = 4,nrow = 3)
+			alm[1,1:4] = as.numeric(c(L2$statistic, L2$parameter, L2$p.value))
+			alm[2,1:4] = as.numeric(c(L5$statistic, L5$parameter, L5$p.value))
+			alm[3,1:4] = as.numeric(c(L10$statistic, L10$parameter, L10$p.value))
+			colnames(alm) = c("Statistic", "Shape", "Scale", "P-Value")
+			rownames(alm) = c(paste("ARCH Lag[",gdf+1,"]",sep=""), paste("ARCH Lag[",gdf+3,"]",sep=""), paste("ARCH Lag[",gdf+5,"]",sep=""))			
 			print(alm,digits = 4)
 			cat("\n\n")
 			cat("Sign Bias Test")
@@ -1757,7 +1774,9 @@ setMethod("coef", signature(object = "uGARCHfit"), .ugarchfitcoef)
 
 .ugarchfiltercoef = function(object)
 {
-	object@model$pars[object@model$pars[,2]==1, 1]
+	cf = object@model$pars[object@model$pars[,2]==1, 1]
+	names(cf) = rownames(object@model$pars[object@model$pars[,2]==1, 1,drop=FALSE])
+	return(cf)
 }
 
 setMethod("coef", signature(object = "uGARCHfilter"), .ugarchfiltercoef)

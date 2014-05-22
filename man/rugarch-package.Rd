@@ -22,15 +22,16 @@ feature rich distributions are used for modelling innovations and documented in
 the vignette.\cr
 This package is part of what used to be the rgarch package, which was split 
 into univariate (rugarch) and multivariate (rmgarch) models for easier 
-maintenance and use, both of which are now hosted on google code.
+maintenance and use, both of which are now hosted on CRAN (stable) and 
+bitbucket (development).
 }
 \details{
 \tabular{ll}{
 Package: \tab rugarch\cr
 Type: \tab Package\cr
 Title: \tab Univariate GARCH models\cr
-Version: \tab 1.3-1\cr
-Date: \tab 2014-01-25\cr
+Version: \tab 1.3-3\cr
+Date: \tab 2014-05-24\cr
 Author: \tab Alexios Ghalanos <alexios@4dscape.com>\cr
 Maintainer: \tab Alexios Ghalanos <alexios@4dscape.com>\cr
 Depends: \tab R (>= 2.10), methods\cr
@@ -111,7 +112,7 @@ simulated object (and their multi- function equivalents).
  author       = {Alexios Ghalanos},
  title        = {{rugarch}: Univariate GARCH models.},
  year         = {2014},
- note         = {R package version 1.3-1.},}}
+ note         = {R package version 1.3-3.},}}
 \emph{}
 }
 \section{License}{
@@ -135,6 +136,9 @@ Volatility, \emph{Journal of Finance}, \bold{48}, 1749--1778.\cr
 Engle, R. F., and Sokalska, M. E. 2012, Forecasting intraday volatility in the 
 US equity market. Multiplicative component GARCH. \emph{Journal of Financial 
 Econometrics}, \bold{10(1)}, 54--83.\cr
+Fisher, T. J., and Gallagher, C. M. 2012, New weighted portmanteau statistics 
+for time series goodness of fit testing, \emph{Journal of the American Statistical 
+Association}, \bold{107(498)}, 777--787.\cr
 Glosten, L.R., Jagannathan, R. and Runkle, D.E. 1993, On the Relation between 
 the Expected Value and the Volatility of the Nominal Excess Return on Stocks, 
 \emph{Journal of Finance}, \bold{48(5)}, 1779--1801.\cr

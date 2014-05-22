@@ -11,8 +11,8 @@ such as threshold models to capture the asymmetry in the news impact, as well
 as distributions other than the normal to account for the skewness and excess
 kurtosis observed in practice. In a further extension, \cite{Hansen1994}
 generalized the \verb@GARCH@ models to capture time variation in the full density
-parameters, with the Autoregressive Conditional Density Model\footnote{This is in the
-works and will be released as a companion package.}, relaxing the assumption that the
+parameters, with the Autoregressive Conditional Density Model\footnote{The \textbf{racd} package
+is now available from my bitbucket repository.}, relaxing the assumption that the
 conditional distribution of the standardized innovations is independent of the
 conditioning information.
 
@@ -27,7 +27,7 @@ how they are implemented in the package with numerous examples.
 
 The \verb@rugarch@ package is available on CRAN
 (\url{http://cran.r-project.org/web/packages/rugarch/index.html}) and the
-development version on Google code (\url{http://code.google.com/p/rugarch}).
+development version on bitbucket (\url{https://bitbucket.org/alexiosg}).
 Some online examples and demos are available on my website
 (\url{http://www.unstarched.net}).
 
@@ -942,7 +942,7 @@ one being the augmented Lagrange solver solnp of \cite{Ye1997} implemented in R 
 \cite{Ghalanos2011}.
 The main functionality, namely the GARCH dynamics and conditional likelihood calculations are
 done in C for speed. For reference, there is a benchmark routine called \verb@ugarchbench@
-which provides a comparison of rugarch against 2 published GARCH models with analytic
+which provides a comparison of \verb@rugarch@ against 2 published GARCH models with analytic
 standard errors, and a small scale comparison with a commercial GARCH implementation.
 The fitted object is of class \verb@uGARCHfit@ which can be passed to a variety
 of other methods such as show (summary), plot, ugarchsim, ugarchforecast etc.
@@ -969,66 +969,66 @@ Distribution	: norm
 Optimal Parameters
 ------------------------------------
         Estimate  Std. Error  t value Pr(>|t|)
-mu      0.000521    0.000087   6.0113        0
-ar1     0.872797    0.070239  12.4261        0
-ma1    -0.899910    0.062590 -14.3779        0
-omega   0.000001    0.000000   5.2449        0
-alpha1  0.087817    0.007715  11.3819        0
-beta1   0.904886    0.008458 106.9853        0
+mu      0.000522    0.000087   5.9873  0.00000
+ar1     0.870609    0.071909  12.1070  0.00000
+ma1    -0.897805    0.064324 -13.9576  0.00000
+omega   0.000001    0.000001   1.3912  0.16418
+alpha1  0.087714    0.013705   6.4001  0.00000
+beta1   0.904955    0.013750  65.8136  0.00000
 
 Robust Standard Errors:
-        Estimate  Std. Error  t value Pr(>|t|)
-mu      0.000521    0.000098   5.3010 0.000000
-ar1     0.872797    0.083728  10.4243 0.000000
-ma1    -0.899910    0.074752 -12.0387 0.000000
-omega   0.000001    0.000001   2.1508 0.031488
-alpha1  0.087817    0.029804   2.9465 0.003214
-beta1   0.904886    0.029183  31.0074 0.000000
+        Estimate  Std. Error    t value Pr(>|t|)
+mu      0.000522    0.000130   4.020100 0.000058
+ar1     0.870609    0.087878   9.907060 0.000000
+ma1    -0.897805    0.079989 -11.224134 0.000000
+omega   0.000001    0.000014   0.093412 0.925576
+alpha1  0.087714    0.186497   0.470322 0.638125
+beta1   0.904955    0.191986   4.713649 0.000002
 
-LogLikelihood : 17902.65
+LogLikelihood : 17902.41
 
 Information Criteria
 ------------------------------------
 
-Akaike       -6.4808
-Bayes        -6.4736
-Shibata      -6.4808
-Hannan-Quinn -6.4783
+Akaike       -6.4807
+Bayes        -6.4735
+Shibata      -6.4807
+Hannan-Quinn -6.4782
 
-Q-Statistics on Standardized Residuals
+Weighted Ljung-Box Test on Standardized Residuals
 ------------------------------------
-              statistic p-value
-Lag[1]            5.533 0.01866
-Lag[p+q+1][3]     6.047 0.01393
-Lag[p+q+5][7]     8.071 0.15239
+                        statistic   p-value
+Lag[1]                      5.548 1.850e-02
+Lag[2*(p+q)+(p+q)-1][5]     6.437 1.263e-05
+Lag[4*(p+q)+(p+q)-1][9]     7.191 1.108e-01
 d.o.f=2
 H0 : No serial correlation
 
-Q-Statistics on Standardized Squared Residuals
+Weighted Ljung-Box Test on Standardized Squared Residuals
 ------------------------------------
-              statistic p-value
-Lag[1]            1.092  0.2959
-Lag[p+q+1][3]     1.507  0.2196
-Lag[p+q+5][7]     2.499  0.7766
+                        statistic p-value
+Lag[1]                      1.103  0.2935
+Lag[2*(p+q)+(p+q)-1][5]     1.497  0.7407
+Lag[4*(p+q)+(p+q)-1][9]     1.956  0.9102
 d.o.f=2
 
-ARCH LM Tests
+Weighted ARCH LM Tests
 ------------------------------------
-             Statistic DoF P-Value
-ARCH Lag[2]      1.467   2  0.4803
-ARCH Lag[5]      1.709   5  0.8878
-ARCH Lag[10]     3.028  10  0.9808
+            Statistic Shape Scale P-Value
+ARCH Lag[3]   0.01965 0.500 2.000  0.8885
+ARCH Lag[5]   0.17504 1.440 1.667  0.9713
+ARCH Lag[7]   0.53718 2.315 1.543  0.9749
 
 Nyblom stability test
 ------------------------------------
-Joint Statistic:  174.9123
+Joint Statistic:  174.6662
 Individual Statistics:
-mu      0.2123
-ar1     0.1525
-ma1     0.1091
-omega  21.3662
-alpha1  0.1344
-beta1   0.1124
+mu      0.2090
+ar1     0.1488
+ma1     0.1057
+omega  21.3780
+alpha1  0.1345
+beta1   0.1130
 
 Asymptotic Critical Values (10% 5% 1%)
 Joint Statistic:     	 1.49 1.68 2.12
@@ -1037,22 +1037,22 @@ Individual Statistic:	 0.35 0.47 0.75
 Sign Bias Test
 ------------------------------------
                    t-value      prob sig
-Sign Bias           0.4084 6.830e-01
-Negative Sign Bias  2.9508 3.183e-03 ***
-Positive Sign Bias  2.4061 1.616e-02  **
-Joint Effect       28.9261 2.321e-06 ***
+Sign Bias           0.4298 6.674e-01
+Negative Sign Bias  2.9478 3.214e-03 ***
+Positive Sign Bias  2.3929 1.675e-02  **
+Joint Effect       28.9794 2.262e-06 ***
 
 
 Adjusted Pearson Goodness-of-Fit Test:
 ------------------------------------
   group statistic p-value(g-1)
-1    20     181.0    1.923e-28
-2    30     189.4    1.800e-25
-3    40     219.5    5.196e-27
-4    50     229.7    3.459e-25
+1    20     179.0    4.951e-28
+2    30     188.1    3.195e-25
+3    40     218.6    7.737e-27
+4    50     227.6    7.927e-25
 
 
-Elapsed time : 1.421875
+Elapsed time : 1.295898
 \end{Soutput}
 \end{Schunk}
 
@@ -1096,31 +1096,22 @@ Formally, they may be defined as:
 \end{gathered}
 \end{equation}
 were any parameters fixed during estimation are excluded from the calculation.
-The Q-Statistics are the test statistics from the test of \cite{Ljung1978} on the
-standardized residuals with $(1,p+q+1,p+q+5)$ lags (where p = AR order and q = MA order)
-and d.o.f the number of the AR and MA parameters, and squared standardized residuals with
-$(1,p+q+1,p+q+5)$ (where q = ARCH order and p = GARCH order) lags and d.o.f the
-number of ARCH and GARCH parameters $(q,p)$. Looking at the summary report, the
-high p-values for the standardized squared residuals indicates that there is little
-chance of serial correlation at the lags tested. The evidence for the standardized
-residuals is not as convincing but one should consider other factors, particularly when
-it comes to forecasting models.\footnote{The WeightedPortTest based on \cite{Fisher2012},
-and found on CRAN implements a number of more sophisticated set of weighted Portmanteau type
-tests, which the interested reader might like to consult.}
-The ARCH LM test of \cite{Engle1982} tests the presence of ARCH effects by regressing
-the squared residuals of a series against its own lags. Since the Null is of No
-ARCH effects, a high p-value, as evidenced by the summary indicates that the
-GARCH model used was adequate to remove any such effects present prior to
-fitting (i.e. it is a good idea to test the series prior to fitting a GARCH model!).
+Since version 1.3-1, the Q-statistics and ARCH-LM test have been replaced with the
+Weighted Ljung-Box and ARCH-LM statistics of \cite{Fisher2012a} which better account
+for the distribution of the statistics of the values from the estimated models.
+The ARCH-LM test is now a weighted portmanteau test for testing the null hypothesis
+of adequately fitted ARCH process, whilst the Ljung-Box is another portmanteau test
+with null the adequacy of the ARMA fit.
 The \verb@signbias@ calculates the Sign Bias Test of \cite{Engle1993}, and is also
 displayed in the summary. This tests the presence of leverage effects in the
 standardized residuals (to capture possible misspecification of the GARCH model),
 by regressing the squared standardized residuals on lagged negative and positive
 shocks as follows:
 \begin{equation}\label{signbias}
-\hat z_t^2 = {c_0} + {c_1}{I_{{{\hat z}_{t - 1}} < 0}} + {c_2}{I_{{{\hat z}_{t - 1}} < 0}}{\hat z_{t - 1}} + {c_3}{I_{{{\hat z}_{t - 1}} \geqslant 0}}{\hat z_{t - 1}} + {u_t}
+\hat z_t^2 = {c_0} + {c_1}{I_{{{\hat \varepsilon}_{t - 1}} < 0}} +
+{c_2}{I_{{{\hat \varepsilon}_{t - 1}} < 0}}{\hat \varepsilon_{t - 1}} + {c_3}{I_{{{\hat \varepsilon}_{t - 1}} \geqslant 0}}{\hat \varepsilon_{t - 1}} + {u_t}
 \end{equation}
-where $I$ is the indicator function and $\hat z_t$ the estimated standardized residuals
+where $I$ is the indicator function and $\hat \varepsilon_t$ the estimated residuals
 from the GARCH process. The Null Hypotheses are $H_0:c_i=0$ (for $i=1,2,3$), and that
 jointly $H_0:c_1=c_2=c_3=0$. As can be inferred from the summary of the previous
 fit, there is significant Negative and Positive reaction to shocks. Using
@@ -1198,7 +1189,7 @@ gamma1 1e-02
 delta  1e+00
 shape  5e+00
 
-LogLikelihood : 5627.404
+LogLikelihood : 5627.392
 
 Information Criteria
 ---------------------------------------
@@ -1208,38 +1199,38 @@ Bayes        -2.0378
 Shibata      -2.0378
 Hannan-Quinn -2.0378
 
-Q-Statistics on Standardized Residuals
+Weighted Ljung-Box Test on Standardized Residuals
 ---------------------------------------
-              statistic p-value
-Lag[1]             1178       0
-Lag[p+q+1][3]      1220       0
-Lag[p+q+5][7]      1222       0
+                        statistic p-value
+Lag[1]                       1178       0
+Lag[2*(p+q)+(p+q)-1][5]      1212       0
+Lag[4*(p+q)+(p+q)-1][9]      1217       0
 d.o.f=2
 H0 : No serial correlation
 
-Q-Statistics on Standardized Squared Residuals
+Weighted Ljung-Box Test on Standardized Squared Residuals
 ---------------------------------------
-              statistic p-value
-Lag[1]            170.4       0
-Lag[p+q+1][3]     175.6       0
-Lag[p+q+5][7]     178.1       0
+                        statistic p-value
+Lag[1]                      170.4       0
+Lag[2*(p+q)+(p+q)-1][5]     173.8       0
+Lag[4*(p+q)+(p+q)-1][9]     175.8       0
 d.o.f=2
 
-ARCH LM Tests
+Weighted ARCH LM Tests
 ---------------------------------------
-             Statistic DoF P-Value
-ARCH Lag[2]      171.5   2       0
-ARCH Lag[5]      176.4   5       0
-ARCH Lag[10]     177.9  10       0
+            Statistic Shape Scale P-Value
+ARCH Lag[3]     3.915 0.500 2.000 0.04785
+ARCH Lag[5]     4.207 1.440 1.667 0.15612
+ARCH Lag[7]     5.237 2.315 1.543 0.20163
 
 
 Sign Bias Test
 ---------------------------------------
                    t-value      prob sig
-Sign Bias           8.2990 1.308e-16 ***
-Negative Sign Bias  5.6952 1.296e-08 ***
-Positive Sign Bias  0.5734 5.664e-01
-Joint Effect       95.5847 1.382e-20 ***
+Sign Bias           8.3144 1.150e-16 ***
+Negative Sign Bias  5.6999 1.261e-08 ***
+Positive Sign Bias  0.5621 5.741e-01
+Joint Effect       95.8328 1.223e-20 ***
 
 
 Adjusted Pearson Goodness-of-Fit Test:
@@ -1816,8 +1807,8 @@ for parameter uncertainty.
 
 
 \section{Future Development}\label{section:fut}
-Any future extensions will likely be 'add-on' packages released in the google code repository
-of the package.
+Any future extensions will likely be 'add-on' packages released in the bitbucket
+code repository of the package.
 
 \section{FAQs and Guidelines}\label{section:faqs}
 This section provides for answers to some Frequently Asked Questions (Q) as well

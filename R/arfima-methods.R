@@ -151,6 +151,11 @@ setMethod(f = "getspec", signature(object = "ARFIMAfit"), definition = .getarfim
 					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata), 
 			distribution.model = model$modeldesc$distribution, start.pars  = model$start.pars, 
 			fixed.pars = as.list(fixed.pars))
+	# ToDo: Need to check that the parameters are not outside the bounds...
+	idx = which(is.na(tmp@model$pars[,"LB"]))
+	tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	idx = which(is.na(tmp@model$pars[,"UB"]))
+	tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
 	return(tmp)
 }
 setReplaceMethod(f="setfixed", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setfixedarfima)
@@ -179,6 +184,11 @@ setReplaceMethod(f="setfixed", signature= c(object = "ARFIMAspec", value = "vect
 					arfima = model$modelinc[4], external.regressors = model$modeldata$mexdata), 
 			distribution.model = model$modeldesc$distribution, fixed.pars  = model$fixed.pars, 
 			start.pars = as.list(start.pars))
+	# ToDo: Need to check that the parameters are not outside the bounds...
+	idx = which(is.na(tmp@model$pars[,"LB"]))
+	tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	idx = which(is.na(tmp@model$pars[,"UB"]))
+	tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
 	return(tmp)
 }
 
@@ -307,16 +317,16 @@ setMethod("show",
 				cat("\nInformation Criteria")
 				cat(paste("\n------------------------------------\n",sep=""))
 				print(itestm,digits=5)
-				cat("\nQ-Statistics on Standardized Residuals")
+				cat("\nWeighted Ljung-Box Test on Standardized Residuals")
 				cat(paste("\n------------------------------------\n",sep=""))
-				tmp1 = .box.test(stdresid, p = 1, df = sum(modelinc[2:3]))
+				tmp1 = .weightedBoxTest(stdresid, p = 1, df = sum(modelinc[2:3]))
 				print(tmp1, digits = 4)
 				cat("\nH0 : No serial correlation\n")
-				cat("\nQ-Statistics on Standardized Squared Residuals")
+				cat("\nWeighted Ljung-Box Test on Standardized Squared Residuals")
 				cat(paste("\n------------------------------------\n",sep=""))
-				tmp2 = .box.test(stdresid, p = 2, df = sum(modelinc[2:3]))
+				tmp2 = .weightedBoxTest(stdresid, p = 2, df = sum(modelinc[8:9]))
 				print(tmp2, digits = 4)
-				cat("\nARCH LM Tests")
+				cat("\n\nARCH LM Tests")
 				cat(paste("\n------------------------------------\n",sep=""))
 				L2 = .archlmtest(stdresid, lags = 2)
 				L5 = .archlmtest(stdresid, lags = 5)

@@ -100,7 +100,8 @@
 			if(fit.control$fixed.se==0) {
 				# if all parameters are fixed an no standard erros are to
 				# be calculated then we return a ugarchfilter object
-				cat("\nugarchfit-->warning: all parameters fixed...returning ugarchfilter object instead\n")
+			
+				warning("\nugarchfit-->warning: all parameters fixed...returning ugarchfilter object instead\n")
 				return(ugarchfilter(data = xts(origdata, origindex), spec = spec, out.sample = out.sample))
 			} else{
 				# if all parameters are fixed but we require standard errors, we
@@ -1006,7 +1007,7 @@
 	ans = .Call("mfgarchsim", model = as.integer(modelinc[1:21]), 
 			pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
 			kdelta = as.numeric(kdelta), h = h, z = z, res = res, vxs = vxs, 
-			N = as.integer( c(m, n) ), PACKAGE = "rugarch", DUP = FALSE)
+			N = as.integer( c(m, n) ), PACKAGE = "rugarch")
 	
 	sigmaSim = matrix(( ans$h[(n.start + m + 1):(n+m), ] ), ncol = m.sim)
 	residSim = matrix(ans$res[(n.start + m + 1):(n+m), ], ncol = m.sim)
@@ -1371,7 +1372,7 @@
 	ans = .Call("mfgarchsim", model = as.integer(modelinc[1:21]), 
 			pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
 			kdelta = as.numeric(kdelta), h = h, z = z, res = res, vxs = vxs, 
-			N = as.integer( c(m, n) ), PACKAGE = "rugarch", DUP = FALSE)
+			N = as.integer( c(m, n) ), PACKAGE = "rugarch")
 	
 	sigmaSim = matrix(( ans$h[(n.start + m + 1):(n+m), ] ), ncol = m.sim)
 	residSim = matrix(ans$res[(n.start + m + 1):(n+m), ], ncol = m.sim)
@@ -1409,7 +1410,7 @@
 		tmp = .Call("marmaxsim", model = as.integer(modelinc[1:21]), 
 				pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
 				mu = constm, x = x, res = ans$res, N = as.integer( c(m, n) ), 
-				PACKAGE = "rugarch", DUP = FALSE)
+				PACKAGE = "rugarch")
 		seriesSim = matrix(tmp$x[(n.start + m + 1):(n+m), ], ncol = m.sim)
 	}
 	path = list(sigmaSim = sigmaSim, seriesSim = seriesSim, residSim = residSim)

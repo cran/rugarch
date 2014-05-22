@@ -1,6 +1,23 @@
-2014-01-25  Alexios Ghalanos <alexios@4dscape.com>
+2014-05-22  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.3-3.
+	* Fix to Vlaar and Palm GoF test in case of shaped distribution (shape parameter
+	did not get passed to cdf function during the transformation).
+	* Fixes to vignettes.
+
+2014-04-26  Alexios Ghalanos <alexios@4dscape.com>
+	* DESCRIPTION (Version): New version is 1.3-2.
+	* Fixed setting of bounds on ARFIMAspec object.
+	* When setting starting or fixed parameters on a uGARCHspec or ARFIMAspec
+	object with previously set custom bounds, these were overwritten by defaults.
+	This is now fixed and they are propagated (but no checks yet that starting
+	or fixed parameters are within those bounds).
+	* Adjustment to VaRTest to avoid problems with large N.
+
+2014-02-21  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.3-1.
 	* Patched to work with recent changes to Rcpp.
+	* Changed the Q-statistics and ARCH-LM test (in the show/summary) 
+	to the weighted statistics of Fisher and Gallagher (2012).
 
 2014-01-01  Alexios Ghalanos <alexios@4dscape.com>
 	* DESCRIPTION (Version): New version is 1.3-0.

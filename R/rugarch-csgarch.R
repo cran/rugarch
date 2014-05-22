@@ -1016,7 +1016,7 @@
 	ans = .Call("mcsgarchsim", model = as.integer(modelinc[1:21]), 
 			pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), h = h, 
 			q = q, z = z, res = res, e = e, vxs = vxs, N = as.integer( c(m, n) ), 
-			PACKAGE = "rugarch", DUP = FALSE)
+			PACKAGE = "rugarch")
 	
 	sigmaSim = matrix(sqrt( ans$h[(n.start + m + 1):(n+m), ] ), ncol = m.sim)
 	qSim = matrix(ans$q[(n.start + m + 1):(n+m), ], ncol = m.sim)
@@ -1419,7 +1419,7 @@
 		tmp = .Call("marmaxsim", model = as.integer(modelinc[1:21]), 
 				pars = as.numeric(ipars[,1]), idx = as.integer(idx[,1]-1), 
 				mu = constm, x = x, res = ans$res, N = as.integer( c(m, n) ), 
-				PACKAGE = "rugarch", DUP = FALSE)
+				PACKAGE = "rugarch")
 		seriesSim = matrix(tmp$x[(n.start + m + 1):(n+m), ], ncol = m.sim)
 	}
 	path = list(sigmaSim = sigmaSim, seriesSim = seriesSim, residSim = residSim, qSim = qSim)

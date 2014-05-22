@@ -58,6 +58,23 @@
 	return(LBSR)
 }
 
+.weightedBoxTest = function(stdresid, p=1, df = 0)
+{
+	if(any(!is.finite(stdresid))) stdresid[!is.finite(stdresid)]=0
+	# p=1 normal case, p=2 squared std. residuals
+	# Q-Statistics on Standardized Residuals
+	#H0 : No serial correlation ==> Accept H0 when prob. is High [Q < Chisq(lag)]
+	box10 = Weighted.Box.test(stdresid, lag = 1, type = "Ljung-Box", fitdf = 0, if(p==2) sqrd.res = TRUE else sqrd.res = FALSE)
+	box15 = Weighted.Box.test(stdresid, lag = max(2, 2*df+df-1), type = "Ljung-Box", fitdf = df, if(p==2) sqrd.res = TRUE else sqrd.res = FALSE)
+	box20 = Weighted.Box.test(stdresid, lag = max(5, 4*df+df-1), type = "Ljung-Box", fitdf = df, if(p==2) sqrd.res = TRUE else sqrd.res = FALSE)
+	LBSR<-matrix(NA,ncol=2,nrow=3)
+	LBSR[1:3,1] = c(box10$statistic[[1]],box15$statistic[[1]],box20$statistic[[1]])
+	LBSR[1:3,2] = c(box10$p.value[[1]],box15$p.value[[1]],box20$p.value[[1]])
+	rownames(LBSR) = c(paste("Lag[1]",sep=""), paste("Lag[2*(p+q)+(p+q)-1][",max(2, 2*df+df-1),"]",sep=""), paste("Lag[4*(p+q)+(p+q)-1][",max(5, 4*df+df-1),"]",sep=""))
+	colnames(LBSR) = c("statistic","p-value")
+	return(LBSR)
+}
+
 
 .archlmtest = function (x, lags, demean = FALSE)
 {
@@ -78,6 +95,17 @@
 	class(result) = "htest"
 	return(result)
 }
+
+
+.weightedarchlmtest = function (x, sigma, lags, fitdf = 2, demean = FALSE)
+{
+	if(any(!is.finite(x))) x[!is.finite(x)] = 0
+	x = as.vector(x)
+	if(demean) x = scale(x, center = TRUE, scale = FALSE)
+	result = Weighted.LM.test(x, sigma^2, lag = lags, type = c("correlation", "partial")[1], fitdf = fitdf, weighted=TRUE) 
+	return(result)
+}
+
 
 .nyblomTest = function(object)
 {
@@ -170,7 +198,7 @@
 	res = as.numeric(residuals(object))
 	z2 = z^2
 	n = length(z)
-	zminus = as.integer(z<0)
+	zminus = as.integer(res<0)
 	zplus = 1-zminus
 	czminus = zminus*res
 	czplus = zplus*res
@@ -206,7 +234,7 @@
 	# must remove fixed parameters
 	dist = object@model$modeldesc$distribution
 	cdfv = pdist(dist, q = sort(z), lambda = ipars[idx["ghlambda",1],1], skew = ipars[idx["skew",1],1], 
-			ipars[idx["shape",1],1])
+			shape = ipars[idx["shape",1],1])
 	j = length(groups)
 	gofmat = matrix(NA, ncol = 3, nrow = j)
 	gofmat[,1] = groups
@@ -859,8 +887,8 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 	pi0 = T01/T0
 	pi1 = T11/T1
 	pe = (T01 + T11)/(T0 + T1)
-	stat.ind = -2 * .Log((1 - pe)^(T00 + T10) * pe^(T01 + T11)) + 
-			2 * .Log((1 - pi0)^T00 * pi0^T01 * (1 - pi1)^T10 * pi1^T11)
+	# stat.ind = -2 * log((1 - pe)^(T00 + T10) * pe^(T01 + T11)) + 2 * log((1 - pi0)^T00 * pi0^T01 * (1 - pi1)^T10 * pi1^T11)
+	stat.ind = -2 *( (T00 + T10)*log(1 - pe) + (T01 + T11)*log(pe)) + 2 * (T00*log(1 - pi0)+T01*log(pi0)+T10*log(1 - pi1)+T11*log(pi1))
 	stat.uc = .LR.uc(p = p, TN = TN, N = N)
 	stat.cc = stat.uc + stat.ind
 	return(list(stat.cc = stat.cc, stat.uc = stat.uc, N = N, 
@@ -869,7 +897,7 @@ LR.cc.test = function (p, actual, VaR, conf.level = 0.95)
 
 .LR.uc = function (p, TN, N) 
 {
-	stat.uc = -2 * .Log((1 - p)^(TN - N) * p^N) + 2 * .Log((1 - N/TN)^(TN - N) * (N/TN)^N)
+	stat.uc = -2 *( (TN - N)*log(1 - p)+ N*log(p) ) + 2 * ( (TN - N)*log(1 - N/TN)+N*log(N/TN) )
 	return(stat.uc)
 }
 
@@ -1017,3 +1045,194 @@ bootstrap = function(data, nboot = 10, nblock = 5, type = c("stationary", "block
 repmat = function(a,n,m){
 	kronecker(matrix(1,n,m),a)
 }
+
+##########################################################################################
+# Direct Import of Weighted Tests of FISHER and GALLAGHER (WeightedPortTest package)
+Weighted.Box.test = function (x, lag = 1, type = c("Box-Pierce", "Ljung-Box", "Monti"), 
+		fitdf = 0, sqrd.res = FALSE, log.sqrd.res = FALSE, abs.res = FALSE, 
+		weighted = TRUE)
+{
+	if(lag<(2*fitdf+fitdf-1)) stop("\nLag must be equal to a minimum of 2*fitdf+fitdf-1")
+	if(NCOL(x) > 1) stop("\nx is not a vector or univariate time series")
+	if(lag < 1) stop("\nLag must be positive")
+	if(fitdf < 0) stop("\nFitdf cannot be negative")
+	if((sqrd.res && log.sqrd.res) || (sqrd.res && abs.res) || (log.sqrd.res && abs.res)) stop("Only one option of: sqrd.res, log.sqrd.res or abs.res can be selected")
+	DNAME <- deparse(substitute(x))
+	type <- match.arg(type)
+	if (abs.res) {
+		x <- abs(x)
+	}
+	if (sqrd.res || log.sqrd.res) {
+		x <- x^2
+	}
+	if (log.sqrd.res) {
+		x <- log(x)
+	}
+	if (weighted) {
+		if (type == "Monti") {
+			METHOD <- "Weighted Monti test (Gamma Approximation)"
+			cor <- acf(x, lag.max = lag, type = "partial", plot = FALSE, 
+					na.action = na.pass)
+			obs <- cor$acf[1:lag]
+		}
+		else {
+			cor <- acf(x, lag.max = lag, type = "correlation", 
+					plot = FALSE, na.action = na.pass)
+			obs <- cor$acf[2:(lag + 1)]
+		}
+		if (type == "Ljung-Box") {
+			METHOD <- "Weighted Ljung-Box test (Gamma Approximation)"
+		}
+		n <- sum(!is.na(x))
+		weights <- (lag - 1:lag + 1)/(lag)
+		if (type == "Box-Pierce") {
+			METHOD <- "Weighted Box-Pierce test (Gamma Approximation)"
+			STATISTIC <- n * sum(weights * obs^2)
+		}
+		else {
+			STATISTIC <- n * (n + 2) * sum(weights * (1/seq.int(n - 1, n - lag) * obs^2))
+		}
+		if (sqrd.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "Weighted X-squared on Squared Residuals for detecting nonlinear processes"
+		}
+		else if (log.sqrd.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "Weighted X-squared on Log-Squared Residuals for detecting nonlinear processes"
+		}
+		else if (abs.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "Weighted X-squared on Absolute valued Residuals for detecting nonlinear processes"
+		}
+		else {
+			names(STATISTIC) <- "Weighted X-squared on Residuals for fitted ARMA process"
+		}
+		shape <- (3/4) * (lag + 1)^2 * lag/(2 * lag^2 + 3 * lag + 1 - 6 * lag * fitdf)
+		scale <- (2/3) * (2*lag^2 + 3*lag+1 - 6 * lag * fitdf)/(lag*(lag + 1))		
+		PARAMETER <- c(shape, scale)
+		names(PARAMETER) <- c("Shape", "Scale")
+		PVAL <- 1 - pgamma(STATISTIC, shape = shape, scale = scale)
+		names(PVAL) <- "Approximate p-value"
+	}
+	else {
+		if (type == "Monti") {
+			METHOD <- "Monti test"
+			cor <- acf(x, lag.max = lag, type = "partial", plot = FALSE, 
+					na.action = na.pass)
+			obs <- cor$acf[1:lag]
+		}
+		else {
+			cor <- acf(x, lag.max = lag, type = "correlation", 
+					plot = FALSE, na.action = na.pass)
+			obs <- cor$acf[2:(lag + 1)]
+		}
+		if (type == "Ljung-Box") {
+			METHOD <- "Ljung-Box test"
+		}
+		n <- sum(!is.na(x))
+		if (type == "Box-Pierce") {
+			METHOD <- "Box-Pierce test"
+			STATISTIC <- n * sum(obs^2)
+		}
+		else {
+			STATISTIC <- n * (n + 2) * sum((1/seq.int(n - 1, 
+										n - lag) * obs^2))
+		}
+		if (sqrd.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "X-squared on Squared Residuals for detecting nonlinear processes"
+		}
+		else if (log.sqrd.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "X-squared on Log-Squared Residuals for detecting nonlinear processes"
+		}
+		else if (abs.res) {
+			fitdf <- 0
+			names(STATISTIC) <- "X-squared on Absolute valued Residuals for detecting nonlinear processes"
+		}
+		else {
+			names(STATISTIC) <- "X-squared on Residuals for fitted ARMA process"
+		}
+		mydf <- lag - fitdf
+		PARAMETER <- c(mydf)
+		names(PARAMETER) <- c("df")
+		PVAL <- 1 - pchisq(STATISTIC, df = mydf)
+		names(PVAL) <- "p-value"
+	}
+	structure(list(statistic = STATISTIC, parameter = PARAMETER, 
+					p.value = PVAL, method = METHOD, data.name = DNAME), 
+			class = "htest")
+}
+
+Weighted.LM.test <- function (x, h.t, lag = 1, type = c("correlation", "partial"), fitdf = 1, weighted=TRUE) 
+{
+	### Error Checking
+	###
+	if (NCOL(x) > 1) 
+		stop("x is not a vector or univariate time series");
+	if (fitdf >= lag)
+		stop("Lag must exceed fitted degrees of freedom");
+	if (fitdf < 1)
+		stop("Fitted degrees of freedom must be positive");
+	if( !(length(x)==length(h.t)) )
+		stop("Length of x and h.t must match");
+	
+	DNAME <- deparse(substitute(x))
+	type <- match.arg(type)
+	
+	x <- x^2/h.t
+	
+	if( type == "partial") {
+		cor <- acf(x, lag.max = lag, type="partial", plot=FALSE, na.action=na.pass)
+		obs <- cor$acf[1:lag];
+	}
+	else {
+		cor <- acf(x, lag.max = lag, type="correlation", plot=FALSE, na.action=na.pass)
+		obs <- cor$acf[2:(lag + 1)];
+	}
+	
+	
+	if(type == "correlation" && weighted) {
+		METHOD <- "Weighted Li-Mak test on autocorrelations (Gamma Approximation)"
+	}
+	else if(type == "partial" && weighted) {
+		METHOD <- "Weighted Li-Mak test on partial autocorrelations (Gamma Approximation)"
+	}
+	else if(type == "correlation" && !weighted) {
+		METHOD <- "Li-Mak test on autocorrelations (Chi-Squared Approximation)"
+	}
+	else {
+		METHOD <- "Li-Mak test on partial autocorrelations (Chi-Squared Approximation)"
+	}
+	
+	n <- sum(!is.na(x))
+	if(weighted) {
+		weights <- (lag - (fitdf+1):lag + (fitdf+1) )/lag;
+		obs <- obs[(fitdf+1):lag];
+		STATISTIC <- n * sum(weights*obs^2);
+		names(STATISTIC) <- "Weighted X-squared on Squared Residuals for fitted ARCH process";
+		shape <- (3/4)*(lag + fitdf + 1)^2*(lag - fitdf)/(2*lag^2 + 3*lag + 2*lag*fitdf + 2*fitdf^2 + 3*fitdf + 1);
+		scale <- (2/3)*(2*lag^2 + 3*lag + 2*lag*fitdf + 2*fitdf^2 + 3*fitdf + 1)/(lag*(lag + fitdf + 1));
+		PARAMETER <- c(shape, scale);
+		names(PARAMETER) <- c("Shape", "Scale")
+	}
+	else {
+		weights <- rep(1,(lag-fitdf) );
+		obs <- obs[(fitdf+1):lag];
+		STATISTIC <- n * sum(weights*obs^2);
+		names(STATISTIC) <- "X-squared on Squared Residuals for fitted ARCH process"
+		shape <- (lag-fitdf)/2;          # Chi-squared df in Gamma form.
+		scale <- 2;
+		PARAMETER <- c((lag-fitdf));
+		names(PARAMETER) <- c("Degrees of Freedom");
+	}
+	
+	PVAL <- 1 - pgamma(STATISTIC, shape=shape, scale=scale)
+	names(PVAL) <- "Approximate p-value"
+	
+	structure(list(statistic = STATISTIC, parameter = PARAMETER, 
+					p.value = PVAL, method = METHOD, data.name = DNAME), 
+			class = "htest")
+}
+# End Import
+##########################################################################################

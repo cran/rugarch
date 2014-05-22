@@ -103,56 +103,60 @@
 	# to be caught when using the substr function
 	if(modelinc[2]>0){
 		arnames=paste("ar",1:modelinc[2],sep="")
+		# ar1 stationarity bounds else...
 		if(modelinc[2]==1){
-			pars[idx["ar", 1]:idx["ar", 2], 5] = -1+TinY
-			pars[idx["ar", 1]:idx["ar", 2], 6] =  1-TinY
+			pxd = which(is.na(pars[idx["ar", 1]:idx["ar", 2], 5]))
+			if(length(pxd)>0) pars[(idx["ar", 1]:idx["ar", 2])[pxd], 5] = -1+TinY
+			pxd = which(is.na(pars[idx["ar", 1]:idx["ar", 2], 6]))
+			if(length(pxd)>0) pars[(idx["ar", 1]:idx["ar", 2])[pxd], 6] =  1+TinY
 		} else{
-			pars[idx["ar", 1]:idx["ar", 2], 5] = -4+TinY
-			pars[idx["ar", 1]:idx["ar", 2], 6] =  4-TinY
+			pxd = which(is.na(pars[idx["ar", 1]:idx["ar", 2], 5]))
+			if(length(pxd)>0) pars[(idx["ar", 1]:idx["ar", 2])[pxd], 5] = -4+TinY
+			pxd = which(is.na(pars[idx["ar", 1]:idx["ar", 2], 6]))
+			if(length(pxd)>0) pars[(idx["ar", 1]:idx["ar", 2])[pxd], 6] =  4+TinY
 		}
-		for(i in 1:modelinc[2]){
-			if(i<10) ix = 3 else ix = 4
-			if(any(substr(start.names, 1, ix)==paste("ar", i, sep = ""))){
-				j = which(substr(start.names, 1, ix)==paste("ar", i, sep = ""))[1]
-				armatch = charmatch(start.names[j], arnames)
-				pars[arnames[armatch], 1] = as.numeric(start.pars[j])	
+		sp = na.omit(match(start.names, arnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[arnames[sp[i]], 1] = as.numeric(start.pars[arnames[sp[i]]])
+		}
+		sp = na.omit(match(fixed.names, arnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[arnames[sp[i]], 1] = as.numeric(fixed.pars[arnames[sp[i]]])
+				pars[arnames[sp[i]], 5] = as.numeric(fixed.pars[arnames[sp[i]]])
+				pars[arnames[sp[i]], 6] = as.numeric(fixed.pars[arnames[sp[i]]])
 			}
 		}
-		for(i in 1:modelinc[2]){
-			if(i<10) ix = 3 else ix = 4
-			if(any(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))){
-				j = which(substr(fixed.names, 1, ix)==paste("ar", i, sep = ""))[1]
-				armatch = charmatch(fixed.names[j], arnames)
-				pars[arnames[armatch], 1] = as.numeric(fixed.pars[j])
-				pars[arnames[armatch], 5] = as.numeric(fixed.pars[j])
-				pars[arnames[armatch], 6] = as.numeric(fixed.pars[j])
-			}
-		}		
 	}
+
 	# ma
 	if(modelinc[3]>0){
 		manames = paste("ma",1:modelinc[3],sep="")
 		if(modelinc[3]==1){
-			pars[idx["ma", 1]:idx["ma", 2], 5] = -1+TinY
-			pars[idx["ma", 1]:idx["ma", 2], 6] =  1-TinY
+			pxd = which(is.na(pars[idx["ma", 1]:idx["ma", 2], 5]))
+			if(length(pxd)>0) pars[(idx["ma", 1]:idx["ma", 2])[pxd], 5] = -1+TinY
+			pxd = which(is.na(pars[idx["ma", 1]:idx["ma", 2], 6]))
+			if(length(pxd)>0) pars[(idx["ma", 1]:idx["ma", 2])[pxd], 6] =  1+TinY
 		} else{
-			pars[idx["ma", 1]:idx["ma", 2], 5] = -4+TinY
-			pars[idx["ma", 1]:idx["ma", 2], 6] =  4-TinY
+			pxd = which(is.na(pars[idx["ma", 1]:idx["ma", 2], 5]))
+			if(length(pxd)>0) pars[(idx["ma", 1]:idx["ma", 2])[pxd], 5] = -4+TinY
+			pxd = which(is.na(pars[idx["ma", 1]:idx["ma", 2], 6]))
+			if(length(pxd)>0) pars[(idx["ma", 1]:idx["ma", 2])[pxd], 6] =  4+TinY
 		}
-		if(any(substr(start.names, 1, 2)=="ma")){
-			j = which(substr(start.names, 1, 2)=="ma")
-			mamatch = charmatch(start.names[j],manames)
-			pars[manames[mamatch], 1]=as.numeric(start.pars[j])
+		sp = na.omit(match(start.names, manames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[manames[sp[i]], 1] = as.numeric(start.pars[manames[sp[i]]])
 		}
-		if(any(substr(fixed.names, 1, 2)=="ma")){
-			j = which(substr(fixed.names, 1, 2)=="ma")
-			mamatch = charmatch(fixed.names[j],manames)
-			pars[manames[mamatch], 1] = as.numeric(fixed.pars[j])
-			pars[manames[mamatch], 5] = as.numeric(fixed.pars[j])
-			pars[manames[mamatch], 6] = as.numeric(fixed.pars[j])
+		sp = na.omit(match(fixed.names, manames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[manames[sp[i]], 1] = as.numeric(fixed.pars[manames[sp[i]]])
+				pars[manames[sp[i]], 5] = as.numeric(fixed.pars[manames[sp[i]]])
+				pars[manames[sp[i]], 6] = as.numeric(fixed.pars[manames[sp[i]]])
+			}
 		}
 	}
-	
+
 	# garch in mean
 	if(modelinc[5]>0){
 		pars[idx["archm", 1]:idx["archm", 2], 5] = -10
@@ -167,48 +171,42 @@
 	
 	# arfima
 	if(modelinc[4]>0){
-		pars[idx["arfima", 1]:idx["arfima", 2], 5] = 1e-8
-		pars[idx["arfima", 1]:idx["arfima", 2], 6] = 0.5
-		if(is.null(start.pars$arfima)){
-			pars[idx["arfima", 1]:idx["arfima", 2], 1] = .absHmom(data)-0.5
-		} else{
-			if(start.pars$arfima[1]<0 | start.pars$arfima[1]>0.5) 
-				stop("\nugarchfit-->error: invalid arfima start value (valid range: 0-0.5)\n")
-			pars[idx["arfima", 1]:idx["arfima", 2], 1] = start.pars$arfima[1]
-		}
+		if(is.na(pars[idx["arfima", 1]:idx["arfima", 2], 5])) pars[idx["arfima", 1]:idx["arfima", 2], 5] = 1e-8
+		if(is.na(pars[idx["arfima", 1]:idx["arfima", 2], 6])) pars[idx["arfima", 1]:idx["arfima", 2], 6] = 0.5
+		if(is.null(start.pars$arfima)) pars[idx["arfima", 1]:idx["arfima", 2], 1] = .absHmom(data)-0.5 else pars[idx["arfima", 1]:idx["arfima", 2], 1] = start.pars$arfima[1]
 		if(any(substr(fixed.names, 1, 6)=="arfima")){
-			if(fixed.pars$arfima[1]<0 | fixed.pars$arfima[1]>0.5) 
-				stop("\nugarchfit-->error: invalid arfima fixed value (valid range: 0-0.5)\n")
 			pars[idx["arfima", 1]:idx["arfima", 2], 1] = as.numeric(fixed.pars$arfima)
 			pars[idx["arfima", 1]:idx["arfima", 2], 5] = as.numeric(fixed.pars$arfima)
 			pars[idx["arfima", 1]:idx["arfima", 2], 6] = as.numeric(fixed.pars$arfima)
 		}
 	}
-	
+
 	# exogenous regressors
 	if(modelinc[6]>0){
 		mxnames = paste("mxreg",1:modelinc[6],sep="")
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 5] = -100
-		pars[idx["mxreg", 1]:idx["mxreg", 2], 6] =  100
-		if(any(substr(start.names, 1, 5)=="mxreg")){
-			j = which(substr(start.names, 1, 5)=="mxreg")
-			mxmatch = charmatch(start.names[j],mxnames)
-			pars[mxnames[mxmatch], 1] = as.numeric(start.pars[j])
+		pxd = which(is.na(pars[idx["mxreg", 1]:idx["mxreg", 2], 5]))
+		if(length(pxd)>0) pars[(idx["mxreg", 1]:idx["mxreg", 2])[pxd], 5] = -100
+		pxd = which(is.na(pars[idx["mxreg", 1]:idx["mxreg", 2], 6]))
+		if(length(pxd)>0) pars[(idx["mxreg", 1]:idx["mxreg", 2])[pxd], 6] =  100
+		sp = na.omit(match(start.names, mxnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)) pars[mxnames[sp[i]], 1] = as.numeric(start.pars[mxnames[sp[i]]])
 		}
-		if(any(substr(fixed.names, 1, 5)=="mxreg")){
-			j = which(substr(fixed.names, 1, 5)=="mxreg")
-			mxmatch = charmatch(fixed.names[j],mxnames)
-			pars[mxnames[mxmatch], 1] = as.numeric(fixed.pars[j])
-			pars[mxnames[mxmatch], 5] = as.numeric(fixed.pars[j])
-			pars[mxnames[mxmatch], 6] = as.numeric(fixed.pars[j])
+		sp = na.omit(match(fixed.names, mxnames))
+		if(length(sp)>0){
+			for(i in 1:length(sp)){
+				pars[mxnames[sp[i]], 1] = as.numeric(fixed.pars[mxnames[sp[i]]])
+				pars[mxnames[sp[i]], 5] = as.numeric(fixed.pars[mxnames[sp[i]]])
+				pars[mxnames[sp[i]], 6] = as.numeric(fixed.pars[mxnames[sp[i]]])
+			}
 		}
 	}
-	
 	if(modelinc[7]>0){
 		.sd = sd(data)
-		pars[idx["sigma", 1]:idx["sigma", 2], 5] = .eps
-		pars[idx["sigma", 1]:idx["sigma", 2], 6] = 100*.sd
-		if(is.null(start.pars$omega)) pars[idx["sigma", 1]:idx["sigma", 2], 1] = .sd else pars[idx["sigma", 1]:idx["sigma", 2], 1] = start.pars$sigma[1]/dscale
+		# enforce positivity of lower bound
+		if(is.na(pars[idx["sigma", 1]:idx["sigma", 2], 5])) pars[idx["sigma", 1]:idx["sigma", 2], 5] = .eps else pars[idx["sigma", 1]:idx["sigma", 2], 5] = abs(pars[idx["sigma", 1]:idx["sigma", 2], 5])
+		if(is.na(pars[idx["sigma", 1]:idx["sigma", 2], 6])) pars[idx["sigma", 1]:idx["sigma", 2], 6] = 100*.sd
+		if(is.null(start.pars$omega)) pars[idx["sigma", 1]:idx["sigma", 2], 1] = .sd else pars[idx["sigma", 1]:idx["sigma", 2], 1] = abs(start.pars$sigma[1])/dscale
 		if(any(substr(fixed.names, 1, 5) == "sigma")){
 			pars[idx["sigma", 1]:idx["sigma", 2], 1] = as.numeric(fixed.pars$sigma)
 			pars[idx["sigma", 1]:idx["sigma", 2], 5] = fixed.pars$sigma
@@ -218,8 +216,8 @@
 	
 	dbounds = .DistributionBounds(distribution = model$modeldesc$distribution)
 	if(modelinc[16]>0){
-		pars[idx["skew", 1]:idx["skew", 2], 5] = dbounds$skew.LB
-		pars[idx["skew", 1]:idx["skew", 2], 6] = dbounds$skew.UB
+		if(is.na(pars[idx["skew", 1]:idx["skew", 2], 5])) pars[idx["skew", 1]:idx["skew", 2], 5] = dbounds$skew.LB
+		if(is.na(pars[idx["skew", 1]:idx["skew", 2], 6])) pars[idx["skew", 1]:idx["skew", 2], 6] = dbounds$skew.UB
 		if(is.null(start.pars$skew)) pars[idx["skew", 1]:idx["skew", 2], 1] = dbounds$skew else pars[idx["skew", 1]:idx["skew", 2], 1] = start.pars$skew[1]
 		if(any(substr(fixed.names, 1, 4) == "skew")){
 			pars[idx["skew", 1]:idx["skew", 2], 1] = as.numeric(fixed.pars$skew)
@@ -228,8 +226,8 @@
 		}
 	}
 	if(modelinc[17]>0){
-		pars[idx["shape", 1]:idx["shape", 2], 5] = dbounds$shape.LB
-		pars[idx["shape", 1]:idx["shape", 2], 6] = dbounds$shape.UB
+		if(is.na(pars[idx["shape", 1]:idx["shape", 2], 5])) pars[idx["shape", 1]:idx["shape", 2], 5] = dbounds$shape.LB
+		if(is.na(pars[idx["shape", 1]:idx["shape", 2], 6])) pars[idx["shape", 1]:idx["shape", 2], 6] = dbounds$shape.UB
 		if(is.null(start.pars$shape)) pars[idx["shape", 1]:idx["shape", 2], 1] = dbounds$shape else pars[idx["shape", 1]:idx["shape", 2], 1] = start.pars$shape[1]
 		if(any(substr(fixed.names, 1, 5) == "shape")){
 			pars[idx["shape", 1]:idx["shape", 2], 1] = as.numeric(fixed.pars$shape)
@@ -238,8 +236,8 @@
 		}
 	}
 	if(modelinc[18]>0){
-		pars[idx["ghlambda", 1]:idx["ghlambda", 2], 5] = dbounds$ghlambda.LB
-		pars[idx["ghlambda", 1]:idx["ghlambda", 2], 6] = dbounds$ghlambda.UB
+		if(is.na(pars[idx["ghlambda", 1]:idx["ghlambda", 2], 5])) pars[idx["ghlambda", 1]:idx["ghlambda", 2], 5] = dbounds$ghlambda.LB
+		if(is.na(pars[idx["ghlambda", 1]:idx["ghlambda", 2], 6])) pars[idx["ghlambda", 1]:idx["ghlambda", 2], 6] = dbounds$ghlambda.UB
 		if(is.null(start.pars$ghlambda)) pars[idx["ghlambda", 1]:idx["ghlambda", 2], 1] = dbounds$ghlambda else pars[idx["ghlambda", 1]:idx["ghlambda", 2], 1] = start.pars$ghlambda[1]
 		if(any(substr(fixed.names, 1, 8) == "ghlambda")){
 			pars[idx["ghlambda", 1]:idx["ghlambda", 2], 1] = as.numeric(fixed.pars$ghlambda)
@@ -508,7 +506,7 @@
 				pars[mxnames[sp[i]], 6] = as.numeric(fixed.pars[mxnames[sp[i]]])
 			}
 		}
-	}		
+	}
 	return( pars )
 }
 
