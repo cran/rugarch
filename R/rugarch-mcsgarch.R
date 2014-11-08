@@ -23,7 +23,9 @@
 # [mu ar ma arfima im mxreg omega alpha beta gamma gamma11 gamma21 delta lambda vxreg skew shape dlamda aux aux aux aux]
 
 .mcsgarchfit = function(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = 'all'), DailyVar)
+		fit.control = list(stationarity = 1, fixed.se = 0, scale = 0, rec.init = 'all'), 
+		numderiv.control = list(grad.eps=1e-4, grad.d=0.0001, grad.zero.tol=sqrt(.Machine$double.eps/7e-7),
+				hess.eps=1e-4, hess.d=0.1, hess.zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2), DailyVar)
 {
 	tic = Sys.time()
 	if(is.null(solver.control$trace)) trace = 0 else trace = solver.control$trace
@@ -245,7 +247,7 @@
 		arglist$data = data
 		fit = .makefitmodel(garchmodel = "mcsGARCH", f = .mcsgarchLLH, T = T, m = m, 
 				timer = timer, convergence = convergence, message = sol$message, 
-				hess, arglist = arglist)
+				hess, arglist = arglist, numderiv.control = numderiv.control)
 		model$modelinc[7] = modelinc[7]
 		model$modeldata$data = origdata
 		model$modeldata$index = origindex
@@ -1557,13 +1559,13 @@
 # x = residuals
 .diurnal_series_aligned = function(x, v, idx1, idx2)
 {
-	s = sapply(idx1, function(i) median((x[i]^2)/v[i]))
+	s = sapply(idx1, function(i) mean((x[i]^2)/v[i]))
 	sx = as.numeric(unlist(sapply(idx2, function(x) na.omit(s*x))))
 	return(sx)
 }
 
 .diurnal_series = function(x, v, idx1)
 {
-	s = sapply(idx1, function(i) median(x[i]^2/v[i]))
+	s = sapply(idx1, function(i) mean(x[i]^2/v[i]))
 	return(s)
 }

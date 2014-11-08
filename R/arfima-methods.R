@@ -197,7 +197,9 @@ setReplaceMethod(f="setstart", signature= c(object = "ARFIMAspec", value = "vect
 setReplaceMethod(f="setbounds", signature= c(object = "ARFIMAspec", value = "vector"), definition = .setbounds)
 
 arfimafit = function(spec, data, out.sample = 0, solver = "solnp", solver.control = list(), 
-		fit.control = list(fixed.se = 0, scale = 0), ...)
+		fit.control = list(fixed.se = 0, scale = 0), 
+		numderiv.control = list(grad.eps=1e-4, grad.d=0.0001, grad.zero.tol=sqrt(.Machine$double.eps/7e-7),
+				hess.eps=1e-4, hess.d=0.1, hess.zero.tol=sqrt(.Machine$double.eps/7e-7), r=4, v=2), ...)
 {
 	UseMethod("arfimafit")
 }
@@ -426,8 +428,8 @@ setMethod("show",
 			dates = object@model$dates
 			series = sim$seriesSim
 			resids = sim$residSim
-			m = dim(sigma)[2]
-			N = dim(sigma)[1]
+			m = dim(series)[2]
+			N = dim(series)[1]
 			cat(paste("\nHorizon: ",N))
 			cat(paste("\nSimulations: ",m,"\n",sep=""))
 			rx1 = apply(series, 2, FUN=function(x) mean(x))
