@@ -873,7 +873,7 @@ pgh = function(q, alpha = 1, beta = 0, delta = 1, mu = 0, lambda = 1)
 	for(i in 1:maxn){
 		Integral = integrate(dgh, -Inf, q[i], stop.on.error = FALSE,
 				alpha = alpha[i], beta = beta[i], delta = delta[i], mu = mu[i],
-				lambda = lambda[i])
+				lambda = lambda[i], rel.tol = .Machine$double.eps^0.5)
 		ans[i] = as.numeric(unlist(Integral)[1])
 	}
 	return( ans )
