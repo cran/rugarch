@@ -1,6 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2015.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -798,6 +798,7 @@
 		ans1 = try(.C("sgarchsimC", model = as.integer(modelinc[1:21]), 
 						pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
 						h = as.double(h), z = as.double(z[,i]), res = as.double(res),
+						e = as.double(res*res),
 						vexdata = as.double(vexsim[[i]]), T = as.integer(n+m), 
 						m = as.integer(m), PACKAGE = "rugarch"), silent = TRUE)
 		
@@ -1134,6 +1135,7 @@
 		ans1 = try(.C("sgarchsimC", model = as.integer(modelinc[1:21]), 
 						pars = as.double(ipars[,1]), idx = as.integer(idx[,1]-1), 
 						h = as.double(h), z = as.double(z[,i]), res = as.double(res),
+						e = as.double(res*res),
 						vexdata = as.double(vexsim[[i]]), T = as.integer(n+m), 
 						m = as.integer(m), PACKAGE = "rugarch"), silent = TRUE)
 		

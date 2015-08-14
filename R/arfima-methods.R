@@ -1,6 +1,6 @@
 #################################################################################
 ##
-##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2013.
+##   R package rugarch by Alexios Ghalanos Copyright (C) 2008-2015.
 ##   This file is part of the R package rugarch.
 ##
 ##   The R package rugarch is free software: you can redistribute it and/or modify
@@ -1072,9 +1072,28 @@ setMethod("report", signature(object = "ARFIMAroll"), .arfimarollreport)
 	invisible(object)
 }
 
+.getspec2 = function(object)
+{
+	spec = arfimaspec(
+			mean.model = list(armaOrder = c(object@model$modelinc[2],object@model$modelinc[3]),
+					include.mean = object@model$modelinc[1],
+					arfima = object@model$modelinc[4], external.regressors = object@model$modeldata$mexdata),
+			distribution.model = object@model$modeldesc$distribution, fixed.pars = object@model$fixed.pars)
+	# should custom bounds be propagated?
+	#idx = which(is.na(tmp@model$pars[,"LB"]))
+	#tmp@model$pars[idx,"LB"] = object@model$pars[idx,"LB"]
+	#idx = which(is.na(tmp@model$pars[,"UB"]))
+	#tmp@model$pars[idx,"UB"] = object@model$pars[idx,"UB"]
+	return(spec)
+}
+
+setMethod(f = "getspec", signature(object = "ARFIMAfit"), definition = .getspec2)
+
 #######################
 setMethod("convergence", signature(object = "ARFIMAfit"),  definition = .convergence)
 setMethod("vcov", signature(object = "ARFIMAfit"),  definition = .vcov)
 
 setMethod("fpm", signature(object = "ARFIMAforecast"),  definition = .fpm1)
 setMethod("fpm", signature(object = "ARFIMAroll"),  definition = .fpm2)
+
+setMethod("reduce", signature(object = "ARFIMAfit"), .reduce)
