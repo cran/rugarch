@@ -1,9 +1,9 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH Models
-Version: 1.4-0
-Date: 2018-01-28
-Authors@R: c(person("Alexios", "Ghalanos", role = c("aut", "cre"), email = "alexios@4dscape.com"))
+Version: 1.4-1
+Date: 2019-01-15
+Authors@R: c(person("Alexios", "Ghalanos", role = c("aut", "cre"), email = "alexios@4dscape.com"),person("Tobias","Kley",role="ctb",email="tobias.kley@bristol.ac.uk"))
 Depends: R (>= 3.0.2), methods, parallel
 LinkingTo: Rcpp (>= 0.10.6), RcppArmadillo (>= 0.2.34)
 Imports: Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron,
@@ -26,8 +26,9 @@ URL: http://www.unstarched.net, https://bitbucket.org/alexiosg
 License: GPL-3
 RoxygenNote: 6.0.1
 NeedsCompilation: yes
-Packaged: 2018-02-04 22:42:44 UTC; alexiosg
-Author: Alexios Ghalanos [aut, cre]
+Packaged: 2019-01-16 04:03:17 UTC; alexi
+Author: Alexios Ghalanos [aut, cre],
+  Tobias Kley [ctb]
 Maintainer: Alexios Ghalanos <alexios@4dscape.com>
 Repository: CRAN
-Date/Publication: 2018-02-04 23:03:17 UTC
+Date/Publication: 2019-01-16 06:20:04 UTC
