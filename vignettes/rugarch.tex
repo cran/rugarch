@@ -593,6 +593,7 @@ where ${\pi _i} = \prod\limits_{1 \le k \le i} {\frac{{k - 1 - d}}{k}}$. The exp
  = {\omega ^*} + \sum\limits_{j = 1}^\infty  {{\lambda _i}{L^i}\varepsilon _t^2}
 \end{array}
 \end{equation}
+
 where ${\lambda _1} = {\phi _1} - {\beta _1} + d$ and ${\lambda _k} = {\beta _1}{\lambda _{k - 1}} + \left( {\frac{{k - 1 - d}}{k} - {\phi _1}} \right){\pi _{d,k - 1}}$. For the FIGARCH(1,d,1) model, sufficient conditions to ensure positivity of the conditional variance are $\omega  > 0$,${\beta _1} - d \le {\phi _1} \le \left( {\frac{{2 - d}}{2}} \right)$ , and $d\left( {{\phi _1} - \frac{{\left( {1 - d} \right)}}{2}} \right) \le {\beta _1}\left( {{\phi _1} - {\beta _1} + d} \right)$.
 In keeping with the formulation used for GARCH models in this package, we re-write equation \ref{equation:figarch1} as follows, setting $\phi \left( L \right) \equiv \left( {1 - \alpha \left( L \right)} \right)$:
 \begin{equation}
@@ -604,11 +605,15 @@ In keeping with the formulation used for GARCH models in this package, we re-wri
 \sigma _t^2 = \omega  + \left\{ {1 - \beta \left( L \right) - \left( {1 - \alpha \left( L \right)} \right){{\left( {1 - L} \right)}^d}} \right\}\varepsilon _t^2 + \beta \left( L \right)\sigma _t^2
 \end{array}
 \end{equation}
-Truncating the expansion to 1000 lags and setting $\bar \varepsilon _{t - j}^2 = {\left( {1 - L} \right)^d}\varepsilon _{t - j}^2 = \varepsilon _{t - j}^2 + \left( {\sum\limits_{k = 1}^{1000} {{\pi _k}{L^k}} } \right)\varepsilon _{t - j}^2$:
+Truncating the expansion to 1000 lags and setting ${\left( {1 - L} \right)^d}\varepsilon _t^2 = \varepsilon _t^2 + \left( {\sum\limits_{k = 1}^{1000} {{\pi _k}{L^k}} } \right)\varepsilon _t^2 = \varepsilon _t^2 + \bar \varepsilon _t^2$, we can rewrite the equation as:
 \begin{equation}
 \begin{array}{l}
-\sigma _t^2 = \omega  - \sum\limits_{j = 1}^p {{\beta _j}\varepsilon _{t - j}^2 + } \sum\limits_{j = 1}^q {{\alpha _j}\varepsilon _{t - j}^2 - \bar \varepsilon _{t - j}^2 + \sum\limits_{j = 1}^q {{\alpha _j}\bar \varepsilon _{t - j}^2 + } } \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^2} \\
- = \left( {\omega  - \bar \varepsilon _{t - j}^2} \right) + \sum\limits_{j = 1}^q {{\alpha _j}\left( {\varepsilon _{t - j}^2 + \bar \varepsilon _{t - j}^2} \right)}  + \sum\limits_{j = 1}^p {{\beta _j}\left( {\sigma _{t - j}^2 - \varepsilon _{t - j}^2} \right)}
+\sigma _t^2 = \omega  + \left\{ {\varepsilon _t^2 - \beta \left( L \right)\varepsilon _t^2 - {{\left( {1 - L} \right)}^d}\varepsilon _t^2 + \alpha \left( L \right){{\left( {1 - L} \right)}^d}\varepsilon _t^2} \right\} + \beta \left( L \right)\sigma _t^2\\
+\sigma _t^2 = \omega  + \left\{ {\varepsilon _t^2 - \beta \left( L \right)\varepsilon _t^2 - \left( {\varepsilon _t^2 + \bar \varepsilon _t^2} \right) + \alpha \left( L \right)\left( {\varepsilon _t^2 + \bar \varepsilon _t^2} \right)} \right\} + \beta \left( L \right)\sigma _t^2\\
+\sigma _t^2 = \omega  + \varepsilon _t^2 - \beta \left( L \right)\varepsilon _t^2 - \left( {\varepsilon _t^2 + \bar \varepsilon _t^2} \right) + \alpha \left( L \right)\left( {\varepsilon _t^2 + \bar \varepsilon _t^2} \right) + \beta \left( L \right)\sigma _t^2\\
+\sigma _t^2 = \omega  - \bar \varepsilon _t^2 - \beta \left( L \right)\varepsilon _t^2 + \alpha \left( L \right)\left( {\varepsilon _t^2 + \bar \varepsilon _t^2} \right) + \beta \left( L \right)\sigma _t^2\\
+\sigma _t^2 = \left( {\omega  - \bar \varepsilon _t^2} \right) - \sum\limits_{j = 1}^p {{\beta _j}\varepsilon _{t - j}^2 + \sum\limits_{j = 1}^q {{\alpha _j}\varepsilon _{t - j}^2}  + } \sum\limits_{j = 1}^q {{\alpha _j}\bar \varepsilon _{t - j}^2}  + \sum\limits_{j = 1}^p {{\beta _j}\sigma _{t - j}^2} \\
+\sigma _t^2 = \left( {\omega  - \bar \varepsilon _t^2} \right) + \sum\limits_{j = 1}^q {{\alpha _j}\left( {\varepsilon _{t - j}^2 + \bar \varepsilon _{t - j}^2} \right)}  + \sum\limits_{j = 1}^p {{\beta _j}\left( {\sigma _{t - j}^2 - \varepsilon _{t - j}^2} \right)} 
 \end{array}
 \end{equation}
 

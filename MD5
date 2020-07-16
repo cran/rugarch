@@ -1,6 +1,6 @@
-556f22be4546fad235584d3dd24e40dd *ChangeLog
-a69bbe1087870d1473a086dacc66e383 *DESCRIPTION
-44675c77957bbea7f8d39eaa34b6be3d *NAMESPACE
+a742d00f883b66fca654c7c93c8f8be9 *ChangeLog
+71799ab6c7f761b224f78b178feddf80 *DESCRIPTION
+0817bd618eef52050097d32959ffbae0 *NAMESPACE
 0d9f1bb742757ed02629cc685d284eee *R/arfima-classes.R
 fd5e4d2b361728e9c3da23f61ea62b1a *R/arfima-main.R
 f5e9905881a89a9831ca1dfa203b8bae *R/arfima-methods.R
@@ -19,7 +19,7 @@ d9c2f05387db7df23bbc54a608483375 *R/rugarch-fgarch.R
 ca255e1fff3d6b22105c1fa40e23566a *R/rugarch-figarch.R
 e1ae6d1077d17aae6c53c7a59a9c62b5 *R/rugarch-gjrgarch.R
 c999af7569fc5451ccf1328981da6c0b *R/rugarch-graphs.R
-80f0ba7631c2666ecfa32d6bdd8315f4 *R/rugarch-helperfn.R
+4e357961c649c66b84c08e9283e9cf40 *R/rugarch-helperfn.R
 41fdbea270ffcc483636adb6fb44e6d4 *R/rugarch-igarch.R
 28e4ce7c0f512856f144b2e0f4785f87 *R/rugarch-imports.R
 2ace0e0ce1406b744fe0096f968eda4b *R/rugarch-kappa.R
@@ -39,15 +39,15 @@ d84193dd2977e78c16a18773dd977c16 *R/rugarch-tests.R
 020de2834c757ecde7c1bde75994857c *R/rugarch-uncertainty.R
 91272d323f02d05807e96c746e79e2af *R/zzz.R
 ef54da5daf3e09164e38571455908291 *README.md
-a69d098a49ddaab2cf88938188a2e524 *build/vignette.rds
+1ce185f5975f766556e7100165ddd13e *build/vignette.rds
 f477c98d87c1a27c80709d8251dda27f *data/dji30ret.rda
 d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 328cbcf8a3db21ab557005318ea0729a *data/sp500ret.rda
 492bce8f86d2ae7c2ed0263e9fa13f8b *data/spyreal.rda
 5d2ea6d4818dfe5c39034fcfb127627c *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
-f3daf1d80fd7e45ae6fe6e27a5248a6d *inst/doc/Introduction_to_the_rugarch_package.Rnw
-d3d5c8faabe5243bd3a2bad1200f9e18 *inst/doc/Introduction_to_the_rugarch_package.pdf
+86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
+763826803014c42e2e9510de1c863532 *inst/doc/Introduction_to_the_rugarch_package.pdf
 0eb8ce2c143278bc7cdcdf5af6f53a1f *inst/rugarch.tests/rugarch.test1.R
 c75d2cc298d9cf8adc4e5e4bceab7c58 *inst/rugarch.tests/rugarch.test10.R
 bb95a20b99013fea33cb98a40768aabf *inst/rugarch.tests/rugarch.test11.R
@@ -158,7 +158,7 @@ ca7534c5f9fffc8cab103d04b4bfba96 *src/nig.c
 63d3d6a74282dd76c383412094a98e56 *src/nig.h
 f783fd414b727ea3eaa781aa58d1ad92 *src/rugarch.c
 323d417e5665e363e2c65ca36ab4cb1f *src/rugarch.h
-f3daf1d80fd7e45ae6fe6e27a5248a6d *vignettes/Introduction_to_the_rugarch_package.Rnw
+86f947c60ef5bb507080460299326963 *vignettes/Introduction_to_the_rugarch_package.Rnw
 5fcb22e80334ae37df4d1a5ab3f9b0aa *vignettes/boot_partial.png
 2f4e41ac91b1246890c6af192364511b *vignettes/dist1.png
 ea894e37a352b7cb1be4e22ce051029d *vignettes/dist11.png
@@ -170,5 +170,5 @@ dc0b70ca436ea0e99eb8cde8e6bf538c *vignettes/ghyp1.png
 9e9639aa64be69d29d2efbf1130f3d12 *vignettes/ghyp3.png
 70ee52968f682de22d14cd9d87dbe87c *vignettes/ghyp4.png
 cdb334aedc5c59bbb89b35d9fb1f75ce *vignettes/roll.png
-ad5f692580081988d400e56f5f3d0fca *vignettes/rugarch.tex
+a19c308fcb4a246ecf2dd6e2a0416096 *vignettes/rugarch.tex
 1fc82cc5f1d260e3e976721803f19d4f *vignettes/rugarchbib.bib

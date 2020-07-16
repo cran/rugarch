@@ -1,13 +1,13 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH Models
-Version: 1.4-2
-Date: 2020-02-06
-Authors@R: c(person("Alexios", "Ghalanos", role = c("aut", "cre"), email = "alexios@4dscape.com"),person("Tobias","Kley",role="ctb",email="tobias.kley@bristol.ac.uk"))
+Version: 1.4-4
+Date: 2020-07-14
+Authors@R: c(person("Alexios", "Ghalanos", role = c("aut", "cre"), email = "alexios@4dscape.com"), person("Tobias","Kley",role="ctb",email="tobias.kley@bristol.ac.uk"))
 Depends: R (>= 3.5.0), methods, parallel
 LinkingTo: Rcpp (>= 0.10.6), RcppArmadillo (>= 0.2.34)
 Imports: Rsolnp, nloptr, ks, numDeriv, spd, xts, zoo, chron,
-        SkewHyperbolic, expm, Rcpp,graphics, stats, grDevices, utils
+        SkewHyperbolic, Rcpp,graphics, stats, grDevices, utils
 Description: ARFIMA, in-mean, external regressors and various GARCH flavors, with methods for fit, forecast, simulation, inference and plotting.
 Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
         rugarch-lossfn.R rugarch-distributions.R rugarch-kappa.R
@@ -24,11 +24,10 @@ Collate: rugarch-imports.R rugarch-cwrappers.R rugarch-solvers.R
 LazyLoad: yes
 URL: http://www.unstarched.net, https://bitbucket.org/alexiosg
 License: GPL-3
-RoxygenNote: 6.0.1
 NeedsCompilation: yes
-Packaged: 2020-02-08 04:15:48 UTC; alexios
+Packaged: 2020-07-16 04:08:09 UTC; alexios
 Author: Alexios Ghalanos [aut, cre],
   Tobias Kley [ctb]
 Maintainer: Alexios Ghalanos <alexios@4dscape.com>
 Repository: CRAN
-Date/Publication: 2020-02-08 06:10:03 UTC
+Date/Publication: 2020-07-16 04:50:02 UTC
