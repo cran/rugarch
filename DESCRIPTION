@@ -1,8 +1,8 @@
 Package: rugarch
 Type: Package
 Title: Univariate GARCH Models
-Version: 1.4-6
-Date: 2022-01-10
+Version: 1.4-7
+Date: 2022-02-03
 Authors@R: c(person("Alexios", "Galanos", role = c("aut", "cre"), email = "alexios@4dscape.com"),person("Tobias","Kley",role="ctb",email="tobias.kley@bristol.ac.uk"))
 Maintainer: Alexios Galanos <alexios@4dscape.com>
 Depends: R (>= 3.5.0), methods, parallel
@@ -26,8 +26,8 @@ LazyLoad: yes
 URL: http://www.unstarched.net, https://bitbucket.org/alexiosg
 License: GPL-3
 NeedsCompilation: yes
-Packaged: 2022-01-18 14:29:21 UTC; alexios
+Packaged: 2022-02-02 10:12:50 UTC; alexios
 Author: Alexios Galanos [aut, cre],
   Tobias Kley [ctb]
 Repository: CRAN
-Date/Publication: 2022-01-18 17:22:43 UTC
+Date/Publication: 2022-02-02 11:30:02 UTC

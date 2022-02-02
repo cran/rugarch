@@ -1,6 +1,6 @@
-a951a869b34c78881597e7b576aa76e2 *ChangeLog
-38a2416ab05aba50fedfbfb897f213d3 *DESCRIPTION
-779faea3c3937275bb2d553c98440ec8 *NAMESPACE
+b82b18fe9b6c6dddf44ece273d60533a *ChangeLog
+647ac1314415767f215f09394cc8e967 *DESCRIPTION
+c74d5e2162700f89ef21ad7ed67e676d *NAMESPACE
 053608e3d123a7f23de5739563cfdd80 *R/arfima-classes.R
 17bdceb0349385d1b854131cc3348f31 *R/arfima-main.R
 a8934c078a2340b8cf280daaf6cc927a *R/arfima-methods.R
@@ -38,7 +38,7 @@ c8db9e3b3a2cd60daf607089b7dbbbbc *R/rugarch-rolling.R
 f363817f5e9f698346122605fc3a782b *R/rugarch-tests.R
 293a0620768321bf59fa9efd9844560f *R/rugarch-uncertainty.R
 4850040bfc842ec238ed6eca1d6144d7 *R/zzz.R
-75496faed664173e1d73c7a511e05e48 *README.md
+b9c2a26e43f76b0610c6aa8352516cce *README.md
 73c2e1b752c68e6a486b3d55de17dd76 *build/vignette.rds
 f477c98d87c1a27c80709d8251dda27f *data/dji30ret.rda
 d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
@@ -47,7 +47,7 @@ d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 5d2ea6d4818dfe5c39034fcfb127627c *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
 86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
-5cc6efd1514a5d6c7217a193689ee351 *inst/doc/Introduction_to_the_rugarch_package.pdf
+7f12b547d5e8faa3a65775bac87021af *inst/doc/Introduction_to_the_rugarch_package.pdf
 aa46986744f7577e6ab38e34d41a5b11 *inst/rugarch.tests/rugarch.test1.R
 734d7b3c32ffe081e0127b645efd4307 *inst/rugarch.tests/rugarch.test10.R
 2fb550f3f56e0e7e706420a40de2d8dc *inst/rugarch.tests/rugarch.test11.R
@@ -108,6 +108,7 @@ eae6b519230b46e0715860df5aa137ca *man/arfimaspec-methods.Rd
 120d81a55df0625f28ccdc302576c90b *man/autoarfima.Rd
 783e7d764feed741011d44145673162b *man/dji30ret.Rd
 46e6107e34d18e36404bbfcd491eb7a8 *man/dmbp.Rd
+0a42c791f50089475426405c2ca62ade *man/extradistfun.Rd
 a5d7a57ea7cbc339c2be13680d689d2b *man/ghyptransform.Rd
 4d25a176ab941bcb46d421bffe9ca5a9 *man/mcs.Rd
 1b01ec77bbafb7fb09163680aa705d55 *man/multifilter-methods.Rd
