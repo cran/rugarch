@@ -1,9 +1,9 @@
-b82b18fe9b6c6dddf44ece273d60533a *ChangeLog
-647ac1314415767f215f09394cc8e967 *DESCRIPTION
+54244b4fc0e7023fc47ef296fd616636 *ChangeLog
+7fe8473deb6d4d90dbc276f3fcb78125 *DESCRIPTION
 c74d5e2162700f89ef21ad7ed67e676d *NAMESPACE
 053608e3d123a7f23de5739563cfdd80 *R/arfima-classes.R
 17bdceb0349385d1b854131cc3348f31 *R/arfima-main.R
-a8934c078a2340b8cf280daaf6cc927a *R/arfima-methods.R
+a543e90d7b69c6867d42ee7580d0e38d *R/arfima-methods.R
 2942131ea5c24a61b10beac3f8fb3a63 *R/arfima-multi.R
 4de152f475d1676a3f7116288f8bba34 *R/rugarch-aparch.R
 d5834265d597dbbd8b81188d44192c2a *R/rugarch-armafor.R
@@ -25,7 +25,7 @@ eea2c0839e13e9d66da6c51845d1957f *R/rugarch-graphs.R
 648e03c5207c23417d766e56249ae023 *R/rugarch-kappa.R
 2d4f1f6953bb1d05f8705b59b1c3e750 *R/rugarch-lossfn.R
 a47806eb47500bf92a199d6abc31e9bf *R/rugarch-mcsgarch.R
-8faa3f127c3c041c0bf5072061bb9d18 *R/rugarch-methods.R
+d86ecec533b6b9b0d57c4de42b3309f6 *R/rugarch-methods.R
 f4946c2dfe9452feaeb952d9c73d3871 *R/rugarch-multi.R
 a2bd31285b5e979eccb06093a526a861 *R/rugarch-numderiv.R
 32d4066949fd281f0588dc1509fdb0fb *R/rugarch-plots.R
@@ -34,7 +34,7 @@ c8db9e3b3a2cd60daf607089b7dbbbbc *R/rugarch-rolling.R
 37217fa8bbedd190e478c580a05d553a *R/rugarch-series.R
 89ccdaf68f417f0fea87cdb2e298de72 *R/rugarch-sgarch.R
 9e57799c3dcc1b5b26c2e4145b60acd2 *R/rugarch-solvers.R
-2f6eae5c9ea683daa71e83411093e560 *R/rugarch-startpars.R
+429dab9301ed25cb90a7cae590056260 *R/rugarch-startpars.R
 f363817f5e9f698346122605fc3a782b *R/rugarch-tests.R
 293a0620768321bf59fa9efd9844560f *R/rugarch-uncertainty.R
 4850040bfc842ec238ed6eca1d6144d7 *R/zzz.R
@@ -47,7 +47,7 @@ d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 5d2ea6d4818dfe5c39034fcfb127627c *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
 86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
-7f12b547d5e8faa3a65775bac87021af *inst/doc/Introduction_to_the_rugarch_package.pdf
+94a51bf6238c44fec04c6da475accca9 *inst/doc/Introduction_to_the_rugarch_package.pdf
 aa46986744f7577e6ab38e34d41a5b11 *inst/rugarch.tests/rugarch.test1.R
 734d7b3c32ffe081e0127b645efd4307 *inst/rugarch.tests/rugarch.test10.R
 2fb550f3f56e0e7e706420a40de2d8dc *inst/rugarch.tests/rugarch.test11.R
@@ -116,7 +116,7 @@ a5d7a57ea7cbc339c2be13680d689d2b *man/ghyptransform.Rd
 e74042b6fe4847804983209b7c9813ea *man/multiforecast-methods.Rd
 75815338b0aeef92aa3905131d2b879c *man/multispec-methods.Rd
 35071af79567638b67f3f67e5b9c6a11 *man/rGARCH-class.Rd
-ac287e002c896a729e9258e92a2fd55d *man/rugarch-package.Rd
+43f032a5db7f51dfa6fc3c6d47d2d5a7 *man/rugarch-package.Rd
 5c0ee580e96032714e5f989a1b99bc31 *man/sp500ret.Rd
 c9b27760e4d1da240f6b9d7ea8da5fc0 *man/spyreal.Rd
 1bc5506c68e59af5c9e65f89d8dabb55 *man/uGARCHboot-class.Rd
@@ -153,7 +153,7 @@ c89e1472ceeefab43bf8386e2c790bf9 *man/ugarchroll-methods.Rd
 9e2d80ab07bc4c83b1faf50a35bb9eea *src/garchmodels.c
 51432cbd752f6197eba51fabed76b58b *src/garchsim.cpp
 311261e551a33714ec84737ccfbc5981 *src/garchsim.h
-e651dcb94820227a4c7eb612557b3296 *src/gig.c
+03cdf66b69513968b865bc4337fe7278 *src/gig.c
 5a63e3db732ceececb0d10e366930a90 *src/gig.h
 ca7534c5f9fffc8cab103d04b4bfba96 *src/nig.c
 63d3d6a74282dd76c383412094a98e56 *src/nig.h
