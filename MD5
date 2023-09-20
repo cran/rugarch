@@ -1,6 +1,6 @@
-26a89efd4cd8f21ef274b38e9fe58d26 *ChangeLog
-f3fe74f0705ca5e6aa004f3a9443852c *DESCRIPTION
-c74d5e2162700f89ef21ad7ed67e676d *NAMESPACE
+245094d8784a6b946c3ece36cd03ee15 *ChangeLog
+3207ba72388727a33591df89f09b1f04 *DESCRIPTION
+ea4bccd139db1ca97f00e707c93577eb *NAMESPACE
 053608e3d123a7f23de5739563cfdd80 *R/arfima-classes.R
 17bdceb0349385d1b854131cc3348f31 *R/arfima-main.R
 a543e90d7b69c6867d42ee7580d0e38d *R/arfima-methods.R
@@ -33,9 +33,9 @@ a2bd31285b5e979eccb06093a526a861 *R/rugarch-numderiv.R
 c8db9e3b3a2cd60daf607089b7dbbbbc *R/rugarch-rolling.R
 37217fa8bbedd190e478c580a05d553a *R/rugarch-series.R
 89ccdaf68f417f0fea87cdb2e298de72 *R/rugarch-sgarch.R
-9e57799c3dcc1b5b26c2e4145b60acd2 *R/rugarch-solvers.R
+7171734efeef9dbc6ab12719569e75fd *R/rugarch-solvers.R
 429dab9301ed25cb90a7cae590056260 *R/rugarch-startpars.R
-f363817f5e9f698346122605fc3a782b *R/rugarch-tests.R
+2a8d38e801beca6e094146fc9cf965d2 *R/rugarch-tests.R
 293a0620768321bf59fa9efd9844560f *R/rugarch-uncertainty.R
 4850040bfc842ec238ed6eca1d6144d7 *R/zzz.R
 f2fd7bbb0efd41a9bb6d29f8f29b1b02 *README.md
@@ -44,10 +44,10 @@ f477c98d87c1a27c80709d8251dda27f *data/dji30ret.rda
 d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 328cbcf8a3db21ab557005318ea0729a *data/sp500ret.rda
 492bce8f86d2ae7c2ed0263e9fa13f8b *data/spyreal.rda
-5d2ea6d4818dfe5c39034fcfb127627c *inst/CITATION
+964d16c9f53be1f23cdb49a7f48e01d0 *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
 86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
-9966c66126391afc28c7282472686660 *inst/doc/Introduction_to_the_rugarch_package.pdf
+e95a2228de24a66c4139653e888fc5bf *inst/doc/Introduction_to_the_rugarch_package.pdf
 aa46986744f7577e6ab38e34d41a5b11 *inst/rugarch.tests/rugarch.test1.R
 734d7b3c32ffe081e0127b645efd4307 *inst/rugarch.tests/rugarch.test10.R
 2fb550f3f56e0e7e706420a40de2d8dc *inst/rugarch.tests/rugarch.test11.R
@@ -143,7 +143,7 @@ eb658f001ce6f5cdad574ef62879f83c *man/ugarchforecast-methods.Rd
 c89e1472ceeefab43bf8386e2c790bf9 *man/ugarchroll-methods.Rd
 65abe0027458c0a3e0bf83e62110af0d *man/ugarchsim-methods.Rd
 8046ce3bb83c3d2c1fa10c18162f0175 *man/ugarchspec-methods.Rd
-05aa9fba21d7988c6917b60e265518d1 *src/distributions.c
+e848a984a5bb03a8b674850984184a91 *src/distributions.c
 0cc1ceafe2a6b5d16c40a762f0e1ad49 *src/distributions.h
 9de144b0ed2d97ea6ee1268b0afa4159 *src/filters.c
 3aa7a9b01b336bf17b0a487f664b3e05 *src/filters.h
