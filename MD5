@@ -1,6 +1,6 @@
-be7be8e34b8e46dea8e7ea387290c4d3 *ChangeLog
-e04a1975d7a5cfc00603d507f07ca985 *DESCRIPTION
-92cda5c9250e20c78d442c543a8a3f46 *NAMESPACE
+50a61846403a0e4d4e3e86452750a3ae *ChangeLog
+7a066db17bda6b2c6d5c5c72f38b0b8b *DESCRIPTION
+d1cc51d80f4ed835123cdc2870a4923f *NAMESPACE
 053608e3d123a7f23de5739563cfdd80 *R/arfima-classes.R
 17bdceb0349385d1b854131cc3348f31 *R/arfima-main.R
 a543e90d7b69c6867d42ee7580d0e38d *R/arfima-methods.R
@@ -25,7 +25,7 @@ eea2c0839e13e9d66da6c51845d1957f *R/rugarch-graphs.R
 648e03c5207c23417d766e56249ae023 *R/rugarch-kappa.R
 2d4f1f6953bb1d05f8705b59b1c3e750 *R/rugarch-lossfn.R
 a47806eb47500bf92a199d6abc31e9bf *R/rugarch-mcsgarch.R
-d86ecec533b6b9b0d57c4de42b3309f6 *R/rugarch-methods.R
+da76d0e522c92850ddd0f3692d50076e *R/rugarch-methods.R
 f4946c2dfe9452feaeb952d9c73d3871 *R/rugarch-multi.R
 a2bd31285b5e979eccb06093a526a861 *R/rugarch-numderiv.R
 32d4066949fd281f0588dc1509fdb0fb *R/rugarch-plots.R
@@ -38,7 +38,7 @@ c8db9e3b3a2cd60daf607089b7dbbbbc *R/rugarch-rolling.R
 a0ad098abfa3db22d3eff7c2f19f37d5 *R/rugarch-tests.R
 293a0620768321bf59fa9efd9844560f *R/rugarch-uncertainty.R
 4850040bfc842ec238ed6eca1d6144d7 *R/zzz.R
-7edfd761c8785f88e94dd0405d35afa3 *README.md
+50b88e9a91d56b0855fda7dadfe1feb1 *README.md
 4c291640a3c06669408ded38ad1f341b *build/vignette.rds
 f477c98d87c1a27c80709d8251dda27f *data/dji30ret.rda
 d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
@@ -47,7 +47,7 @@ d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 964d16c9f53be1f23cdb49a7f48e01d0 *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
 86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
-1d63c7c0ecdae81207ee9f9f62e9cdb1 *inst/doc/Introduction_to_the_rugarch_package.pdf
+d43eaefde812bbf2154198f1b12c9e6b *inst/doc/Introduction_to_the_rugarch_package.pdf
 aa46986744f7577e6ab38e34d41a5b11 *inst/rugarch.tests/rugarch.test1.R
 734d7b3c32ffe081e0127b645efd4307 *inst/rugarch.tests/rugarch.test10.R
 2fb550f3f56e0e7e706420a40de2d8dc *inst/rugarch.tests/rugarch.test11.R
@@ -122,7 +122,7 @@ abd7536df7181a7618315486fc596290 *man/sp500ret.Rd
 1bc5506c68e59af5c9e65f89d8dabb55 *man/uGARCHboot-class.Rd
 9006ce5fe48ae4ebfff7a1c98a4fb5fd *man/uGARCHdistribution-class.Rd
 7d771141d95ce4a7b15db3b631dfb51b *man/uGARCHfilter-class.Rd
-a5b977dade210f7b53145084a551db67 *man/uGARCHfit-class.Rd
+739bc3c062a53d6e3837727afeb73f06 *man/uGARCHfit-class.Rd
 e456c75aeddb37eebaf63a3911dbc815 *man/uGARCHforecast-class.Rd
 c3a6c5114ae083a222e96ad573894877 *man/uGARCHmultifilter-class.Rd
 808a22c125c477aa03f1c36f08f03867 *man/uGARCHmultifit-class.Rd
