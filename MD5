@@ -1,5 +1,5 @@
-1a2709f6cb89f498d313955340e252ae *ChangeLog
-5030033e8ffb68f51e2829cee8f024ac *DESCRIPTION
+b099f50e5562decb1e5fe6c8917ba7f3 *ChangeLog
+2c96a7ce5ba6562c6fdebc488b53787e *DESCRIPTION
 d1cc51d80f4ed835123cdc2870a4923f *NAMESPACE
 053608e3d123a7f23de5739563cfdd80 *R/arfima-classes.R
 17bdceb0349385d1b854131cc3348f31 *R/arfima-main.R
@@ -39,7 +39,7 @@ a0ad098abfa3db22d3eff7c2f19f37d5 *R/rugarch-tests.R
 293a0620768321bf59fa9efd9844560f *R/rugarch-uncertainty.R
 4850040bfc842ec238ed6eca1d6144d7 *R/zzz.R
 dc15bf986ac51cc44d45d6cb204f3229 *README.md
-4c291640a3c06669408ded38ad1f341b *build/vignette.rds
+fe416b35fcfde550247e30d01d49dd18 *build/vignette.rds
 f477c98d87c1a27c80709d8251dda27f *data/dji30ret.rda
 d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 328cbcf8a3db21ab557005318ea0729a *data/sp500ret.rda
@@ -47,7 +47,7 @@ d4f6e99782e9921975a9158593d3fc7c *data/dmbp.rda
 964d16c9f53be1f23cdb49a7f48e01d0 *inst/CITATION
 06985a3e788daabdfae47888f458e403 *inst/COPYRIGHTS
 86f947c60ef5bb507080460299326963 *inst/doc/Introduction_to_the_rugarch_package.Rnw
-fcd6f69883764febaeace4d0446eec5c *inst/doc/Introduction_to_the_rugarch_package.pdf
+0004b05e4cf42d51ca193594ed91efee *inst/doc/Introduction_to_the_rugarch_package.pdf
 aa46986744f7577e6ab38e34d41a5b11 *inst/rugarch.tests/rugarch.test1.R
 734d7b3c32ffe081e0127b645efd4307 *inst/rugarch.tests/rugarch.test10.R
 2fb550f3f56e0e7e706420a40de2d8dc *inst/rugarch.tests/rugarch.test11.R
@@ -150,7 +150,7 @@ c89e1472ceeefab43bf8386e2c790bf9 *man/ugarchroll-methods.Rd
 086251ae3b26398a632e223bf65412da *src/fracdiff.c
 1a1842d114b35dceb4e0810bd6da9a3f *src/fracdiff.h
 9e2d80ab07bc4c83b1faf50a35bb9eea *src/garchmodels.c
-37f2e3fbe42608e535d49686ff1d209d *src/garchsim.cpp
+f193aa08a970b37019f2ccd767a2e4a0 *src/garchsim.cpp
 311261e551a33714ec84737ccfbc5981 *src/garchsim.h
 9440e65606b20161144a5c0448247356 *src/gig.c
 361473482eeb2c34a31215ea4618653b *src/gig.h
@@ -170,5 +170,5 @@ dc0b70ca436ea0e99eb8cde8e6bf538c *vignettes/ghyp1.png
 9e9639aa64be69d29d2efbf1130f3d12 *vignettes/ghyp3.png
 70ee52968f682de22d14cd9d87dbe87c *vignettes/ghyp4.png
 cdb334aedc5c59bbb89b35d9fb1f75ce *vignettes/roll.png
-99fc2e7afc2b455de61f010f7599d19d *vignettes/rugarch.tex
+58fd7d198b46fca3015a8b6bdfa8eb48 *vignettes/rugarch.tex
 edabba445be8dfa4f0b2358c48d5eab0 *vignettes/rugarchbib.bib
